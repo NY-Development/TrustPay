@@ -13,6 +13,8 @@ import {
 import { VerificationResult } from '../../types';
 import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
+import { NotificationService } from '../../services/notification.service';
+import { User } from '../../models/User';
 
 /**
  * @desc    Verify payment manually
@@ -66,6 +68,16 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
 
   await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT, { verificationId: verification._id, reference });
 
+  // Send Push Notification to the user who verified
+  const teller = await User.findById(userId);
+  if (teller?.pushToken) {
+    NotificationService.sendNotification(
+      teller.pushToken,
+      'Payment Verified',
+      `Transaction ${result.transactionId} of ${result.amount} ${result.currency} was successful.`
+    ).catch(err => logger.error('Push notification failed', err));
+  }
+
   res.status(200).json({
     success: true,
     message: 'Transaction successfully verified',
@@ -106,6 +118,16 @@ export const verifyUniversal = asyncHandler(async (req: Request, res: Response) 
     rawResponse: result.raw,
     status: 'completed'
   });
+
+  // Send Push Notification
+  const teller = await User.findById(req.user?.userId);
+  if (teller?.pushToken) {
+    NotificationService.sendNotification(
+      teller.pushToken,
+      'QR Payment Verified',
+      `Success: ${result.amount} ${result.currency} verified.`
+    ).catch(err => logger.error('Push notification failed', err));
+  }
 
   res.status(200).json({ success: true, data: verification });
 });
@@ -155,6 +177,16 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
     rawResponse: result.raw,
     status: 'completed'
   });
+
+  // Send Push Notification
+  const teller = await User.findById(req.user?.userId);
+  if (teller?.pushToken) {
+    NotificationService.sendNotification(
+      teller.pushToken,
+      'OCR Verification Success',
+      `Transaction ${result.transactionId} verified for ${result.amount} ${result.currency}.`
+    ).catch(err => logger.error('Push notification failed', err));
+  }
 
   res.status(200).json({ success: true, data: verification, extracted });
 });

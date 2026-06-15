@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/src/store/authStore';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
+import { useNotifications } from '@/src/hooks/useNotifications';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -9,111 +11,107 @@ import { useRouter } from 'expo-router';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  useNotifications();
   const { data: history, isLoading, refetch } = useVerificationHistory();
   const router = useRouter();
 
-  const stats = [
-    { label: 'Verified', value: history?.data?.filter(v => v.verified).length || 0, icon: 'checkmark-circle-outline', color: '#00E5FF' },
-    { label: 'Pending', value: 0, icon: 'time-outline', color: '#FFD700' },
-    { label: 'Flagged', value: history?.data?.filter(v => !v.verified).length || 0, icon: 'alert-circle-outline', color: '#FF3D00' },
-  ];
-
   return (
     <View className="flex-1 bg-black">
-      <ScrollView 
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor="#00E5FF" />}
-      >
-        {/* Header */}
-        <LinearGradient
-          colors={['#12005E', 'black']}
-          className="pt-20 px-6 pb-12 rounded-b-[40px]"
+      <SafeAreaView className="flex-1">
+        <ScrollView 
+          className="flex-1 px-6"
+          contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor="#00E5FF" />}
         >
-          <View className="flex-row justify-between items-center mb-8">
+          {/* Dashboard Header */}
+          <View className="flex-row justify-between items-center py-8">
             <View>
-              <Text className="text-zinc-500 text-lg font-medium">Welcome back,</Text>
-              <Text className="text-white text-3xl font-bold">{user?.name || 'Partner'}</Text>
+              <Text className="text-zinc-500 text-lg font-medium">Verified Merchant</Text>
+              <Text className="text-white text-3xl font-bold">TrustPay Dashboard</Text>
             </View>
-            <TouchableOpacity className="w-12 h-12 rounded-full bg-white/10 items-center justify-center border border-white/10">
+            <TouchableOpacity className="w-12 h-12 bg-zinc-900 rounded-2xl items-center justify-center border border-zinc-800">
               <Ionicons name="notifications-outline" size={24} color="white" />
             </TouchableOpacity>
           </View>
 
-          {/* Quick Stats */}
-          <View className="flex-row justify-between">
-            {stats.map((stat, i) => (
-              <View key={i} className="bg-white/5 border border-white/10 rounded-3xl p-4 w-[31%] items-center">
-                <Ionicons name={stat.icon as any} size={24} color={stat.color} />
-                <Text className="text-white text-xl font-bold mt-2">{stat.value}</Text>
-                <Text className="text-zinc-500 text-xs mt-1">{stat.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
-
-        <View className="px-6 -mt-8">
-          {/* Main Action Card */}
-          <LinearGradient
-            colors={['#00E5FF', '#12005E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="rounded-3xl p-8 shadow-2xl shadow-[#00E5FF]/20"
+          {/* Verification Card */}
+          <TouchableOpacity 
+            onPress={() => router.push('/(tabs)/verify/index' as any)}
+            className="bg-[#003ec7] rounded-[32px] p-8 mb-8 relative overflow-hidden shadow-2xl shadow-[#003ec7]/40"
           >
-            <Text className="text-black text-2xl font-bold mb-2">Verify New Payment</Text>
-            <Text className="text-white/80 text-base mb-6">Scan QR, take a screenshot, or enter reference manually.</Text>
-            <TouchableOpacity 
-              className="bg-white h-14 rounded-2xl items-center justify-center flex-row"
-              onPress={() => router.push('/(tabs)/verify')}
-            >
-              <Ionicons name="scan" size={24} color="#12005E" />
-              <Text className="text-[#12005E] font-bold text-lg ml-2">Start Scanning</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+            <LinearGradient
+              colors={['transparent', 'rgba(255,255,255,0.1)']}
+              className="absolute inset-0"
+            />
+            <View className="flex-row justify-between items-start mb-6">
+              <View className="bg-white/20 p-4 rounded-3xl">
+                <Ionicons name="shield-checkmark" size={32} color="white" />
+              </View>
+              <View className="bg-white/10 px-4 py-2 rounded-full border border-white/20">
+                <Text className="text-white font-bold text-xs">SECURE NODE</Text>
+              </View>
+            </View>
+            
+            <Text className="text-white text-3xl font-bold mb-2">Verify Payment</Text>
+            <Text className="text-white/70 text-lg mb-8 leading-6">
+              Start a new verification for Telebirr, CBE, or M-Pesa payments.
+            </Text>
 
-          {/* Recent Activity */}
-          <View className="mt-12">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white text-2xl font-bold">Recent History</Text>
+            <View className="bg-black/20 h-16 rounded-2xl flex-row items-center justify-center">
+              <Text className="text-white font-bold text-xl mr-2">New Verification</Text>
+              <Ionicons name="arrow-forward" size={20} color="white" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Quick Stats */}
+          <View className="flex-row gap-4 mb-8">
+            <View className="flex-1 bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+              <Text className="text-zinc-500 font-medium mb-1">Today</Text>
+              <Text className="text-white text-2xl font-bold">
+                {history?.data?.filter(v => new Date(v.paymentDate).toDateString() === new Date().toDateString()).length || 0}
+              </Text>
+            </View>
+            <View className="flex-1 bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+              <Text className="text-[#00E5FF] font-medium mb-1">Total</Text>
+              <Text className="text-white text-2xl font-bold">{history?.data?.length || 0}</Text>
+            </View>
+          </View>
+
+          {/* Recent Section */}
+          <View className="mb-12">
+            <View className="flex-row justify-between items-center mb-6 px-2">
+              <Text className="text-white text-xl font-bold">Recent Checks</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
-                <Text className="text-[#00E5FF] font-semibold">View All</Text>
+                <Text className="text-[#003ec7] font-medium">View All</Text>
               </TouchableOpacity>
             </View>
 
-            {history?.data?.slice(0, 5).map((item, i) => (
-              <View key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 mb-4 flex-row items-center">
-                <View className="w-12 h-12 rounded-xl bg-zinc-800 items-center justify-center">
-                  <Ionicons 
-                    name={item.provider === 'telebirr' ? 'phone-portrait' : 'business'} 
-                    size={24} 
-                    color="#00E5FF" 
-                  />
+            {history?.data && history.data.length > 0 ? (
+              history.data.slice(0, 5).map((item: any, i: number) => (
+                <View key={i} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-4 flex-row items-center">
+                   <View className="w-12 h-12 bg-zinc-800 rounded-2xl items-center justify-center">
+                      <Ionicons name="document-text-outline" size={24} color="#003ec7" />
+                   </View>
+                   <View className="ml-4 flex-1">
+                      <Text className="text-white font-bold text-lg uppercase">{item.transactionId}</Text>
+                      <Text className="text-zinc-500 text-sm">{item.provider} • {new Date(item.paymentDate).toLocaleDateString()}</Text>
+                   </View>
+                   <View className="bg-[#003ec7]/10 px-3 py-1 rounded-full">
+                      <Text className="text-[#003ec7] font-bold text-xs">{item.verified ? 'VERIFIED' : 'PENDING'}</Text>
+                   </View>
                 </View>
-                <View className="ml-4 flex-1">
-                  <Text className="text-white font-bold text-base uppercase">{item.transactionId}</Text>
-                  <Text className="text-zinc-500 text-sm">{item.provider} • {format(new Date(item.paymentDate), 'MMM dd, HH:mm')}</Text>
+              ))
+            ) : (
+              <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-10 items-center justify-center">
+                <View className="w-16 h-16 bg-zinc-800 rounded-full items-center justify-center mb-4">
+                  <Ionicons name="document-text-outline" size={28} color="#3F3F46" />
                 </View>
-                <View className="items-end">
-                  <Text className="text-[#00E5FF] font-bold text-base">{item.amount.toLocaleString()} {item.currency}</Text>
-                  <View className="flex-row items-center mt-1">
-                    <View className={`w-2 h-2 rounded-full mr-1 ${item.verified ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <Text className={`text-xs ${item.verified ? 'text-green-500' : 'text-red-500'}`}>
-                      {item.verified ? 'Verified' : 'Invalid'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-
-            {(!history?.data || history.data.length === 0) && !isLoading && (
-              <View className="items-center py-12">
-                <Ionicons name="receipt-outline" size={64} color="#27272A" />
-                <Text className="text-zinc-600 text-lg mt-4 text-center">No recent activity yet. Your verified payments will appear here.</Text>
+                <Text className="text-zinc-500 text-lg font-medium">No recent verifications</Text>
               </View>
             )}
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }

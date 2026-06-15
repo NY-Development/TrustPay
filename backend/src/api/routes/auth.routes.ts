@@ -15,5 +15,6 @@ router.post('/login', validate(loginSchema), authController.login);
 router.post('/refresh', validate(refreshTokenSchema), authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getMe);
+router.patch('/push-token', authenticate, authController.updatePushToken);
 
 export default router;

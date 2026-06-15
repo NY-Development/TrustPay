@@ -86,8 +86,7 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-// Index for fast lookups
-userSchema.index({ email: 1 });
+
 userSchema.index({ businessId: 1, role: 1 });
 
 // Hash password before save

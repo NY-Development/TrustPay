@@ -16,7 +16,6 @@ const branchSchema = new Schema<IBranch>(
       type: Schema.Types.ObjectId,
       ref: 'Business',
       required: [true, 'Business ID is required'],
-      index: true,
     },
     name: {
       type: String,

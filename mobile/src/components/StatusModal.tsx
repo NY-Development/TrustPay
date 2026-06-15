@@ -3,7 +3,7 @@ import { Modal, View, Text, TouchableOpacity, Animated } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 
-interface StatusModalProps {
+export interface StatusModalProps {
   visible: boolean;
   type: 'success' | 'error' | 'info';
   title: string;

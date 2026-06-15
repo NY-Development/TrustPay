@@ -18,4 +18,8 @@ export const authApi = {
     const response = await apiClient.get<ApiResponse<{ user: User }>>('/auth/me');
     return response.data;
   },
+  updatePushToken: async (pushToken: string) => {
+    const response = await apiClient.patch<ApiResponse>('/auth/push-token', { pushToken });
+    return response.data;
+  },
 };

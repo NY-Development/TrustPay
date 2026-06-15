@@ -175,3 +175,29 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     data: { user },
   });
 });
+
+/**
+ * @desc    Update push token
+ * @route   PATCH /api/v1/auth/push-token
+ * @access  Private
+ */
+export const updatePushToken = asyncHandler(async (req: Request, res: Response) => {
+  const { pushToken } = req.body;
+
+  if (!pushToken) {
+    throw new NotFoundError('Push token is required');
+  }
+
+  const user = await User.findById(req.user?.userId);
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  user.pushToken = pushToken;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Push token updated successfully',
+  });
+});

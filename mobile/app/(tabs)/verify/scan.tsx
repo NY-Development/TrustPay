@@ -9,7 +9,12 @@ import { StatusModal } from '../../../src/components/StatusModal';
 export default function QRScanner() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
-  const [modal, setModal] = useState({ visible: false, type: 'info', title: '', message: '' });
+  const [modal, setModal] = React.useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  }>({ visible: false, type: 'info', title: '', message: '' });
   
   const verifyMutation = useVerifyUniversal();
 

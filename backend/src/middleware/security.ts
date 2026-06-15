@@ -51,7 +51,21 @@ export const setupSecurityMiddleware = (app: any) => {
   );
 
   // Data sanitization against NoSQL query injection
-  app.use(mongoSanitize());
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.body) mongoSanitize.sanitize(req.body, {});
+    if (req.params) mongoSanitize.sanitize(req.params, {});
+    if (req.headers) mongoSanitize.sanitize(req.headers, {});
+    // For query, we try to sanitize in place if possible, but mongoSanitize.sanitize 
+    // actually modifies the object in place if it's an object.
+    if (req.query) {
+      try {
+        mongoSanitize.sanitize(req.query, {});
+      } catch (err) {
+        logger.error('Query sanitization error:', err);
+      }
+    }
+    next();
+  });
 
   // Prevent HTTP Parameter Pollution
   app.use(hpp());
