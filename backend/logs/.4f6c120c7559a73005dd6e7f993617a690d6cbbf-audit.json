@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\.4f6c120c7559a73005dd6e7f993617a690d6cbbf-audit.json",
+    "files": [
+        {
+            "date": 1782601184128,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-06-28-01.log",
+            "hash": "5c0b83e817457557558a61703ff207d69fcc96464972101f336acc4d59674816"
+        },
+        {
+            "date": 1782601388712,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-06-28-02.log",
+            "hash": "287ceb338852da268f6a0e0fb2fb8e51fa70d9297c5a1256ec7ab9598bc8f25f"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -1,53 +1,35 @@
-import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import path from 'path';
-import { env } from './env';
+const winston = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
+const path = require('path');
 
-const logDir = path.join(process.cwd(), 'logs');
-
-const logFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
-    const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-    return `[${timestamp}] ${level.toUpperCase()}: ${stack || message}${metaStr}`;
-  })
-);
-
-const transports: winston.transport[] = [
+const transports = [
+  // Always log to the console (Safe everywhere, including Serverless)
   new winston.transports.Console({
     format: winston.format.combine(
       winston.format.colorize(),
-      logFormat
+      winston.format.simple()
     ),
-  }),
+  })
 ];
 
-if (env.NODE_ENV === 'production') {
+// ⚠️ ONLY add file-based rotation when running locally, NOT in production/serverless
+if (process.env.NODE_ENV !== 'production') {
   transports.push(
     new DailyRotateFile({
-      dirname: logDir,
-      filename: 'app-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
+      filename: path.join(__dirname, '../../logs/application-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD-HH',
+      zippedArchive: true,
       maxSize: '20m',
-      maxFiles: '14d',
-      format: logFormat,
-    }),
-    new DailyRotateFile({
-      dirname: logDir,
-      filename: 'error-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      maxSize: '20m',
-      maxFiles: '30d',
-      level: 'error',
-      format: logFormat,
+      maxFiles: '14d'
     })
   );
 }
 
 export const logger = winston.createLogger({
-  level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-  format: logFormat,
-  transports,
-  exitOnError: false,
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: transports,
 });
