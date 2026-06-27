@@ -28,7 +28,8 @@ export default {
         "backgroundColor": "#ffffff"
       },
       package: "com.negyam.trustpay",
-      versionCode: 1
+      versionCode: 1,
+      googleServicesFile: "./google-services.json"
     },
     web: {
       "bundler": "metro",
@@ -46,7 +47,7 @@ export default {
     },
     extra: {
       eas: {
-        projectId: "a881255d-2e57-4c05-85f7-5d1e031fd71f"
+        projectId: "dfda12ef-52b6-4549-8d2a-0496c2dafb92"
       }
     }
   }

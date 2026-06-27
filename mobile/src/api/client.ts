@@ -32,7 +32,19 @@ const processQueue = (error: any, token: string | null = null) => {
 
 apiClient.interceptors.request.use(
   async (config) => {
-    // Add access token to header if available
+    // If we are refreshing, wait for it to finish
+    if (isRefreshing && !config.url?.includes('/auth/refresh')) {
+      return new Promise((resolve) => {
+        failedQueue.push({
+          resolve: (token: string) => {
+            config.headers.Authorization = `Bearer ${token}`;
+            resolve(config);
+          },
+          reject: () => resolve(config), // Fallback to original config if refresh fails
+        });
+      });
+    }
+
     const token = await SecureStore.getItemAsync('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -47,13 +59,16 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 Unauthorized (Expired Access Token)
+    // Handle 401 Unauthorized (Expired Access Token or Missing Token)
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then(() => apiClient(originalRequest))
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
           .catch((err) => Promise.reject(err));
       }
 
@@ -61,8 +76,6 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Attempt to refresh token
-        // Use a basic fetch or another axios instance to avoid infinite loop
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         
         if (!refreshToken) {
@@ -75,20 +88,25 @@ apiClient.interceptors.response.use(
           withCredentials: true,
         });
 
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data || response.data;
 
-        // Save new tokens
         if (newAccessToken) await SecureStore.setItemAsync('accessToken', newAccessToken);
         if (newRefreshToken) await SecureStore.setItemAsync('refreshToken', newRefreshToken);
 
         processQueue(null, newAccessToken);
+        
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Logout user or redirect to login
         await SecureStore.deleteItemAsync('accessToken');
         await SecureStore.deleteItemAsync('refreshToken');
-        router.replace('/(auth)/login');
+        
+        // Only redirect if not already on auth screens
+        if (!router.canGoBack() || !originalRequest.url?.includes('/auth/')) {
+          router.replace('/(auth)/login');
+        }
+        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

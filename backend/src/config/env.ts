@@ -23,12 +23,20 @@ const envSchema = z.object({
   // CORS
   CORS_ORIGIN: z.string().default('http://localhost:8081'),
 
-  // Verifier API
-  VERIFIER_API_KEY: z.string().min(1, 'VERIFIER_API_KEY is required'),
+  // Verify.ET API
+  VERIFY_ET_API_KEY: z.string().min(1, 'VERIFY_ET_API_KEY is required'),
+  VERIFY_ET_BASE_URL: z.string().default('https://verify.et'),
 
   // OpenRouter
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_BASE_URL: z.string().default('https://openrouter.ai/api/v1'),
+
+  // SMTP / Brevo
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SENDER_EMAIL: z.string().optional(),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),

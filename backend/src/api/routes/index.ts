@@ -3,6 +3,7 @@ import authRoutes from './auth.routes';
 import businessRoutes from './business.routes';
 import branchRoutes from './branch.routes';
 import verificationRoutes from './verification.routes';
+import subscriptionRoutes from './subscription.routes';
 
 export const setupRoutes = (app: Express) => {
   const API_PREFIX = '/api/v1';
@@ -11,6 +12,7 @@ export const setupRoutes = (app: Express) => {
   app.use(`${API_PREFIX}/businesses`, businessRoutes);
   app.use(`${API_PREFIX}/branches`, branchRoutes);
   app.use(`${API_PREFIX}/verifications`, verificationRoutes);
+  app.use(`${API_PREFIX}/subscriptions`, subscriptionRoutes);
 
   // Health check
   app.get('/health', (req, res) => {

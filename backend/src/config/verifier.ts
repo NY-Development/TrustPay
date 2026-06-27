@@ -1,13 +1,16 @@
-import { VerifierClient } from '@creofam/verifier';
 import { env } from './env';
 
-if (!env.VERIFIER_API_KEY) {
-  throw new Error('CRITICAL: VERIFIER_API_KEY is not defined in environment variables.');
-}
-
-export const verifierClient = new VerifierClient({
-  apiKey: env.VERIFIER_API_KEY,
-  timeoutMs: 15000,
-  max429Retries: 3,
-  retryDelayMs: 1000,
-});
+/**
+ * Verify.ET API configuration
+ * Replaces the old @creofam/verifier SDK
+ */
+export const verifyEtConfig = {
+  baseUrl: env.VERIFY_ET_BASE_URL,
+  apiKey: env.VERIFY_ET_API_KEY,
+  /** Default wait time in ms for the short-wait flow */
+  defaultWaitMs: 5000,
+  /** Max polling attempts for queued verifications */
+  maxPollAttempts: 20,
+  /** Default poll interval in ms (overridden by API's pollAfterMs) */
+  defaultPollIntervalMs: 1500,
+};

@@ -18,4 +18,8 @@ export const verificationApi = {
     const response = await apiClient.get<ApiResponse<Verification[]>>('/verifications');
     return response.data;
   },
+  getById: async (id: string) => {
+    const response = await apiClient.get<ApiResponse<Verification>>(`/verifications/${id}`);
+    return response.data;
+  },
 };

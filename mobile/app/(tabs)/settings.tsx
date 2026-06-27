@@ -6,8 +6,11 @@ import { useLogout } from '@/src/hooks/useAuth';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { useColorScheme } from 'nativewind';
 
 export default function Settings() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { user, biometricsEnabled, setBiometricsEnabled } = useAuthStore();  
   const logoutMutation = useLogout();
   const [notifications, setNotifications] = React.useState(true);
@@ -35,51 +38,51 @@ export default function Settings() {
   ];
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1">
         <ScrollView className="flex-1 px-6">
-          <Text className="text-white text-3xl font-bold mb-8 mt-8">Settings</Text>
+          <Text className="text-foreground text-3xl font-bold mb-8 mt-8">Settings</Text>
 
           {/* Profile Card */}
-          <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-10 flex-row items-center">
-            <View className="w-16 h-16 rounded-2xl bg-[#00E5FF] items-center justify-center">
-              <Text className="text-black text-2xl font-bold">{user?.name ? user.name[0] : 'U'}</Text>
+          <View className="bg-card border border-border rounded-3xl p-6 mb-10 flex-row items-center">
+            <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center">
+              <Text className="text-primary-foreground text-2xl font-bold">{user?.name ? user.name[0] : 'U'}</Text>
             </View>
             <View className="ml-5 flex-1">
-              <Text className="text-white text-xl font-bold">{user?.name}</Text>
-              <Text className="text-zinc-500">{user?.role} • {user?.email}</Text>
+              <Text className="text-foreground text-xl font-bold">{user?.name}</Text>
+              <Text className="text-muted-foreground">{user?.role} • {user?.email}</Text>
             </View>
-            <TouchableOpacity className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10">
-              <Ionicons name="create-outline" size={20} color="white" />
+            <TouchableOpacity className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border">
+              <Ionicons name="create-outline" size={20} color={isDark ? 'white' : 'black'} />
             </TouchableOpacity>
           </View>
 
           {/* Sections */}
           {settingsItems.map((section, idx) => (
             <View key={idx} className="mb-10">
-              <Text className="text-zinc-500 font-bold text-xs uppercase tracking-widest mb-4 ml-2">{section.section}</Text>
-              <View className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
+              <Text className="text-muted-foreground font-bold text-xs uppercase tracking-widest mb-4 ml-2">{section.section}</Text>
+              <View className="bg-card border border-border rounded-3xl overflow-hidden">
                 {section.items.map((item, i) => (
                   <TouchableOpacity 
                     key={item.id} 
-                    className={`px-6 h-16 flex-row items-center justify-between ${i !== section.items.length - 1 ? 'border-b border-zinc-800' : ''}`}
+                    className={`px-6 h-16 flex-row items-center justify-between ${i !== section.items.length - 1 ? 'border-b border-border' : ''}`}
                   >
                     <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center mr-4">
-                        <Ionicons name={item.icon as any} size={20} color="#00E5FF" />
+                      <View className="w-10 h-10 rounded-xl bg-muted items-center justify-center mr-4">
+                        <Ionicons name={item.icon as any} size={20} color={isDark ? '#3b82f6' : '#003ec7'} />
                       </View>
-                      <Text className="text-white text-lg font-medium">{item.title}</Text>
+                      <Text className="text-foreground text-lg font-medium">{item.title}</Text>
                     </View>
                     
                     {item.type === 'switch' ? (
                       <Switch 
                         value={item.value} 
                         onValueChange={item.onValueChange} 
-                        trackColor={{ false: '#27272A', true: '#12005E' }}
-                        thumbColor={item.value ? '#00E5FF' : '#52525B'}
+                        trackColor={{ false: isDark ? '#1e293b' : '#e2e8f0', true: isDark ? '#1e3a8a' : '#003ec7' }}
+                        thumbColor={item.value ? (isDark ? '#3b82f6' : '#fff') : '#94a3b8'}
                       />
                     ) : (
-                      <Ionicons name="chevron-forward" size={20} color="#27272A" />
+                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#1e293b' : '#cbd5e1'} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -90,18 +93,18 @@ export default function Settings() {
           <TouchableOpacity 
             onPress={handleLogout}
             disabled={logoutMutation.isPending}
-            className="bg-red-500/10 border border-red-500/20 h-16 rounded-2xl items-center justify-center flex-row mb-10 active:bg-red-500/20"
+            className="bg-destructive/10 border border-destructive/20 h-16 rounded-2xl items-center justify-center flex-row mb-10 active:bg-destructive/20"
           >
-            <Ionicons name="log-out-outline" size={24} color="#FF5252" />
-            <Text className="text-[#FF5252] font-bold text-lg ml-2">Sign Out</Text>
+            <Ionicons name="log-out-outline" size={24} color={isDark ? '#ef4444' : '#dc2626'} />
+            <Text className="text-destructive font-bold text-lg ml-2">Sign Out</Text>
           </TouchableOpacity>
 
           {/* Version Info */}
-          <View className="items-center pb-12">
-            <Text className="text-zinc-600 text-sm font-medium">
+          <View className="items-center pb-12 mb-6">
+            <Text className="text-muted-foreground text-sm font-medium">
               TrustPay v{Constants.expoConfig?.version ?? '1.0.0'}
             </Text>
-            <Text className="text-zinc-700 text-xs mt-1">
+            <Text className="text-muted-foreground/60 text-xs mt-1">
               Build: {Platform.select({
                 ios: Constants.expoConfig?.ios?.buildNumber ?? '1.0.0',
                 android: Constants.expoConfig?.android?.versionCode ?? '1',

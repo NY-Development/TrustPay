@@ -74,17 +74,22 @@ async function registerForPushNotificationsAsync() {
       return;
     }
     
-    // Learn more about projectId:
-    // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
-    // @ts-ignore
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
-    if (!projectId) {
-      console.log('Project ID not found');
+    try {
+      // Learn more about projectId:
+      // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
+      // @ts-ignore
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      if (!projectId) {
+        console.log('Project ID not found');
+      }
+      
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })).data;
+      console.log("push token", token);
+    } catch (e: any) {
+      console.warn("Failed to get push token (FCM credentials may not be compiled into the native build):", e.message || e);
     }
-    
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId,
-    })).data;
   } else {
     console.log('Must use physical device for Push Notifications');
   }

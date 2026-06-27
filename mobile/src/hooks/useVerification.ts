@@ -40,3 +40,11 @@ export const useVerificationHistory = () => {
     queryFn: verificationApi.getHistory,
   });
 };
+
+export const useVerificationDetail = (id: string) => {
+  return useQuery({
+    queryKey: ['verification', id],
+    queryFn: () => verificationApi.getById(id),
+    enabled: !!id,
+  });
+};

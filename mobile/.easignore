@@ -1,0 +1,9 @@
+# EAS Ignore
+# This file is used by EAS CLI to determine which files to include in the build.
+# We want to include these files in EAS builds even if they are gitignored.
+
+!google-services.json
+!donor-link-ethiopia-a99c3-firebase-adminsdk-fbsvc-81a4fb902a.json
+!.env.development
+!.env.preview
+!.env.production

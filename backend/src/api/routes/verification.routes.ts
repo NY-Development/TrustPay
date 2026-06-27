@@ -35,5 +35,6 @@ router.post(
 );
 
 router.get('/', verificationController.getVerifications);
+router.get('/:id', verificationController.getVerificationById);
 
 export default router;

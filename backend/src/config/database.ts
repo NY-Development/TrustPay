@@ -6,7 +6,7 @@ export const connectDatabase = async (): Promise<void> => {
   try {
     const conn = await mongoose.connect(env.MONGODB_URI, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
 
@@ -18,6 +18,10 @@ export const connectDatabase = async (): Promise<void> => {
 
     mongoose.connection.on('disconnected', () => {
       logger.warn('MongoDB disconnected. Attempting reconnection...');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      logger.info('📦 MongoDB reconnected successfully.');
     });
   } catch (error) {
     logger.error('❌ MongoDB connection failed:', error);

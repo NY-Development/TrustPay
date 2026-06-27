@@ -11,11 +11,8 @@ export const useLogin = () => {
     mutationFn: authApi.login,
     onSuccess: async (response) => {
       if (response.data?.user) {
-        // Tokens are handled by cookies in backend usually, 
-        // but for mobile we might need to store them manually if not using browser-like cookie support
-        // In our backend, we send them in body if needed or we can extract from headers.
-        // Let's assume the refresh token rotation logic we built handles it.
-        setUser(response.data.user);
+        const { accessToken, refreshToken } = response.data;
+        await setUser(response.data.user, { accessToken, refreshToken });
       }
     },
   });
@@ -26,9 +23,10 @@ export const useRegister = () => {
   
   return useMutation({
     mutationFn: authApi.register,
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       if (response.data?.user) {
-        setUser(response.data.user);
+        const { accessToken, refreshToken } = response.data;
+        await setUser(response.data.user, { accessToken, refreshToken });
       }
     },
   });

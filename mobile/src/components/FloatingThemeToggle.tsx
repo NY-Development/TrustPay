@@ -16,7 +16,7 @@ const EDGE_PADDING = 20;
 
 export const FloatingThemeToggle = () => {
   const { width, height } = useWindowDimensions();
-  const { colorScheme, toggleColorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
   
   const translateX = useSharedValue(width - BUTTON_SIZE - EDGE_PADDING);
   const translateY = useSharedValue(100);
@@ -36,7 +36,13 @@ export const FloatingThemeToggle = () => {
     Storage.setItem(STORAGE_KEYS.THEME_BUTTON_POSITION, { x, y });
   };
 
-  const gesture = Gesture.Pan()
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    const nextScheme = colorScheme === 'dark' ? 'light' : 'dark';
+    runOnJS(setColorScheme)(nextScheme);
+  });
+
+  const panGesture = Gesture.Pan()
+    .minDistance(10)
     .onBegin(() => {
       isPressed.value = true;
     })
@@ -64,6 +70,8 @@ export const FloatingThemeToggle = () => {
       runOnJS(savePosition)(snapX, clampedY);
     });
 
+  const gesture = Gesture.Exclusive(panGesture, tapGesture);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -81,9 +89,7 @@ export const FloatingThemeToggle = () => {
         style={[styles.container, animatedStyle]}
         className="bg-primary dark:bg-white items-center justify-center shadow-xl"
       >
-        <Animated.View onTouchEnd={toggleColorScheme} className="w-full h-full items-center justify-center">
-           <Icon size={28} color={colorScheme === 'dark' ? '#000' : '#fff'} />
-        </Animated.View>
+        <Icon size={28} color={colorScheme === 'dark' ? '#000' : '#fff'} />
       </Animated.View>
     </GestureDetector>
   );

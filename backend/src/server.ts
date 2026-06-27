@@ -34,7 +34,8 @@ const startServer = async () => {
 
   // 6. Listen
   const port = env.PORT;
-  const server = app.listen(port, () => {
+  const HOST = '0.0.0.0';
+  const server = app.listen(port, HOST, () => {
     logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${port}`);
   });
 

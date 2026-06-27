@@ -1,12 +1,15 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { User } from '../../models/User';
+import { Otp } from '../../models/Otp';
 import { env } from '../../config/env';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { generateTokens, sendAuthCookies, clearAuthCookies } from '../../utils/auth';
-import { UnauthorizedError, ConflictError, NotFoundError } from '../../utils/AppError';
+import { UnauthorizedError, ConflictError, NotFoundError, BadRequestError } from '../../utils/AppError';
 import { REFRESH_TOKEN_COOKIE } from '../../constants';
 import { JwtRefreshPayload } from '../../types';
+import { sendEmail } from '../../utils/email';
 
 /**
  * @desc    Register a new user
@@ -14,7 +17,7 @@ import { JwtRefreshPayload } from '../../types';
  * @access  Public
  */
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, role, businessId, branchId } = req.body;
+  const { name, email, password, role, accounts, businessId, branchId } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email });
@@ -28,6 +31,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     email,
     passwordHash: password, // Model hashes it in pre-save
     role,
+    accounts,
     businessId,
     branchId,
   });
@@ -45,7 +49,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json({
     success: true,
     message: 'User registered successfully',
-    data: { user },
+    data: { user, accessToken, refreshToken },
   });
 });
 
@@ -82,7 +86,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'Logged in successfully',
-    data: { user },
+    data: { user, accessToken, refreshToken },
   });
 });
 
@@ -131,6 +135,8 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: 'Token refreshed successfully',
+      accessToken,
+      refreshToken: newRefreshToken,
     });
   } catch (error) {
     clearAuthCookies(res);
@@ -200,4 +206,120 @@ export const updatePushToken = asyncHandler(async (req: Request, res: Response) 
     success: true,
     message: 'Push token updated successfully',
   });
+});
+
+/**
+ * @desc    Request a password reset OTP
+ * @route   POST /api/v1/auth/forgot-password
+ * @access  Public
+ */
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new BadRequestError('Email address is required.');
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new NotFoundError('No account found with this email address.');
+  }
+
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
+  // Clear existing OTP tokens for this email
+  await Otp.deleteMany({ email });
+
+  // Store new OTP
+  await Otp.create({
+    email,
+    otp: hashedOtp,
+    expiresAt,
+  });
+
+  // Dispatch OTP email
+  await sendEmail(
+    email,
+    'Reset Your TrustPay Password',
+    `Hello ${user.name},\n\nYou requested a password reset on TrustPay. Use the recovery OTP below to verify your identity:\n\n${otp}\n\nThis verification code is valid for 10 minutes.`
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Verification OTP has been sent to your email address.',
+  });
+});
+
+/**
+ * @desc    Verify password reset OTP
+ * @route   POST /api/v1/auth/verify-otp
+ * @access  Public
+ */
+export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new BadRequestError('Email and verification OTP are required.');
+  }
+
+  const record = await Otp.findOne({ email });
+  if (!record) {
+    throw new BadRequestError('Verification code expired or invalid.');
+  }
+
+  const isMatch = await bcrypt.compare(otp, record.otp);
+  if (!isMatch) {
+    throw new BadRequestError('Invalid verification OTP.');
+  }
+
+  // Create recovery JWT
+  const resetToken = jwt.sign({ email }, env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+
+  // Delete validated OTP to refuse reuse
+  await Otp.deleteMany({ email });
+
+  res.status(200).json({
+    success: true,
+    message: 'OTP verified successfully.',
+    resetToken,
+  });
+});
+
+/**
+ * @desc    Reset password using reset token
+ * @route   POST /api/v1/auth/reset-password
+ * @access  Public
+ */
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { resetToken, password } = req.body;
+
+  if (!resetToken || !password) {
+    throw new BadRequestError('Reset token and new password are required.');
+  }
+
+  if (password.length < 6) {
+    throw new BadRequestError('Password must be at least 6 characters.');
+  }
+
+  try {
+    const decoded = jwt.verify(resetToken, env.JWT_ACCESS_SECRET) as { email: string };
+    
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      throw new NotFoundError('Target user not found.');
+    }
+
+    user.passwordHash = password; // pre-save hooks will bcrypt this automatically
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Your password has been reset successfully. Please login with your new credentials.',
+    });
+  } catch (error) {
+    throw new BadRequestError('Password reset link is invalid or expired.');
+  }
 });

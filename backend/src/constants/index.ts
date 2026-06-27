@@ -11,14 +11,17 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const ALL_ROLES = Object.values(ROLES);
 
-// ─── Payment Providers ────────────────────────
+// ─── Payment Providers (Verify.ET banks) ──────
 export const PROVIDERS = {
-  TELEBIRR: 'telebirr',
   CBE: 'cbe',
-  ABYSSINIA: 'abyssinia',
+  BOA: 'boa',
+  TELEBIRR: 'telebirr',
   MPESA: 'mpesa',
   CBEBIRR: 'cbebirr',
   DASHEN: 'dashen',
+  AWASH: 'awash',
+  SIINQEE: 'siinqee',
+  KAAFIEBIRR: 'kaafiebirr',
 } as const;
 
 export type Provider = (typeof PROVIDERS)[keyof typeof PROVIDERS];
@@ -41,6 +44,21 @@ export const SUBSCRIPTION_TIERS = {
   PRO: 'pro',
   ENTERPRISE: 'enterprise',
 } as const;
+
+export const SUBSCRIPTION_PLANS = {
+  MONTHLY: 'monthly',
+  YEARLY: 'yearly',
+} as const;
+
+export type SubscriptionPlan = typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS];
+
+export const SUBSCRIPTION_PRICING = {
+  monthly: { amount: 100, durationDays: 30 },
+  yearly: { amount: 1000, durationDays: 365 },
+} as const;
+
+export const SUBSCRIPTION_RECEIVER_NAME = 'YAMLAK NEGASH DUGO';
+
 
 // ─── Cookie Config ────────────────────────────
 export const COOKIE_OPTIONS = {
@@ -66,4 +84,6 @@ export const AUDIT_ACTIONS = {
   UPDATE_BRANCH: 'UPDATE_BRANCH',
   PASSWORD_CHANGE: 'PASSWORD_CHANGE',
   TOKEN_REFRESH: 'TOKEN_REFRESH',
+  VERIFY_SUBSCRIPTION: 'VERIFY_SUBSCRIPTION',
+  VERIFY_SUBSCRIPTION_FAILED: 'VERIFY_SUBSCRIPTION_FAILED',
 } as const;

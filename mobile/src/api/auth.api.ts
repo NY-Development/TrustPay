@@ -3,11 +3,11 @@ import { ApiResponse, User } from '../types';
 
 export const authApi = {
   login: async (data: any) => {
-    const response = await apiClient.post<ApiResponse<{ user: User }>>('/auth/login', data);
+    const response = await apiClient.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/login', data);
     return response.data;
   },
   register: async (data: any) => {
-    const response = await apiClient.post<ApiResponse<{ user: User }>>('/auth/register', data);
+    const response = await apiClient.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/register', data);
     return response.data;
   },
   logout: async () => {
@@ -20,6 +20,18 @@ export const authApi = {
   },
   updatePushToken: async (pushToken: string) => {
     const response = await apiClient.patch<ApiResponse>('/auth/push-token', { pushToken });
+    return response.data;
+  },
+  forgotPassword: async (email: string) => {
+    const response = await apiClient.post<ApiResponse>('/auth/forgot-password', { email });
+    return response.data;
+  },
+  verifyOtp: async (email: string, otp: string) => {
+    const response = await apiClient.post<ApiResponse<{ resetToken: string }>>('/auth/verify-otp', { email, otp });
+    return response.data;
+  },
+  resetPassword: async (data: any) => {
+    const response = await apiClient.post<ApiResponse>('/auth/reset-password', data);
     return response.data;
   },
 };

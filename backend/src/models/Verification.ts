@@ -44,7 +44,7 @@ const verificationSchema = new Schema<IVerification>(
     amount: {
       type: Number,
       required: true,
-      min: 0.01,
+      min: 0,
     },
     currency: {
       type: String,

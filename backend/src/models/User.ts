@@ -1,12 +1,16 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { ALL_ROLES, Role } from '../constants';
+import { ALL_ROLES, ALL_PROVIDERS, Role, Provider } from '../constants';
 
 export interface IUser extends Document {
   name: string;
   email: string;
   passwordHash: string;
   role: Role;
+  accounts: {
+    accountNumber: string;
+    accountProvider: Provider;
+  }[];
   businessId?: mongoose.Types.ObjectId;
   branchId?: mongoose.Types.ObjectId;
   refreshToken?: string;
@@ -46,6 +50,20 @@ const userSchema = new Schema<IUser>(
       enum: ALL_ROLES,
       default: 'VERIFIER',
     },
+    accounts: [
+      {
+        accountNumber: {
+          type: String,
+          required: [true, 'Account number is required'],
+          trim: true,
+        },
+        accountProvider: {
+          type: String,
+          required: [true, 'Account provider is required'],
+          enum: ALL_PROVIDERS,
+        },
+      }
+    ],
     businessId: {
       type: Schema.Types.ObjectId,
       ref: 'Business',

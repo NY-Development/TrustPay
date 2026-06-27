@@ -2,11 +2,8 @@ import { z } from 'zod';
 
 export const verifyManualSchema = {
   body: z.object({
-    provider: z.string().min(1, 'Provider is required'),
     reference: z.string().min(1, 'Reference is required'),
-    suffix: z.string().optional(), // Used for Abyssinia
-    accountSuffix: z.string().optional(), // Used for CBE
-    amountExpected: z.number().optional(),
+    amountExpected:  z.number().optional(),
     branchId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Branch ID').optional(),
   }),
 };
