@@ -10,6 +10,7 @@ import { UnauthorizedError, ConflictError, NotFoundError, BadRequestError } from
 import { REFRESH_TOKEN_COOKIE } from '../../constants';
 import { JwtRefreshPayload } from '../../types';
 import { sendEmail } from '../../utils/email';
+import { NotificationService } from '../../services/notification.service';
 
 /**
  * @desc    Register a new user
@@ -246,6 +247,16 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
     'Reset Your TrustPay Password',
     `Hello ${user.name},\n\nYou requested a password reset on TrustPay. Use the recovery OTP below to verify your identity:\n\n${otp}\n\nThis verification code is valid for 10 minutes.`
   );
+
+  // Also send push notification if user has a registered push token
+  if (user.pushToken) {
+    await NotificationService.sendNotification(
+      user.pushToken,
+      '🔐 Password Reset Requested',
+      `A password reset OTP has been sent to ${email}. Check your email for the 6-digit code.`,
+      { type: 'PASSWORD_RESET' }
+    );
+  }
 
   res.status(200).json({
     success: true,

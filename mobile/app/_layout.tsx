@@ -12,6 +12,7 @@ import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native
 import { useColorScheme } from 'nativewind';
 import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 import SubscriptionModal from '@/src/components/SubscriptionModal';
+import { NotificationProvider } from '@/src/providers/NotificationProvider';
 
 // Adapt React Navigation background themes to match CSS variables
 const customLightTheme = {
@@ -88,7 +89,9 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <QueryProvider>
             <View style={{ flex: 1 }} className={colorScheme === 'dark' ? 'dark' : ''}>
-              <RootLayoutNav />
+              <NotificationProvider>
+                <RootLayoutNav />
+              </NotificationProvider>
               <FloatingThemeToggle />
             </View>
           </QueryProvider>
