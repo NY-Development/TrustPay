@@ -3,7 +3,7 @@
 # We want to include these files in EAS builds even if they are gitignored.
 
 !google-services.json
-!donor-link-ethiopia-a99c3-firebase-adminsdk-fbsvc-81a4fb902a.json
+!trustpay-60a33-firebase-adminsdk-fbsvc-ed4a0e6f64.json
 !.env.development
 !.env.preview
 !.env.production
