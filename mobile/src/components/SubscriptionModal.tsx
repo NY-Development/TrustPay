@@ -187,8 +187,8 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
                   <Text className="text-amber-600 dark:text-amber-400 text-center font-bold text-lg">
                     {remainingAmount} ETB remaining
                   </Text>
-                  <Text className="text-muted-foreground text-center text-xs mt-1">
-                    Send exactly {remainingAmount} ETB to YAMLAK NEGASH DUGO
+                  <Text className="text-muted-foreground text-center text-xs mt-1 font-semibold">
+                    Send exactly {remainingAmount} ETB to CBE Account: 1000403196928 (YAMLAK NEGASH DUGO)
                   </Text>
                 </View>
               </View>
@@ -197,9 +197,10 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
               <View className="bg-card border border-border p-6 rounded-[28px] mb-8 shadow-xs">
                 <Text className="text-foreground text-base font-bold mb-4">Complete Your Payment</Text>
                 <View className="space-y-4">
-                  <PaymentStep number="1" text={`Transfer exactly ${remainingAmount} ETB to receiver: YAMLAK NEGASH DUGO.`} />
-                  <PaymentStep number="2" text="Copy the new transaction reference number from the confirmation screen." />
-                  <PaymentStep number="3" text="Paste it below and verify to activate your subscription." />
+                  <PaymentStep number="1" text={`Transfer exactly ${remainingAmount} ETB to CBE Account: 1000403196928.`} />
+                  <PaymentStep number="2" text="Receiver Name: YAMLAK NEGASH DUGO" />
+                  <PaymentStep number="3" text="Copy the new CBE transaction reference number from the confirmation screen." />
+                  <PaymentStep number="4" text="Paste it below and verify to activate your subscription." />
                 </View>
               </View>
 
@@ -270,9 +271,10 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
               <View className="bg-card border border-border p-6 rounded-[28px] mb-8 shadow-xs">
                 <Text className="text-foreground text-base font-bold mb-4">Payment Instructions</Text>
                 <View className="space-y-4">
-                  <PaymentStep number="1" text={`Transfer exactly ${currentPrice} ETB using any banking app or wallet (CBE, Telebirr, etc.).`} />
-                  <PaymentStep number="2" text="Send the transaction specifically to receiver: YAMLAK NEGASH DUGO." />
-                  <PaymentStep number="3" text="Copy the unique transaction reference number/ID from the confirmation screen, and paste it below." />
+                  <PaymentStep number="1" text={`Transfer exactly ${currentPrice} ETB to CBE Account: 1000403196928.`} />
+                  <PaymentStep number="2" text="Receiver Name: YAMLAK NEGASH DUGO" />
+                  <PaymentStep number="3" text="Copy the unique CBE transaction reference ID from your receipt, and paste it below." />
+                  <PaymentStep number="4" text="Note: Subscription checks are currently processed for CBE payments only." />
                 </View>
               </View>
 

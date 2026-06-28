@@ -7,7 +7,7 @@ export default {
     version: packageJson.version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "TrustPay",
+    scheme: "trustpay",
     userInterfaceStyle: "automatic",
     splash: {
       "image": "./assets/images/splash.png",
