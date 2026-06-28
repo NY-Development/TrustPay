@@ -183,7 +183,7 @@ export class VerificationService {
       const status = body.data?.processingStatus;
 
       if (status === 'completed') {
-        return this.mapPolledResponse(body.data, provider, reference);
+        return this.mapPolledResponse(body, provider, reference);
       }
 
       if (status === 'failed') {
@@ -200,6 +200,55 @@ export class VerificationService {
   }
 
   /**
+   * Helper to perform a robust, case-insensitive, deep search for a set of keys in any object.
+   */
+  private static findValueInObject(obj: any, keys: string[]): any {
+    if (!obj || typeof obj !== 'object') return undefined;
+
+    const lowerKeys = keys.map(k => k.toLowerCase());
+
+    // 1. Direct search (case-insensitive)
+    for (const [k, v] of Object.entries(obj)) {
+      if (lowerKeys.includes(k.toLowerCase()) && v !== undefined && v !== null && v !== '') {
+        return v;
+      }
+    }
+
+    // 2. Prioritized sub-object search
+    const prioritisedProperties = ['data', 'verification', 'raw'];
+    for (const prop of prioritisedProperties) {
+      if (obj[prop]) {
+        const val = this.findValueInObject(obj[prop], keys);
+        if (val !== undefined && val !== null && val !== '') {
+          return val;
+        }
+      }
+    }
+
+    // 3. Fallback check for arrays/objects
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const val = this.findValueInObject(item, keys);
+        if (val !== undefined && val !== null && val !== '') {
+          return val;
+        }
+      }
+    }
+
+    for (const [k, v] of Object.entries(obj)) {
+      if (prioritisedProperties.includes(k)) continue;
+      if (v && typeof v === 'object') {
+        const val = this.findValueInObject(v, keys);
+        if (val !== undefined && val !== null && val !== '') {
+          return val;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Map a completed 200 response to VerificationResult
    */
   private static mapCompletedResponse(
@@ -207,21 +256,27 @@ export class VerificationService {
     provider: string,
     reference: string
   ): VerificationResult {
-    const item = body.data?.[0] || {};
-    const verification = body.verification || {};
+    const verified = this.findValueInObject(body, ['verified']) ?? false;
+    const amount = Number(this.findValueInObject(body, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
+    const currency = this.findValueInObject(body, ['currency', 'curr', 'currencyCode']) || 'ETB';
+    const payerName = this.findValueInObject(body, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
+    const receiverName = this.findValueInObject(body, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
+    const receiverAccount = this.findValueInObject(body, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
+    const rawTimestamp = this.findValueInObject(body, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
+    const paymentDate = rawTimestamp ? new Date(rawTimestamp) : new Date();
 
     return {
       success: true,
-      verified: verification.verified ?? item.verified ?? false,
-      provider: item.bank || verification.bank || provider,
-      transactionId: item.referenceNumber || item.transactionNumber || reference,
-      referenceNumber: item.referenceNumber,
-      amount: Number(item.amount) || Number(verification.amount) || 0,
-      currency: item.currency || 'ETB',
-      payerName: item.senderName || 'Unknown',
-      paymentDate: item.timestamp ? new Date(item.timestamp) : new Date(),
-      receiverName: item.receiverName,
-      receiverAccount: item.receiverAccount,
+      verified: verified === true || String(verified).toLowerCase() === 'true',
+      provider: this.findValueInObject(body, ['bank', 'provider', 'type']) || provider,
+      transactionId: this.findValueInObject(body, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
+      referenceNumber: this.findValueInObject(body, ['referenceNumber']),
+      amount,
+      currency,
+      payerName,
+      paymentDate,
+      receiverName,
+      receiverAccount,
       raw: body,
     };
   }
@@ -230,23 +285,35 @@ export class VerificationService {
    * Map a polled status response to VerificationResult
    */
   private static mapPolledResponse(
-    data: any,
+    body: any,
     provider: string,
     reference: string
   ): VerificationResult {
+    const verified = this.findValueInObject(body, ['verified']) ?? false;
+    const amount = Number(this.findValueInObject(body, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
+    const currency = this.findValueInObject(body, ['currency', 'curr', 'currencyCode']) || 'ETB';
+    const payerName = this.findValueInObject(body, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
+    const receiverName = this.findValueInObject(body, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
+    const receiverAccount = this.findValueInObject(body, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
+    const rawTimestamp = this.findValueInObject(body, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
+    const paymentDate = rawTimestamp ? new Date(rawTimestamp) : new Date();
+
+    const statusValue = this.findValueInObject(body, ['status', 'processingStatus']);
+    const isSuccess = statusValue === 'success' || statusValue === 'completed' || verified === true;
+
     return {
-      success: data.status === 'success',
-      verified: data.verified ?? false,
-      provider: data.bank || provider,
-      transactionId: data.referenceNumber || data.transactionNumber || reference,
-      referenceNumber: data.referenceNumber,
-      amount: Number(data.amount) || Number(data.verification?.amount) || 0,
-      currency: data.currency || 'ETB',
-      payerName: data.senderName || 'Unknown',
-      paymentDate: data.completedAt ? new Date(data.completedAt) : new Date(),
-      receiverName: data.receiverName,
-      receiverAccount: data.receiverAccount,
-      raw: data,
+      success: isSuccess,
+      verified: verified === true || String(verified).toLowerCase() === 'true',
+      provider: this.findValueInObject(body, ['bank', 'provider', 'type']) || provider,
+      transactionId: this.findValueInObject(body, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
+      referenceNumber: this.findValueInObject(body, ['referenceNumber']),
+      amount,
+      currency,
+      payerName,
+      paymentDate,
+      receiverName,
+      receiverAccount,
+      raw: body,
     };
   }
 

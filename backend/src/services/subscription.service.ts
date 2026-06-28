@@ -116,8 +116,15 @@ export class SubscriptionService {
     const payerNameNormalized = result.payerName.replace(/\s+/g, ' ').trim().toLowerCase();
     const userNameNormalized = user.name.replace(/\s+/g, ' ').trim().toLowerCase();
     
-    // Substring verification for convenience (e.g. middle/grand-father name formatting differences)
-    const matchesUser = payerNameNormalized.includes(userNameNormalized) || userNameNormalized.includes(payerNameNormalized);
+    const payerWords = payerNameNormalized.split(' ').filter(w => w.length > 1);
+    const userWords = userNameNormalized.split(' ').filter(w => w.length > 1);
+    const commonWords = payerWords.filter(w => userWords.includes(w));
+
+    // Substring verification or at least 2 common words for flexibility (e.g. name variations across banks)
+    const matchesUser = payerNameNormalized.includes(userNameNormalized) || 
+                        userNameNormalized.includes(payerNameNormalized) ||
+                        commonWords.length >= 2;
+
     if (!matchesUser) {
       throw new BadRequestError(`Payer name verification failed. Transaction registered to '${result.payerName}', but your account name is '${user.name}'.`);
     }
@@ -312,7 +319,16 @@ export class SubscriptionService {
     // 5. Validate payer name
     const payerNameNormalized = result.payerName.replace(/\s+/g, ' ').trim().toLowerCase();
     const userNameNormalized = user.name.replace(/\s+/g, ' ').trim().toLowerCase();
-    const matchesUser = payerNameNormalized.includes(userNameNormalized) || userNameNormalized.includes(payerNameNormalized);
+    
+    const payerWords = payerNameNormalized.split(' ').filter(w => w.length > 1);
+    const userWords = userNameNormalized.split(' ').filter(w => w.length > 1);
+    const commonWords = payerWords.filter(w => userWords.includes(w));
+
+    // Substring verification or at least 2 common words for flexibility (e.g. name variations across banks)
+    const matchesUser = payerNameNormalized.includes(userNameNormalized) || 
+                        userNameNormalized.includes(payerNameNormalized) ||
+                        commonWords.length >= 2;
+
     if (!matchesUser) {
       throw new BadRequestError(`Payer name verification failed. Transaction registered to '${result.payerName}', but your account name is '${user.name}'.`);
     }
