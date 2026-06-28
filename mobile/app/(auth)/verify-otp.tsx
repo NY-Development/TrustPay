@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
-import { authApi } from '../../src/api/auth.api';
-import { StatusModal } from '../../src/components/StatusModal';
+import { authApi } from '@/src/api/auth.api';
+import { StatusModal } from '@/src/components/StatusModal';
 
 export default function VerifyOtp() {
   const { colorScheme } = useColorScheme();
@@ -118,12 +118,15 @@ export default function VerifyOtp() {
         </KeyboardAvoidingView>
 
         <StatusModal 
-          {...modal} 
+          visible={modal.visible}
+          type={modal.type}
+          title={modal.title}
+          message={modal.message}
           onClose={() => {
             setModal({ ...modal, visible: false });
             if (modal.type === 'success' && resetToken) {
-              router.push({
-                pathname: '/(auth)/reset-password' as any,
+              router.replace({
+                pathname: '/(auth)/reset-password',
                 params: { resetToken }
               });
             }

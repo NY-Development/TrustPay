@@ -3,7 +3,7 @@ import packageJson from './package.json';
 export default {
   expo: {
     name: "TrustPay",
-    slug: "TrustPay",
+    slug: "trust-pay",
     version: packageJson.version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -40,7 +40,27 @@ export default {
       "expo-router",
       "expo-secure-store",
       "expo-camera",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#004ac6"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow TrustPay Mobile to access your camera to scan invoices, receipts, and documents."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow TrustPay Mobile to access your photo library to select and upload stored receipt images."
+        }
+      ],
+      "expo-font",
+      "expo-local-authentication"
     ],
     experiments: {
       "typedRoutes": true
@@ -49,6 +69,12 @@ export default {
       eas: {
         projectId: "dfda12ef-52b6-4549-8d2a-0496c2dafb92"
       }
+    },
+    updates: {
+      url: "https://u.expo.dev/dfda12ef-52b6-4549-8d2a-0496c2dafb92"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
     }
   }
 };

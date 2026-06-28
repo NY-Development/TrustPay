@@ -152,7 +152,10 @@ export default function ResetPassword() {
         </KeyboardAvoidingView>
 
         <StatusModal 
-          {...modal} 
+          visible={modal.visible}
+          type={modal.type}
+          title={modal.title}
+          message={modal.message} 
           onClose={() => {
             setModal({ ...modal, visible: false });
             if (modal.type === 'success') {

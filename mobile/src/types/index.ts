@@ -41,14 +41,34 @@ export interface Subscription {
   receiverName: string;
   startDate: string;
   endDate: string;
-  status: 'active' | 'expired' | 'pending';
+  status: 'active' | 'expired' | 'pending' | 'partial_payment';
+  paidAmount: number;
+  requiredAmount: number;
+  fullyPaid: boolean;
   verificationId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubscriptionStatusData {
+  active: boolean;
+  isPartialPayment: boolean;
+  subscription: Subscription | null;
+  remainingAmount: number;
+}
+
+export interface SubscriptionVerifyResponse {
+  success: boolean;
+  message: string;
+  data?: Subscription;
+  fullyPaid?: boolean;
+  remainingAmount?: number;
 }
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
+  fullyPaid?: boolean;
+  remainingAmount?: number;
 }

@@ -67,7 +67,11 @@ function RootLayoutNav() {
     );
   }
 
-  const showLocked = isAuthenticated && !subLoading && !subStatus?.data?.active;
+  // Block dashboard if: no subscription, OR subscription exists but not fully paid
+  const subData = subStatus?.data;
+  const isActive = subData?.active === true;
+  const isPartialPayment = subData?.isPartialPayment === true;
+  const showLocked = isAuthenticated && !subLoading && (!isActive || isPartialPayment);
 
   return (
     <>
@@ -75,7 +79,10 @@ function RootLayoutNav() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="index" />
       </Stack>
-      <SubscriptionModal visible={!!showLocked} />
+      <SubscriptionModal 
+        visible={!!showLocked} 
+        partialSubscription={isPartialPayment ? subData?.subscription : null}
+      />
     </>
   );
 }

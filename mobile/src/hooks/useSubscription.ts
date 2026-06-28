@@ -20,3 +20,14 @@ export const useVerifySubscription = () => {
     },
   });
 };
+
+export const useTopUpSubscription = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: subscriptionApi.topUpPayment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
+    },
+  });
+};

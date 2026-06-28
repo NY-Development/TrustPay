@@ -10,8 +10,12 @@ export interface ISubscription extends Document {
   receiverName: string;
   startDate: Date;
   endDate: Date;
-  status: 'active' | 'expired' | 'pending';
+  status: 'active' | 'expired' | 'pending' | 'partial_payment';
+  paidAmount: number;
+  requiredAmount: number;
+  fullyPaid: boolean;
   verificationId?: mongoose.Types.ObjectId;
+  topUpVerificationIds: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,9 +67,25 @@ const subscriptionSchema = new Schema<ISubscription>(
     },
     status: {
       type: String,
-      enum: ['active', 'expired', 'pending'],
+      enum: ['active', 'expired', 'pending', 'partial_payment'],
       default: 'active',
     },
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+    requiredAmount: {
+      type: Number,
+      default: 0,
+    },
+    fullyPaid: {
+      type: Boolean,
+      default: false,
+    },
+    topUpVerificationIds: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Verification',
+    }],
     verificationId: {
       type: Schema.Types.ObjectId,
       ref: 'Verification',
