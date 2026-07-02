@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface UpdateLoadingProps {
@@ -11,11 +11,24 @@ export function UpdateLoading({
   progress = 0,
   status = "Downloading the latest update...",
 }: UpdateLoadingProps) {
+  const [hidden, setHidden] = useState(false);
+
   const clampedProgress = Math.max(0, Math.min(progress, 100));
+
+  // If user hides it → render nothing (update still runs in background)
+  if (hidden) return null;
 
   return (
     <View className="flex-1 bg-background items-center justify-center px-8">
-      
+
+      {/* Close / Hide Button */}
+      <Pressable
+        onPress={() => setHidden(true)}
+        className="absolute top-14 right-6 w-10 h-10 rounded-full bg-card border border-border items-center justify-center"
+      >
+        <Ionicons name="close" size={18} color="#64748b" />
+      </Pressable>
+
       {/* Hero Icon */}
       <View className="items-center justify-center">
         <View className="h-24 w-24 rounded-full bg-primary/10 border border-primary/20 items-center justify-center">
@@ -41,7 +54,7 @@ export function UpdateLoading({
 
       {/* Progress Card */}
       <View className="mt-10 w-full max-w-[340px] rounded-3xl border border-border bg-card p-6">
-        
+
         <View className="flex-row justify-between items-center">
           <Text className="text-sm font-semibold text-foreground">
             Installing Updates
@@ -70,7 +83,7 @@ export function UpdateLoading({
 
       {/* Footer */}
       <Text className="mt-8 text-xs text-muted-foreground text-center">
-        Please keep the application open during the update.
+        You can hide this screen — the update continues in the background.
       </Text>
     </View>
   );
