@@ -1,5 +1,5 @@
 import { Stack, router, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/src/store/authStore';
 import { QueryProvider } from '@/src/providers/QueryProvider';
 import { View, ActivityIndicator } from 'react-native';
@@ -113,68 +113,79 @@ export default function RootLayout() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isOTACheckDone, setIsOTACheckDone] = useState(false);
 
-  // NEW: OTA UI STATE
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("Checking for updates...");
 
-  useEffect(() => {
-    async function runOTAEngine() {
-      if (__DEV__) {
-        setIsOTACheckDone(true);
-        await SplashScreen.hideAsync();
+  // NEW: prevent overlapping OTA checks
+  const isCheckingRef = useRef(false);
+
+  async function runOTAEngine() {
+    if (isCheckingRef.current) return;
+    isCheckingRef.current = true;
+
+    try {
+      setStatus("Checking for updates...");
+
+      const update = await Updates.checkForUpdateAsync();
+
+      if (!update.isAvailable) {
         return;
       }
 
-      try {
-        const update = await Updates.checkForUpdateAsync();
+      setIsUpdating(true);
+      setStatus("Preparing update...");
+      await SplashScreen.hideAsync();
 
-        if (!update.isAvailable) {
-          setIsOTACheckDone(true);
-          return;
-        }
+      setStatus("Downloading update...");
 
-        setIsUpdating(true);
-        setStatus("Preparing update...");
-        await SplashScreen.hideAsync();
+      const fetchTask = Updates.fetchUpdateAsync();
 
-        // Start download
-        setStatus("Downloading update...");
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 8;
+        });
+      }, 300);
 
-        const fetchTask = Updates.fetchUpdateAsync();
+      await fetchTask;
 
-        // NOTE: Expo does NOT always provide true byte progress,
-        // so we simulate smooth staged progress for production UX
-        const progressInterval = setInterval(() => {
-          setProgress((prev) => {
-            if (prev >= 90) return prev;
-            return prev + Math.random() * 8;
-          });
-        }, 300);
+      clearInterval(progressInterval);
 
-        await fetchTask;
+      setProgress(95);
+      setStatus("Finalizing update...");
 
-        clearInterval(progressInterval);
+      await new Promise((r) => setTimeout(r, 600));
 
-        setProgress(95);
-        setStatus("Finalizing update...");
+      setProgress(100);
+      setStatus("Restarting application...");
 
-        await new Promise((r) => setTimeout(r, 600));
+      await Updates.reloadAsync();
+    } catch (error) {
+      console.warn("OTA update failed:", error);
+    } finally {
+      setIsUpdating(false);
+      setIsOTACheckDone(true);
+      isCheckingRef.current = false;
+      await SplashScreen.hideAsync();
+    }
+  }
 
-        setProgress(100);
-        setStatus("Restarting application...");
-
-        await Updates.reloadAsync();
-      } catch (error) {
-        console.warn("OTA update failed:", error);
-        setIsOTACheckDone(true);
-      } finally {
-        setIsOTACheckDone(true);
-        setIsUpdating(false);
-        await SplashScreen.hideAsync();
-      }
+  useEffect(() => {
+    // Initial OTA check
+    if (__DEV__) {
+      setIsOTACheckDone(true);
+      SplashScreen.hideAsync();
+      return;
     }
 
     runOTAEngine();
+
+    // ⏱ NEW: 30-minute interval OTA polling
+    const interval = setInterval(() => {
+      runOTAEngine();
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   /* ---------------- OTA SCREEN ---------------- */
