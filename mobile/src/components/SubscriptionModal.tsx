@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { useVerifySubscription, useTopUpSubscription } from '../hooks/useSubscription';
 import { StatusModal } from './StatusModal';
@@ -116,7 +116,7 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
   const isLoading = verifyMutation.isPending || topUpMutation.isPending;
 
   return (
-    <View className="absolute inset-0 bg-background z-[999] justify-between">
+    <SafeAreaView className="absolute inset-0 bg-background z-[999] justify-between" edges={['top', 'left', 'right', 'bottom']}>
       <SafeAreaSeparator />
       
       <KeyboardAvoidingView 
@@ -326,7 +326,7 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
         {...modal} 
         onClose={() => setModal({ ...modal, visible: false })} 
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

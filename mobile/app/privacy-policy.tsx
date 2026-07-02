@@ -61,8 +61,8 @@ export default function PrivacyPolicyScreen() {
   ];
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-grow flex" edges={['top', 'left', 'right']}>
+    <SafeAreaView className="flex-1 bg-background">
+      <SafeAreaView className="flex-grow flex" edges={['top', 'left', 'right', 'bottom']}>
         {/* Header toolbar */}
         <View className="px-6 h-16 flex-row items-center border-b border-border justify-between">
           <View className="flex-row items-center">
@@ -90,7 +90,7 @@ export default function PrivacyPolicyScreen() {
             <Text className="text-muted-foreground text-xs font-semibold">Last Updated: October 26, 2023</Text>
           </View>
 
-          <View className="space-y-6">
+          <View className="space-y-6 gap-6">
             {sections.map((section) => (
               <View key={section.id} className="bg-card border border-border rounded-[24px] p-5 shadow-xs">
                 <View className="flex-row items-center mb-4">
@@ -159,6 +159,6 @@ export default function PrivacyPolicyScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </SafeAreaView>
   );
 }
