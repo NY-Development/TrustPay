@@ -20,12 +20,12 @@ router.post(
   verificationController.verifyManual
 );
 
-router.post(
-  '/verify-universal', 
-  verificationRateLimiter,
-  validate(verifyUniversalSchema), 
-  verificationController.verifyUniversal
-);
+// router.post(
+//   '/verify-universal', 
+//   verificationRateLimiter,
+//   validate(verifyUniversalSchema), 
+//   verificationController.verifyUniversal
+// );
 
 router.post(
   '/verify-ocr', 

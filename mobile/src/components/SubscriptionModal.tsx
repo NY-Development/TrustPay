@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { useVerifySubscription, useTopUpSubscription } from '../hooks/useSubscription';
 import { StatusModal } from './StatusModal';
@@ -19,6 +20,7 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
   const isDark = colorScheme === 'dark';
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
   
+  const insets = useSafeAreaInsets();
   const logoutUser = useAuthStore(state => state.logout);
   const verifyMutation = useVerifySubscription();
   const topUpMutation = useTopUpSubscription();
@@ -109,7 +111,8 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
     });
   };
 
-  const currentPrice = plan === 'monthly' ? '100' : '1,000';
+  const currentPrice = plan === 'monthly' ? '1,499.99' : '14,999.99';
+  const currentTransferPrice = plan === 'monthly' ? '1500' : '15000';
   const isLoading = verifyMutation.isPending || topUpMutation.isPending;
 
   return (
@@ -120,7 +123,10 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         className="flex-1"
       >
-        <ScrollView className="flex-1 px-6 pt-12" contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView 
+          className="flex-1 px-6 pt-12" 
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 40) }}
+        >
           {/* Header row */}
           <View className="flex-row justify-between items-center mb-8">
             <View className="flex-1 mr-4">
@@ -250,28 +256,30 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
                   className={`flex-1 bg-card border-2 p-5 rounded-[24px] ${plan === 'monthly' ? 'border-primary' : 'border-border'}`}
                 >
                   <Text className="text-muted-foreground font-medium text-xs">MONTHLY PLAN</Text>
-                  <Text className="text-foreground text-2xl font-black mt-2">100 ETB</Text>
+                  <Text className="text-foreground text-2xl font-black mt-2">1,499.99 ETB</Text>
                   <Text className="text-muted-foreground text-xs mt-1">Billed monthly</Text>
                 </TouchableOpacity>
                 
+                {/* 
                 <TouchableOpacity 
-                  onPress={() => setPlan('yearly')}
-                  className={`flex-1 bg-card border-2 p-5 rounded-[24px] ${plan === 'yearly' ? 'border-primary' : 'border-border'}`}
+                   onPress={() => setPlan('yearly')}
+                   className={`flex-1 bg-card border-2 p-5 rounded-[24px] ${plan === 'yearly' ? 'border-primary' : 'border-border'}`}
                 >
-                  <View className="absolute top-2 right-2 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                    <Text className="text-primary text-[9px] font-bold">BEST VALUE</Text>
-                  </View>
-                  <Text className="text-muted-foreground font-medium text-xs">YEARLY PLAN</Text>
-                  <Text className="text-foreground text-2xl font-black mt-2">1,000 ETB</Text>
-                  <Text className="text-muted-foreground text-xs mt-1">Billed yearly</Text>
+                   <View className="absolute top-2 right-2 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                     <Text className="text-primary text-[9px] font-bold">BEST VALUE</Text>
+                   </View>
+                   <Text className="text-muted-foreground font-medium text-xs">YEARLY PLAN</Text>
+                   <Text className="text-foreground text-2xl font-black mt-2">14,999.99 ETB</Text>
+                   <Text className="text-muted-foreground text-xs mt-1">Billed yearly</Text>
                 </TouchableOpacity>
+                */}
               </View>
 
               {/* Payment Info Card */}
               <View className="bg-card border border-border p-6 rounded-[28px] mb-8 shadow-xs">
                 <Text className="text-foreground text-base font-bold mb-4">Payment Instructions</Text>
                 <View className="space-y-4">
-                  <PaymentStep number="1" text={`Transfer exactly ${currentPrice} ETB to CBE Account: 1000403196928.`} />
+                  <PaymentStep number="1" text={`Transfer exactly ${currentTransferPrice} ETB to CBE Account: 1000403196928.`} />
                   <PaymentStep number="2" text="Receiver Name: YAMLAK NEGASH DUGO" />
                   <PaymentStep number="3" text="Copy the unique CBE transaction reference ID from your receipt, and paste it below." />
                   <PaymentStep number="4" text="Note: Subscription checks are currently processed for CBE payments only." />

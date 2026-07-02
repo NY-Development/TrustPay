@@ -17,11 +17,12 @@ import { NotificationService } from '../../services/notification.service';
 import { User } from '../../models/User';
 
 /**
+/**
  * @desc    Verify payment manually
  * @route   POST /api/v1/verifications/verify
  */
 export const verifyManual = asyncHandler(async (req: Request, res: Response) => {
-  const { reference, amountExpected, branchId } = req.body;
+  const { reference, provider: clientProvider, amountExpected, branchId } = req.body;
   const userId = req.user?.userId;
 
   // 1. Check for duplicate (Idempotency)
@@ -32,13 +33,12 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
 
   // 2. Look up the verifier's account number for settlement matching
   const verifier = await User.findById(userId);
-  const detectedProvider = VerificationService.detectProvider(reference);
-  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === detectedProvider);
+  const resolvedProvider = clientProvider || VerificationService.detectProvider(reference);
+  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === resolvedProvider);
   if (!matchingAccount) {
-    throw new BadRequestError(`No registered payment account found for provider '${detectedProvider}'. Please register this provider in your settings.`);
+    throw new BadRequestError(`No registered payment account found for provider '${resolvedProvider}'. Please register this provider in your settings.`);
   }
 
-  const resolvedProvider = matchingAccount.accountProvider;
   const settlementAccount = matchingAccount.accountNumber;
   
   let derivedSuffix = '';
@@ -67,12 +67,22 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
     throw new BadRequestError('Payment verification failed. Invalid reference.');
   }
 
-  // 4. Amount Validation
+  // 4. Verification Settlement Match Check
+  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
+    await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
+      reference,
+      provider: resolvedProvider,
+      error: `Settlement account mismatch. Expected: ${settlementAccount}, Got: ${result.receiverAccount}`
+    });
+    throw new BadRequestError(`Settlement account mismatch. Expected payment to go to your account '${settlementAccount}', but it actually went to '${result.receiverAccount || 'Unknown'}'`);
+  }
+
+  // 5. Amount Validation
   if (amountExpected && result.amount < amountExpected) {
     throw new BadRequestError(`Amount mismatch. Expected: ${amountExpected}, Verified: ${result.amount}`);
   }
 
-  // 5. Save and return
+  // 6. Save and return
   const verification = await Verification.create({
     transactionId: result.transactionId.toUpperCase(),
     referenceNumber: result.referenceNumber || reference.toUpperCase(),
@@ -106,83 +116,6 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
     message: 'Transaction successfully verified',
     data: verification
   });
-});
-
-/**
- * @desc    Verify payment via universal reference parsing
- * @route   POST /api/v1/verifications/verify-universal
- */
-export const verifyUniversal = asyncHandler(async (req: Request, res: Response) => {
-  const { reference, suffix, phoneNumber, amountExpected, branchId } = req.body;
-  const userId = req.user?.userId;
-  
-  const existing = await Verification.findOne({ transactionId: reference.toUpperCase() });
-  if (existing) {
-    throw new ConflictError('Transaction already processed.');
-  }
-
-  // Look up the verifier's account number for settlement matching
-  const verifier = await User.findById(userId);
-  const detectedProvider = VerificationService.detectProvider(reference);
-  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === detectedProvider);
-  const settlementAccount = matchingAccount?.accountNumber || verifier?.accounts?.[0]?.accountNumber;
-
-  if (!settlementAccount) {
-    throw new BadRequestError('No registered payment account found. Please register at least one payment account in your settings.');
-  }
-
-  const resolvedProvider = matchingAccount?.accountProvider || verifier?.accounts?.[0]?.accountProvider || 'cbe';
-  
-  let derivedSuffix = suffix;
-  if (!derivedSuffix) {
-    if (resolvedProvider === 'cbe') {
-      derivedSuffix = settlementAccount.length >= 8 ? settlementAccount.slice(-8) : settlementAccount;
-    } else if (resolvedProvider === 'boa') {
-      derivedSuffix = settlementAccount.length >= 5 ? settlementAccount.slice(-5) : settlementAccount;
-    } else {
-      derivedSuffix = settlementAccount.length >= 4 ? settlementAccount.slice(-4) : settlementAccount;
-    }
-  }
-
-  const derivedPhone = phoneNumber || ((resolvedProvider === 'cbebirr' || resolvedProvider === 'kaafiebirr') ? settlementAccount : undefined);
-
-  const result = await VerificationService.verifyUniversal({ 
-    reference, 
-    suffix: derivedSuffix, 
-    phoneNumber: derivedPhone,
-    settlementAccount
-  });
-
-  if (!result.verified) {
-    throw new BadRequestError('Could not locate reference.');
-  }
-
-  const verification = await Verification.create({
-    transactionId: result.transactionId.toUpperCase(),
-    provider: result.provider,
-    amount: result.amount,
-    currency: result.currency,
-    payerName: result.payerName,
-    paymentDate: result.paymentDate,
-    verified: true,
-    verifiedBy: userId,
-    businessId: req.user?.businessId,
-    branchId: branchId || req.user?.branchId,
-    source: 'qr',
-    rawResponse: result.raw,
-    status: 'completed'
-  });
-
-  // Send Push Notification
-  if (verifier?.pushToken) {
-    NotificationService.sendNotification(
-      verifier.pushToken,
-      'QR Payment Verified',
-      `Success: ${result.amount} ${result.currency} verified.`
-    ).catch(err => logger.error('Push notification failed', err));
-  }
-
-  res.status(200).json({ success: true, data: verification });
 });
 
 /**
@@ -240,6 +173,11 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
 
   if (!result.verified) {
     throw new BadRequestError('Extracted reference is invalid or could not be verified.');
+  }
+
+  // Verification Settlement Match Check
+  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
+    throw new BadRequestError(`Settlement account mismatch. Expected payment to go to your account '${settlementAccount}', but it actually went to '${result.receiverAccount || 'Unknown'}'`);
   }
 
   const verification = await Verification.create({

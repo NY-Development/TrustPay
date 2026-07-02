@@ -19,7 +19,7 @@ export default function SplashScreen() {
   const SPLASH_DURATION = 8000; 
 
   useEffect(() => {
-    // 1. Run the loading bar animation sequence
+    // Run the loading bar animation sequence
     progress.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
@@ -28,16 +28,7 @@ export default function SplashScreen() {
       -1, 
       true
     );
-
-    // 2. Set a timer and check for hydration before routing
-    const timer = setTimeout(() => {
-      if (isHydrated) {
-        router.replace('/(tabs)'); // Replace with your main app route
-      }
-    }, 5000);
-
-    return () => clearTimeout(5000);
-  }, [isHydrated]);
+  }, []);
 
   const progressStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: progress.value * (48 - 24) }],

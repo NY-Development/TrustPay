@@ -122,7 +122,7 @@ export class VerificationService {
 
       // 200 — completed immediately
       if (response.status === 200) {
-        return this.mapCompletedResponse(body, params.provider, params.reference);
+        return this.mapCompletedResponse(body, params.provider, params.reference, params.settlementAccount);
       }
 
       // 202 — queued, need to poll
@@ -137,7 +137,7 @@ export class VerificationService {
           ? statusUrl
           : `${verifyEtConfig.baseUrl}${statusUrl}`;
 
-        return await this.pollForResult(fullStatusUrl, params.provider, params.reference);
+        return await this.pollForResult(fullStatusUrl, params.provider, params.reference, params.settlementAccount);
       }
 
       return this.failedResult(params.provider, params.reference, body);
@@ -148,21 +148,14 @@ export class VerificationService {
   }
 
   /**
-   * Universal verification (let Verify.ET smart-router decide the bank)
+   * Helper to verify if settlement accounts match (suffix matching)
    */
-  static async verifyUniversal(params: {
-    reference: string;
-    suffix?: string;
-    phoneNumber?: string;
-    settlementAccount?: string;
-  }): Promise<VerificationResult> {
-    return this.verifyWithProvider({
-      provider: 'universal',
-      reference: params.reference,
-      suffix: params.suffix,
-      phoneNumber: params.phoneNumber,
-      settlementAccount: params.settlementAccount,
-    });
+  private static matchAccounts(expected?: string, actual?: string): boolean {
+    if (!expected || !actual) return false;
+    const cleanExpected = expected.replace(/\D/g, '');
+    const cleanActual = actual.replace(/\D/g, '');
+    if (!cleanExpected || !cleanActual) return false;
+    return cleanExpected.endsWith(cleanActual) || cleanActual.endsWith(cleanExpected);
   }
 
   /**
@@ -171,7 +164,8 @@ export class VerificationService {
   private static async pollForResult(
     statusUrl: string,
     provider: string,
-    reference: string
+    reference: string,
+    settlementAccount?: string
   ): Promise<VerificationResult> {
     const { maxPollAttempts, defaultPollIntervalMs } = verifyEtConfig;
 
@@ -183,7 +177,7 @@ export class VerificationService {
       const status = body.data?.processingStatus;
 
       if (status === 'completed') {
-        return this.mapPolledResponse(body, provider, reference);
+        return this.mapPolledResponse(body, provider, reference, settlementAccount);
       }
 
       if (status === 'failed') {
@@ -254,7 +248,8 @@ export class VerificationService {
   private static mapCompletedResponse(
     body: any,
     provider: string,
-    reference: string
+    reference: string,
+    settlementAccount?: string
   ): VerificationResult {
     const verified = this.findValueInObject(body, ['verified']) ?? false;
     const amount = Number(this.findValueInObject(body, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
@@ -277,6 +272,11 @@ export class VerificationService {
       paymentDate,
       receiverName,
       receiverAccount,
+      settlementAccountMatch: settlementAccount ? {
+        matched: this.matchAccounts(settlementAccount, receiverAccount),
+        expected: settlementAccount,
+        actual: receiverAccount,
+      } : undefined,
       raw: body,
     };
   }
@@ -287,7 +287,8 @@ export class VerificationService {
   private static mapPolledResponse(
     body: any,
     provider: string,
-    reference: string
+    reference: string,
+    settlementAccount?: string
   ): VerificationResult {
     const verified = this.findValueInObject(body, ['verified']) ?? false;
     const amount = Number(this.findValueInObject(body, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
@@ -313,6 +314,11 @@ export class VerificationService {
       paymentDate,
       receiverName,
       receiverAccount,
+      settlementAccountMatch: settlementAccount ? {
+        matched: this.matchAccounts(settlementAccount, receiverAccount),
+        expected: settlementAccount,
+        actual: receiverAccount,
+      } : undefined,
       raw: body,
     };
   }

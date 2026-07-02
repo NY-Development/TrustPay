@@ -46,6 +46,7 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
+    const isSplash = !segments[0] || (segments[0] as string) === 'index';
 
     if (!hasSeenOnboarding && !inOnboarding) {
       // Redirect to onboarding if not seen yet
@@ -53,8 +54,8 @@ function RootLayoutNav() {
     } else if (hasSeenOnboarding && !isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated and not in auth routes
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      // Redirect to home if authenticated and trying to access auth/onboarding routes
+    } else if (isAuthenticated && (inAuthGroup || inOnboarding || isSplash)) {
+      // Redirect to home if authenticated and trying to access auth/onboarding/splash routes
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isHydrated, hasSeenOnboarding, segments]);
@@ -67,11 +68,13 @@ function RootLayoutNav() {
     );
   }
 
-  // Block dashboard if: no subscription, OR subscription exists but not fully paid
+  // Block dashboard if: no subscription, OR subscription exists but not fully paid, or is active but explicitly underpaid/unverified status
   const subData = subStatus?.data;
-  const isActive = subData?.active === true;
-  const isPartialPayment = subData?.isPartialPayment === true;
-  const showLocked = isAuthenticated && !subLoading && (!isActive || isPartialPayment);
+  const isSubscriptionActive = subData?.active === true && subData?.subscription?.status === 'active' && subData?.subscription?.fullyPaid === true;
+  const isPartialPayment = subData?.isPartialPayment === true || subData?.subscription?.status === 'partial_payment';
+  
+  // Show lock modal if the user is authenticated, loaded subscription data, and has no active subscription or is in partial payment
+  const showLocked = isAuthenticated && !subLoading && (!isSubscriptionActive || isPartialPayment);
 
   return (
     <>

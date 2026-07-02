@@ -39,7 +39,7 @@ export default function Dashboard() {
 
           {/* Verification Card */}
           <TouchableOpacity 
-            onPress={() => router.push('/(tabs)/verify/index' as any)}
+            onPress={() => router.push('/(tabs)/verify' as any)}
             className="bg-primary rounded-[32px] p-8 mb-8 relative overflow-hidden shadow-2xl shadow-primary/40"
           >
             <LinearGradient

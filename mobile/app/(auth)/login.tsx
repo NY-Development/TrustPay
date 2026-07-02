@@ -30,20 +30,8 @@ export default function Login() {
   const promptBiometrics = async () => {
     const { isAvailable, isEnrolled } = await BiometricService.checkAvailability();
     if (isAvailable && isEnrolled) {
-      Alert.alert(
-        'Enable Biometrics',
-        'Would you like to enable biometric login for future sessions?',
-        [
-          { text: 'No', style: 'cancel', onPress: () => router.replace('/(tabs)') },
-          { 
-            text: 'Yes', 
-            onPress: async () => {
-              await setBiometricsEnabled(true);
-              router.replace('/(tabs)');
-            } 
-          }
-        ]
-      );
+      await setBiometricsEnabled(true);
+      router.replace('/(tabs)');
     } else {
       router.replace('/(tabs)');
     }

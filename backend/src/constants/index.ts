@@ -53,8 +53,8 @@ export const SUBSCRIPTION_PLANS = {
 export type SubscriptionPlan = typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS];
 
 export const SUBSCRIPTION_PRICING = {
-  monthly: { amount: 100, durationDays: 30 },
-  yearly: { amount: 1000, durationDays: 365 },
+  monthly: { amount: 1500, durationDays: 30 },
+  yearly: { amount: 15000, durationDays: 365 },
 } as const;
 
 export const SUBSCRIPTION_RECEIVER_NAME = 'YAMLAK NEGASH DUGO';

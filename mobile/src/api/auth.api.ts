@@ -27,7 +27,7 @@ export const authApi = {
     return response.data;
   },
   verifyOtp: async (email: string, otp: string) => {
-    const response = await apiClient.post<ApiResponse<{ resetToken: string }>>('/auth/verify-otp', { email, otp });
+    const response = await apiClient.post<ApiResponse & { resetToken: string }>('/auth/verify-otp', { email, otp });
     return response.data;
   },
   resetPassword: async (data: any) => {

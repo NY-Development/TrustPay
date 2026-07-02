@@ -26,25 +26,21 @@ export default function Settings() {
   const subscriptionDetails = statusResponse?.data?.subscription;
 
   const handleLogout = () => {
-    logoutMutation.mutate(void 0, {
-      onSuccess: () => {
-        router.replace('/(auth)/login');
-      }
-    });
+    logoutMutation.mutate(void 0);
   };
 
   const settingsItems = [
     { section: 'Security', items: [
       { id: 'biometrics', title: 'Biometric Login', icon: 'finger-print', type: 'switch', value: biometricsEnabled, onValueChange: setBiometricsEnabled },
-      { id: 'password', title: 'Change Password', icon: 'lock-closed', type: 'chevron' },
+      { id: 'password', title: 'Change Password', icon: 'lock-closed', type: 'chevron', route: '/(auth)/forgot-password' },
     ]},
     { section: 'Notifications', items: [
       { id: 'push', title: 'Push Notifications', icon: 'notifications', type: 'switch', value: notifications, onValueChange: setNotifications },
     ]},
     { section: 'Support & Feedback', items: [
       { id: 'contact', title: 'Contact Support', icon: 'chatbubbles-outline', type: 'chevron', route: '/contact' },
-      { id: 'help', title: 'Help Center', icon: 'help-circle-outline', type: 'chevron' },
-      { id: 'privacy', title: 'Privacy Policy', icon: 'document-text-outline', type: 'chevron' },
+      // { id: 'help', title: 'Help Center', icon: 'help-circle-outline', type: 'chevron' },
+      { id: 'privacy', title: 'Privacy Policy', icon: 'document-text-outline', type: 'chevron', route: '/privacy-policy' },
     ]},
   ];
 

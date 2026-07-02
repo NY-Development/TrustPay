@@ -40,7 +40,7 @@ export default function VerifyOtp() {
     try {
       const res = await authApi.verifyOtp(email || '', otp.trim());
       setLoading(false);
-      setResetToken(res.data?.resetToken || '');
+      setResetToken((res as any).resetToken || '');
       setModal({
         visible: true,
         type: 'success',

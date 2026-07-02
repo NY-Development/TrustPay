@@ -43,6 +43,12 @@ export interface DeviceInfo {
 }
 
 // ─── Verification ─────────────────────────────
+export interface SettlementAccountMatch {
+  matched: boolean;
+  expected: string;
+  actual?: string;
+}
+
 export interface VerificationResult {
   success: boolean;
   verified: boolean;
@@ -55,6 +61,7 @@ export interface VerificationResult {
   paymentDate: Date | string;
   receiverName?: string;
   receiverAccount?: string;
+  settlementAccountMatch?: SettlementAccountMatch;
   raw?: Record<string, unknown>;
 }
 
