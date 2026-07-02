@@ -34,7 +34,8 @@ router.post(
   verificationController.verifyOcr
 );
 
-router.get('/', verificationController.getVerifications);
+router.get('/business-history', verificationController.getBusinessVerifications);
+router.get('/my-history', verificationController.getMyVerifications);
 router.get('/:id', verificationController.getVerificationById);
 
 export default router;

@@ -2,21 +2,17 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuthStore } from '@/src/store/authStore';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 
 export default function Dashboard() {
-  const { user } = useAuthStore();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   useNotifications();
   const { data: history, isLoading, refetch } = useVerificationHistory();
-  const newData = history?.data?.filter(item => item?.verifiedBy?.toString() === user?.id);
   const router = useRouter();
 
   return (
@@ -72,12 +68,12 @@ export default function Dashboard() {
             <View className="flex-1 bg-card border border-border rounded-3xl p-6">
               <Text className="text-muted-foreground font-medium mb-1">Today</Text>
               <Text className="text-foreground text-2xl font-bold">
-                {newData?.filter(v => new Date(v.paymentDate).toDateString() === new Date().toDateString()).length || 0}
+                {history?.data?.filter(v => new Date(v.paymentDate).toDateString() === new Date().toDateString()).length || 0}
               </Text>
             </View>
             <View className="flex-1 bg-card border border-border rounded-3xl p-6">
               <Text className="text-primary font-medium mb-1">Total</Text>
-              <Text className="text-foreground text-2xl font-bold">{newData?.length || 0}</Text>
+              <Text className="text-foreground text-2xl font-bold">{history?.data?.length || 0}</Text>
             </View>
           </View>
 
@@ -90,8 +86,8 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
 
-            {newData && newData.length > 0 ? (
-              newData.slice(0, 5).map((item: any, i: number) => (
+            {history?.data && history.data.length > 0 ? (
+              history.data.slice(0, 5).map((item: any, i: number) => (
                 <TouchableOpacity
                   key={i}
                   onPress={() => router.push(`/verification/${item._id || item.id}` as any)}

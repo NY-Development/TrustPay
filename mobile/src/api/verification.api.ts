@@ -12,6 +12,7 @@ export const verificationApi = {
   },
   verifyOcr: async (data: any) => {
     const response = await apiClient.post<ApiResponse<Verification>>('/verifications/verify-ocr', data);
+    console.log('Response of verifications : ',response.data);
     return response.data;
   },
   getHistory: async () => {

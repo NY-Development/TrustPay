@@ -210,15 +210,33 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * @desc    Get verification history
- * @route   GET /api/v1/verifications
+ * @desc    Get all verifications for the authenticated user's business
+ * @route   GET /api/v1/verifications/business-history
+ * @access  Private
  */
-export const getVerifications = asyncHandler(async (req: Request, res: Response) => {
+export const getBusinessVerifications = asyncHandler(async (req: Request, res: Response) => {
   const query: any = {};
 
+  // Restrict to businessId unless they are SUPER_ADMIN
   if (req.user?.role !== 'SUPER_ADMIN') {
     query.businessId = req.user?.businessId;
   }
+
+  const verifications = await Verification.find(query).sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    data: verifications
+  });
+});
+
+/**
+ * @desc    Get ONLY my verification history
+ * @route   GET /api/v1/verifications/my-history
+ * @access  Private
+ */
+export const getMyVerifications = asyncHandler(async (req: Request, res: Response) => {
+  const query: any = { verifiedBy: req.user?.userId };
 
   const verifications = await Verification.find(query).sort({ createdAt: -1 });
 
