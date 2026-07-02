@@ -24,6 +24,7 @@ export interface Verification {
   receiverAccount?: string;
   paymentDate: string;
   verified: boolean;
+  verifiedBy: string;
   status: 'pending' | 'completed' | 'failed';
   source: 'screenshot' | 'manual' | 'qr';
   rawResponse?: Record<string, any>;

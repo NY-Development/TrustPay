@@ -251,21 +251,22 @@ export class VerificationService {
     reference: string,
     settlementAccount?: string
   ): VerificationResult {
-    const verified = this.findValueInObject(body, ['verified']) ?? false;
-    const amount = Number(this.findValueInObject(body, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
-    const currency = this.findValueInObject(body, ['currency', 'curr', 'currencyCode']) || 'ETB';
-    const payerName = this.findValueInObject(body, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
-    const receiverName = this.findValueInObject(body, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
-    const receiverAccount = this.findValueInObject(body, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
-    const rawTimestamp = this.findValueInObject(body, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
+    const resultData = Array.isArray(body.data) ? body.data[0] : body.data;
+    const verified = this.findValueInObject(resultData, ['verified']) ?? false;
+    const amount = Number(this.findValueInObject(resultData, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
+    const currency = this.findValueInObject(resultData, ['currency', 'curr', 'currencyCode']) || 'ETB';
+    const payerName = this.findValueInObject(resultData, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
+    const receiverName = this.findValueInObject(resultData, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
+    const receiverAccount = this.findValueInObject(resultData, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
+    const rawTimestamp = this.findValueInObject(resultData, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
     const paymentDate = rawTimestamp ? new Date(rawTimestamp) : new Date();
 
     return {
       success: true,
       verified: verified === true || String(verified).toLowerCase() === 'true',
-      provider: this.findValueInObject(body, ['bank', 'provider', 'type']) || provider,
-      transactionId: this.findValueInObject(body, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
-      referenceNumber: this.findValueInObject(body, ['referenceNumber']),
+      provider: this.findValueInObject(resultData, ['bank', 'provider', 'type']) || provider,
+      transactionId: this.findValueInObject(resultData, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
+      referenceNumber: this.findValueInObject(resultData, ['referenceNumber']),
       amount,
       currency,
       payerName,
@@ -290,24 +291,25 @@ export class VerificationService {
     reference: string,
     settlementAccount?: string
   ): VerificationResult {
-    const verified = this.findValueInObject(body, ['verified']) ?? false;
-    const amount = Number(this.findValueInObject(body, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
-    const currency = this.findValueInObject(body, ['currency', 'curr', 'currencyCode']) || 'ETB';
-    const payerName = this.findValueInObject(body, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
-    const receiverName = this.findValueInObject(body, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
-    const receiverAccount = this.findValueInObject(body, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
-    const rawTimestamp = this.findValueInObject(body, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
+    const resultData = Array.isArray(body.data) ? body.data[0] : body.data;
+    const verified = this.findValueInObject(resultData, ['verified']) ?? false;
+    const amount = Number(this.findValueInObject(resultData, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
+    const currency = this.findValueInObject(resultData, ['currency', 'curr', 'currencyCode']) || 'ETB';
+    const payerName = this.findValueInObject(resultData, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
+    const receiverName = this.findValueInObject(resultData, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
+    const receiverAccount = this.findValueInObject(resultData, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
+    const rawTimestamp = this.findValueInObject(resultData, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
     const paymentDate = rawTimestamp ? new Date(rawTimestamp) : new Date();
 
-    const statusValue = this.findValueInObject(body, ['status', 'processingStatus']);
+    const statusValue = this.findValueInObject(resultData, ['status', 'processingStatus']);
     const isSuccess = statusValue === 'success' || statusValue === 'completed' || verified === true;
 
     return {
       success: isSuccess,
       verified: verified === true || String(verified).toLowerCase() === 'true',
-      provider: this.findValueInObject(body, ['bank', 'provider', 'type']) || provider,
-      transactionId: this.findValueInObject(body, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
-      referenceNumber: this.findValueInObject(body, ['referenceNumber']),
+      provider: this.findValueInObject(resultData, ['bank', 'provider', 'type']) || provider,
+      transactionId: this.findValueInObject(resultData, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
+      referenceNumber: this.findValueInObject(resultData, ['referenceNumber']),
       amount,
       currency,
       payerName,

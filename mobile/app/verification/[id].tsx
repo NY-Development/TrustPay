@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { useVerificationDetail } from '../../src/hooks/useVerification';
 import { format } from 'date-fns';
+import * as Clipboard from 'expo-clipboard';
 
 export default function VerificationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -118,17 +119,34 @@ export default function VerificationDetailScreen() {
           {/* Advanced Raw Response accordion */}
           {ver.rawResponse && (
             <View className="mb-10">
-              <TouchableOpacity
-                onPress={() => setShowRaw(!showRaw)}
-                className="flex-row items-center justify-between py-3 border-b border-border"
-              >
-                <Text className="text-muted-foreground text-sm font-semibold">Developers Raw JSON Payload</Text>
-                <Ionicons
-                  name={showRaw ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={isDark ? '#64748b' : '#94a3b8'}
-                />
-              </TouchableOpacity>
+              <View className="flex-row items-center justify-between py-3 border-b border-border">
+                <TouchableOpacity 
+                  onPress={() => setShowRaw(!showRaw)} 
+                  className="flex-row items-center flex-1 justify-between mr-4"
+                >
+                  <Text className="text-muted-foreground text-sm font-semibold">
+                    Developers Raw JSON Payload
+                  </Text>
+                  <Ionicons 
+                    name={showRaw ? 'chevron-up' : 'chevron-down'} 
+                    size={18} 
+                    color={isDark ? '#64748b' : '#94a3b8'} 
+                  />
+                </TouchableOpacity>
+
+                {/* Copy Button */}
+                <TouchableOpacity 
+                  onPress={async () => {
+                    const stringPayload = JSON.stringify(ver.rawResponse, null, 2);
+                    await Clipboard.setStringAsync(stringPayload);
+                    // Optional: Add an alert or toast here to tell the user it copied!
+                    alert('Copied to clipboard!');
+                  }}
+                  className="p-1 px-3 bg-secondary rounded-lg"
+                >
+                  <Text className="text-xs font-medium text-secondary-foreground">Copy</Text>
+                </TouchableOpacity>
+              </View>
 
               {showRaw && (
                 <View className="bg-muted p-4 rounded-2xl mt-3 border border-border">

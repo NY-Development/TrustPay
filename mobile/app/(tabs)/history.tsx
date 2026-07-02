@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, TextInput } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
+import {useAuthStore} from '@/src/store/authStore'
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
@@ -10,10 +11,14 @@ export default function History() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { data: history, isLoading, refetch } = useVerificationHistory();
+  const {user} = useAuthStore();
   const [search, setSearch] = React.useState('');
   const router = useRouter();
 
-  const filteredHistory = history?.data?.filter(item => 
+  // User specific history : 
+  const newData = history?.data?.filter(item => item?.verifiedBy?.toString() === user?.id);
+
+  const filteredHistory = newData?.filter(item => 
     item.transactionId.toLowerCase().includes(search.toLowerCase()) || 
     item.payerName.toLowerCase().includes(search.toLowerCase())
   );

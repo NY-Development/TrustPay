@@ -68,7 +68,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   }
 
   // 4. Verification Settlement Match Check
-  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
+  if (result.settlementAccountMatch && result.settlementAccountMatch.matched === false) {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
       reference,
       provider: resolvedProvider,
@@ -176,7 +176,7 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Verification Settlement Match Check
-  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
+  if (result.settlementAccountMatch && result.settlementAccountMatch.matched === false) {
     throw new BadRequestError(`Settlement account mismatch. Expected payment to go to your account '${settlementAccount}', but it actually went to '${result.receiverAccount || 'Unknown'}'`);
   }
 
