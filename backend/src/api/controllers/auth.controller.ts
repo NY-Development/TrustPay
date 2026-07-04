@@ -26,6 +26,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new ConflictError('User already exists with this email');
 
+  const now = new Date();
+  const trialEnd = new Date(now);
+  trialEnd.setDate(trialEnd.getDate() + 5);
+
   const user = await User.create({
     name,
     email,
@@ -34,6 +38,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     accounts,
     businessId,
     branchId,
+    // 🆕 TRIAL
+    trialStartDate: now,
+    trialEndDate: trialEnd,
+    hasUsedTrial: true,
   });
 
   const { accessToken, refreshToken } = generateTokens(user);
@@ -308,4 +316,184 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   } catch {
     throw new BadRequestError('Invalid or expired reset token');
   }
+});
+
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const { name, email } = req.body;
+  const userId = req.user?.userId;
+
+  const user = await User.findById(userId);
+  if (!user) throw new NotFoundError('User not found');
+
+  if (email && email !== user.email) {
+    const existing = await User.findOne({ email });
+    if (existing) throw new ConflictError('Email already in use');
+    user.email = email;
+  }
+
+  if (name) user.name = name;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    data: user
+  });
+});
+
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user?.userId;
+
+  if (!newPassword || newPassword.length < 6) {
+    throw new BadRequestError('Password must be at least 6 characters');
+  }
+
+  const user = await User.findById(userId).select('+passwordHash');
+  if (!user) throw new NotFoundError('User not found');
+
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new UnauthorizedError('Current password is incorrect');
+  }
+
+  user.passwordHash = newPassword;
+
+  // invalidate all sessions
+  user.tokenVersion += 1;
+  user.refreshToken = undefined;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Password updated successfully',
+    data: null
+  });
+});
+
+export const addAccount = asyncHandler(async (req: Request, res: Response) => {
+  const { accountNumber, accountProvider } = req.body;
+  const userId = req.user?.userId;
+
+  if (!accountNumber || !accountProvider) {
+    throw new BadRequestError('Account number and provider are required');
+  }
+
+  const user = await User.findById(userId);
+  if (!user) throw new NotFoundError('User not found');
+
+  const exists = user.accounts.some(
+    (acc) =>
+      acc.accountNumber === accountNumber &&
+      acc.accountProvider === accountProvider
+  );
+
+  if (exists) {
+    throw new ConflictError('Account already exists');
+  }
+
+  user.accounts.push({
+    accountNumber,
+    accountProvider
+  });
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Account added successfully',
+    data: user.accounts
+  });
+});
+
+export const updateAccount = asyncHandler(async (req: Request, res: Response) => {
+  const { accountNumber, accountProvider, newAccountNumber, newAccountProvider } = req.body;
+  const userId = req.user?.userId;
+
+  if (!accountNumber || !accountProvider) {
+    throw new BadRequestError('Current accountNumber and accountProvider are required');
+  }
+
+  const user = await User.findById(userId);
+  if (!user) throw new NotFoundError('User not found');
+
+  const accountIndex = user.accounts.findIndex(
+    (acc) =>
+      acc.accountNumber === accountNumber &&
+      acc.accountProvider === accountProvider
+  );
+
+  if (accountIndex === -1) {
+    throw new NotFoundError('Account not found');
+  }
+
+  // Prevent duplicates if updating
+  const duplicate = user.accounts.some((acc, idx) => {
+    if (idx === accountIndex) return false;
+
+    return (
+      acc.accountNumber === (newAccountNumber || accountNumber) &&
+      acc.accountProvider === (newAccountProvider || accountProvider)
+    );
+  });
+
+  if (duplicate) {
+    throw new ConflictError('Another account already uses these details');
+  }
+
+  user.accounts[accountIndex] = {
+    accountNumber: newAccountNumber || accountNumber,
+    accountProvider: newAccountProvider || accountProvider,
+  };
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Account updated successfully',
+    data: user.accounts,
+  });
+});
+
+export const removeAccount = asyncHandler(async (req: Request, res: Response) => {
+  const { accountNumber, accountProvider } = req.body;
+  const userId = req.user?.userId;
+
+  const user = await User.findById(userId);
+  if (!user) throw new NotFoundError('User not found');
+
+  const initialLength = user.accounts.length;
+
+  user.accounts = user.accounts.filter(
+    (acc) =>
+      !(
+        acc.accountNumber === accountNumber &&
+        acc.accountProvider === accountProvider
+      )
+  );
+
+  if (user.accounts.length === initialLength) {
+    throw new NotFoundError('Account not found');
+  }
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Account removed successfully',
+    data: user.accounts
+  });
+});
+
+export const getAccounts = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user?.userId);
+
+  if (!user) throw new NotFoundError('User not found');
+
+  res.status(200).json({
+    success: true,
+    data: user.accounts
+  });
 });

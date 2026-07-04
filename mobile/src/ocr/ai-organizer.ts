@@ -17,7 +17,7 @@ export const organizeReceiptData = async (rawOcrText: string) => {
         },
 
         body: JSON.stringify({
-          model: "mistralai/mistral-nemo",
+          model: "openai/gpt-4o-mini",
 
           response_format: {
             type: "json_object",
@@ -249,7 +249,19 @@ ${rawOcrText}`,
 
     console.log("[TrustPay AI] Extraction Complete");
 
-    return JSON.parse(content);
+    const safeParse = (text: string) => {
+      try {
+        return JSON.parse(text);
+      } catch {
+        const cleaned = text
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim();
+
+        return JSON.parse(cleaned);
+      }
+    };
+    return safeParse(content);
   } catch (error) {
     console.error("[TrustPay AI]", error);
     throw error;

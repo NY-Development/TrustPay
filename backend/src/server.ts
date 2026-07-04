@@ -8,10 +8,14 @@ import { setupSecurityMiddleware } from './middleware/security';
 import { setupRoutes } from './api/routes';
 import { errorHandler } from './middleware/errorHandler';
 
+import { requireActiveAccess } from './middleware/accessControl';
+
 const startServer = async () => {
   const app = express();
   app.set('trust proxy', 1);
 
+  // 👇 ALL protected routes now require trial/subscription
+  app.use(requireActiveAccess);
   // 1. Connect to Database
   await connectDatabase();
 

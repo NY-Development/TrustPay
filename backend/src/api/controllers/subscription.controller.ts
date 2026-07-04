@@ -6,6 +6,9 @@ import { AuditLog } from '../../models/AuditLog';
 import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
 
+import { getUserAccessStatus } from '../../utils/subscriptionAccess';
+import { User } from '../../models/User';
+
 /**
  * @desc    Get subscription status of the authenticated user
  * @route   GET /api/v1/subscriptions/status
@@ -23,6 +26,18 @@ export const getSubscriptionStatus = asyncHandler(async (req: Request, res: Resp
   const isActive = !!sub && sub.status === 'active' && sub.fullyPaid;
   const isPartialPayment = !!sub && sub.status === 'partial_payment';
 
+  const user = await User.findById(userId);
+  if (!user) throw new BadRequestError('User not found');
+
+  const now = new Date();
+
+  // If still in trial → block unnecessary payment
+  if (user.trialEndDate && now < user.trialEndDate) {
+    throw new BadRequestError('You are still in free trial period');
+  }
+
+  const access = await getUserAccessStatus(userId);
+
   res.status(200).json({
     success: true,
     data: {
@@ -30,6 +45,10 @@ export const getSubscriptionStatus = asyncHandler(async (req: Request, res: Resp
       isPartialPayment,
       subscription: sub,
       remainingAmount: isPartialPayment && sub ? sub.requiredAmount - sub.paidAmount : 0,
+      isSubsAccessAllowed: access.allowed,
+      subsAccessSource: access.source,
+      subsAccessSubscription: access.subscription || null,
+      subsAccessTrialExpiresAt: access.expiresAt || null,
     },
   });
 });

@@ -119,7 +119,7 @@ export default function OcrVerification() {
               visible: true,
               type: 'error',
               title: 'Verification Failed',
-              message: 'Could not verify transaction',
+              message: `Could not verify transaction: ${referenceId}`,
             });
           },
         }
@@ -135,79 +135,88 @@ export default function OcrVerification() {
     }
   };
 
-  return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
-        <View className="pt-8 px-6 flex-row items-center mb-8">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={isDark ? 'white' : 'black'}
-            />
+ return (
+  <View className="flex-1 bg-background">
+    <SafeAreaView className="flex-1">
+      
+      {/* HEADER (fixed, NOT scrollable) */}
+      <View className="pt-8 px-6 flex-row items-center mb-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color={isDark ? 'white' : 'black'}
+          />
+        </TouchableOpacity>
+
+        <Text className="text-foreground text-2xl font-bold ml-4">
+          OCR Scan
+        </Text>
+      </View>
+
+      {/* SCROLLABLE CONTENT ONLY */}
+      <ScrollView
+        className="flex-1 px-6"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {!image ? (
+          <TouchableOpacity
+            onPress={pickImage}
+            className="h-96 bg-card border border-border rounded-3xl items-center justify-center"
+          >
+            <Ionicons name="cloud-upload-outline" size={48} color={themePrimary} />
+            <Text className="text-foreground mt-4 font-bold">
+              Upload Receipt
+            </Text>
           </TouchableOpacity>
+        ) : (
+          <>
+            <Image source={{ uri: image }} className="h-96 rounded-3xl mb-4" />
 
-          <Text className="text-foreground text-2xl font-bold ml-4">
-            OCR Scan
-          </Text>
-        </View>
+            {scanning && <ActivityIndicator color={themePrimary} />}
 
-        <ScrollView className="px-6">
-          {!image ? (
-            <TouchableOpacity
-              onPress={pickImage}
-              className="h-96 bg-card border border-border rounded-3xl items-center justify-center"
-            >
-              <Ionicons name="cloud-upload-outline" size={48} color={themePrimary} />
-              <Text className="text-foreground mt-4 font-bold">
-                Upload Receipt
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <Image source={{ uri: image }} className="h-96 rounded-3xl mb-4" />
+            {ocrText && (
+              <View className="bg-card p-4 rounded-2xl mt-4">
+                <Text className="text-foreground font-bold mb-2">
+                  Extracted Text
+                </Text>
 
-              {scanning && <ActivityIndicator color={themePrimary} />}
+                <TextInput
+                  value={ocrText}
+                  multiline
+                  editable={false}
+                  className="text-muted-foreground"
+                />
 
-              {ocrText && (
-                <View className="bg-card p-4 rounded-2xl mt-4">
-                  <Text className="text-foreground font-bold mb-2">
-                    Extracted Text
+                <TouchableOpacity
+                  onPress={async () => {
+                    await Clipboard.setStringAsync(ocrText);
+                    setCopied(true);
+                  }}
+                >
+                  <Text className="text-primary mt-2">
+                    {copied ? 'Copied' : 'Copy'}
                   </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
 
-                  <TextInput
-                    value={ocrText}
-                    multiline
-                    editable={false}
-                    className="text-muted-foreground"
-                  />
+      {/* MODAL OUTSIDE SCROLL */}
+      <StatusModal
+        {...modal}
+        onClose={() => {
+          setModal((p) => ({ ...p, visible: false }));
+          if (modal.type === 'success' && verifiedId) {
+            router.push(`/verification/${verifiedId}` as any);
+          }
+        }}
+      />
 
-                  <TouchableOpacity
-                    onPress={async () => {
-                      await Clipboard.setStringAsync(ocrText);
-                      setCopied(true);
-                    }}
-                  >
-                    <Text className="text-primary mt-2">
-                      {copied ? 'Copied' : 'Copy'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </>
-          )}
-        </ScrollView>
-
-        <StatusModal
-          {...modal}
-          onClose={() => {
-            setModal((p) => ({ ...p, visible: false }));
-            if (modal.type === 'success' && verifiedId) {
-              router.push(`/verification/${verifiedId}` as any);
-            }
-          }}
-        />
-      </SafeAreaView>
-    </View>
-  );
+    </SafeAreaView>
+  </View>
+);
 }

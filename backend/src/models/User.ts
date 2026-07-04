@@ -2,94 +2,107 @@ import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { ALL_ROLES, ALL_PROVIDERS, Role, Provider } from '../constants';
 
+/* =========================================================
+   INTERFACE
+========================================================= */
+
 export interface IUser extends Document {
   name: string;
   email: string;
   passwordHash: string;
   role: Role;
+
   accounts: {
     accountNumber: string;
     accountProvider: Provider;
   }[];
+
   businessId?: mongoose.Types.ObjectId;
   branchId?: mongoose.Types.ObjectId;
+
   refreshToken?: string;
   tokenVersion: number;
   isActive: boolean;
   pushToken?: string;
+
+  /* =========================
+     TRIAL (REAL FIELDS)
+  ========================= */
+
+  trialStartDate?: Date;
+  trialEndDate?: Date;
+  hasUsedTrial: boolean;
+
+  // ✅ REAL STORED FIELD (not virtual)
+  daysLeft: number;
+
   createdAt: Date;
   updatedAt: Date;
+
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
+
+/* =========================================================
+   SCHEMA
+========================================================= */
 
 const userSchema = new Schema<IUser>(
   {
     name: {
       type: String,
-      required: [true, 'Name is required'],
+      required: true,
       trim: true,
       minlength: 2,
       maxlength: 100,
     },
+
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
     },
+
     passwordHash: {
       type: String,
-      required: [true, 'Password is required'],
+      required: true,
       minlength: 6,
       select: false,
     },
+
     role: {
       type: String,
       enum: ALL_ROLES,
       default: 'VERIFIER',
     },
+
     accounts: [
       {
-        accountNumber: {
-          type: String,
-          required: [true, 'Account number is required'],
-          trim: true,
-        },
-        accountProvider: {
-          type: String,
-          required: [true, 'Account provider is required'],
-          enum: ALL_PROVIDERS,
-        },
-      }
+        accountNumber: { type: String, required: true },
+        accountProvider: { type: String, enum: ALL_PROVIDERS, required: true },
+      },
     ],
-    businessId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Business',
-      default: null,
-    },
-    branchId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Branch',
-      default: null,
-    },
-    refreshToken: {
-      type: String,
-      select: false,
-    },
-    tokenVersion: {
-      type: Number,
-      default: 0,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    pushToken: {
-      type: String,
-      default: null,
-    },
+
+    businessId: { type: Schema.Types.ObjectId, ref: 'Business', default: null },
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null },
+
+    refreshToken: { type: String, select: false },
+    tokenVersion: { type: Number, default: 0 },
+
+    isActive: { type: Boolean, default: true },
+    pushToken: { type: String, default: null },
+
+    /* =========================
+       TRIAL FIELDS (REAL)
+    ========================= */
+
+    trialStartDate: { type: Date, default: null },
+    trialEndDate: { type: Date, default: null },
+    hasUsedTrial: { type: Boolean, default: false },
+
+    // 🔥 STORED VALUE (UPDATED ON SAVE/ACCESS)
+    daysLeft: { type: Number, default: 0 },
   },
   {
     timestamps: true,
@@ -104,22 +117,64 @@ const userSchema = new Schema<IUser>(
   }
 );
 
+/* =========================================================
+   INDEXES
+========================================================= */
 
 userSchema.index({ businessId: 1, role: 1 });
 
-// Hash password before save
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('passwordHash')) return next();
-  const salt = await bcrypt.genSalt(12);
-  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+/* =========================================================
+   TRIAL CALCULATION (REAL FIELD UPDATE)
+========================================================= */
+
+userSchema.methods.calculateDaysLeft = function (): number {
+  if (!this.trialEndDate) return 0;
+
+  const diff = new Date(this.trialEndDate).getTime() - Date.now();
+  return diff > 0 ? Math.ceil(diff / (1000 * 60 * 60 * 24)) : 0;
+};
+
+/* =========================================================
+   PRE-SAVE HOOK (IMPORTANT PART)
+========================================================= */
+
+userSchema.pre('save', function (next) {
+  // update daysLeft every save
+  if (this.trialEndDate) {
+    const diff = new Date(this.trialEndDate).getTime() - Date.now();
+    this.daysLeft = diff > 0 ? Math.ceil(diff / (1000 * 60 * 60 * 24)) : 0;
+  } else {
+    this.daysLeft = 0;
+  }
+
   next();
 });
 
-// Compare password method
+/* =========================================================
+   PASSWORD HASH
+========================================================= */
+
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('passwordHash')) return next();
+
+  const salt = await bcrypt.genSalt(12);
+  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+
+  next();
+});
+
+/* =========================================================
+   METHODS
+========================================================= */
+
 userSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
+
+/* =========================================================
+   EXPORT
+========================================================= */
 
 export const User = mongoose.model<IUser>('User', userSchema);
