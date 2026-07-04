@@ -1,6 +1,6 @@
 import { verifyEtConfig } from '../../config/verifier';
 import { logger } from '../../config/logger';
-import { VerifiedTransaction } from '../../types';
+import { VerifiedTransaction, SettlementAccountMatch, ConfirmationHistory, BankSpecific } from '../../types';
 
 /**
  * Verify.ET API integration service
@@ -122,7 +122,7 @@ export class VerificationService {
 
       // 200 — completed immediately
       if (response.status === 200) {
-        return this.mapCompletedResponse(body, params.provider, params.reference, params.settlementAccount);
+        return this.mapApiResponse(body, params.provider, params.reference);
       }
 
       // 202 — queued, need to poll
@@ -137,7 +137,7 @@ export class VerificationService {
           ? statusUrl
           : `${verifyEtConfig.baseUrl}${statusUrl}`;
 
-        return await this.pollForResult(fullStatusUrl, params.provider, params.reference, params.settlementAccount);
+        return await this.pollForResult(fullStatusUrl, params.provider, params.reference);
       }
 
       return this.failedResult(params.provider, params.reference, body);
@@ -148,24 +148,12 @@ export class VerificationService {
   }
 
   /**
-   * Helper to verify if settlement accounts match (suffix matching)
-   */
-  private static matchAccounts(expected?: string, actual?: string): boolean {
-    if (!expected || !actual) return false;
-    const cleanExpected = expected.replace(/\D/g, '');
-    const cleanActual = actual.replace(/\D/g, '');
-    if (!cleanExpected || !cleanActual) return false;
-    return cleanExpected.endsWith(cleanActual) || cleanActual.endsWith(cleanExpected);
-  }
-
-  /**
    * Poll GET /api/verify/:requestId until completed or failed
    */
   private static async pollForResult(
     statusUrl: string,
     provider: string,
-    reference: string,
-    settlementAccount?: string
+    reference: string
   ): Promise<VerifiedTransaction> {
     const { maxPollAttempts, defaultPollIntervalMs } = verifyEtConfig;
 
@@ -174,15 +162,16 @@ export class VerificationService {
         headers: { 'x-api-key': verifyEtConfig.apiKey },
       });
       const body: any = await response.json();
-      const status = body.data?.processingStatus;
+      const processingStatus = body.data?.processingStatus || body.verification?.processingStatus;
 
-      if (status === 'completed') {
-        return this.mapPolledResponse(body, provider, reference, settlementAccount);
+      if (processingStatus === 'completed') {
+        // Re-fetch the full verification to get data[] with all fields
+        return this.mapApiResponse(body, provider, reference);
       }
 
-      if (status === 'failed') {
-        logger.warn('Verify.ET verification failed during polling', body.data);
-        return this.failedResult(provider, reference, body.data);
+      if (processingStatus === 'failed') {
+        logger.warn('Verify.ET verification failed during polling', body);
+        return this.failedResult(provider, reference, body);
       }
 
       const waitMs = body.links?.pollAfterMs ?? defaultPollIntervalMs;
@@ -194,139 +183,67 @@ export class VerificationService {
   }
 
   /**
-   * Helper to perform a robust, case-insensitive, deep search for a set of keys in any object.
+   * Map any Verify.ET response (200 completed or polled completed) to VerifiedTransaction.
+   *
+   * The API returns: { success, message, data: [...], verification: {...}, links: {...} }
+   * We extract data[0] as the primary result item.
    */
-  private static findValueInObject(obj: any, keys: string[]): any {
-    if (!obj || typeof obj !== 'object') return undefined;
-
-    const lowerKeys = keys.map(k => k.toLowerCase());
-
-    // 1. Direct search (case-insensitive)
-    for (const [k, v] of Object.entries(obj)) {
-      if (lowerKeys.includes(k.toLowerCase()) && v !== undefined && v !== null && v !== '') {
-        return v;
-      }
-    }
-
-    // 2. Prioritized sub-object search
-    const prioritisedProperties = ['data', 'verification', 'raw'];
-    for (const prop of prioritisedProperties) {
-      if (obj[prop]) {
-        const val = this.findValueInObject(obj[prop], keys);
-        if (val !== undefined && val !== null && val !== '') {
-          return val;
-        }
-      }
-    }
-
-    // 3. Fallback check for arrays/objects
-    if (Array.isArray(obj)) {
-      for (const item of obj) {
-        const val = this.findValueInObject(item, keys);
-        if (val !== undefined && val !== null && val !== '') {
-          return val;
-        }
-      }
-    }
-
-    for (const [k, v] of Object.entries(obj)) {
-      if (prioritisedProperties.includes(k)) continue;
-      if (v && typeof v === 'object') {
-        const val = this.findValueInObject(v, keys);
-        if (val !== undefined && val !== null && val !== '') {
-          return val;
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Map a completed 200 response to VerifiedTransaction
-   */
-  private static mapCompletedResponse(
+  private static mapApiResponse(
     body: any,
-    provider: string,
-    reference: string,
-    settlementAccount?: string
+    fallbackProvider: string,
+    fallbackReference: string,
   ): VerifiedTransaction {
-    const resultData = Array.isArray(body.data) ? body.data[0] : body.data;
-    const verified = this.findValueInObject(resultData, ['verified']) ?? false;
-    const amount = Number(this.findValueInObject(resultData, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
-    const currency = this.findValueInObject(resultData, ['currency', 'curr', 'currencyCode']) || 'ETB';
-    const payerName = this.findValueInObject(resultData, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
-    const receiverName = this.findValueInObject(resultData, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
-    const receiverAccount = this.findValueInObject(resultData, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
-    const rawTimestamp = this.findValueInObject(resultData, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
-    const paymentDate = rawTimestamp ? new Date(rawTimestamp) : new Date();
+    // Extract the first data item — this is the verified transaction
+    const dataItem = Array.isArray(body.data) && body.data.length > 0
+      ? body.data[0]
+      : (body.verification?.result || body.data || {});
+
+    // Direct field extraction from the API data item
+    const bank = dataItem.bank || fallbackProvider;
+    const status = dataItem.status || body.verification?.status || 'failed';
+    const verified = dataItem.verified === true;
+    const senderName = dataItem.senderName || 'Unknown';
+    const receiverName = dataItem.receiverName || undefined;
+    const amount = Number(dataItem.amount) || 0;
+    const currency = dataItem.currency || dataItem.bankSpecific?.currency || 'ETB';
+    const referenceNumber = dataItem.referenceNumber || fallbackReference;
+    const accountSuffix = dataItem.accountSuffix || undefined;
+    const timestamp = dataItem.timestamp
+      ? new Date(dataItem.timestamp)
+      : new Date();
+
+    // Extract nested objects directly from API response
+    const bankSpecific: BankSpecific | undefined = dataItem.bankSpecific || undefined;
+    const confirmationHistory: ConfirmationHistory | undefined = dataItem.confirmationHistory || undefined;
+    const settlementAccountMatch: SettlementAccountMatch | undefined = dataItem.settlementAccountMatch || undefined;
+
+    // Receiver account — try bankSpecific first, then top-level
+    const receiverAccount = dataItem.receiverAccount
+      || bankSpecific?.receiverAccount
+      || settlementAccountMatch?.receiverAccount
+      || undefined;
 
     return {
-      success: true,
-      verified: verified === true || String(verified).toLowerCase() === 'true',
-      provider: this.findValueInObject(resultData, ['bank', 'provider', 'type']) || provider,
-      transactionId: this.findValueInObject(resultData, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
-      referenceNumber: this.findValueInObject(resultData, ['referenceNumber']),
+      success: body.success === true && verified,
+      bank,
+      status,
+      verified,
+      senderName,
+      receiverName,
       amount,
       currency,
-      payerName,
-      paymentDate,
-      receiverName,
-      receiverAccount,
-      settlementAccountMatch: settlementAccount ? {
-        matched: this.matchAccounts(settlementAccount, receiverAccount),
-        expected: settlementAccount,
-        actual: receiverAccount,
-      } : undefined,
+      referenceNumber,
+      accountSuffix,
+      timestamp,
+      bankSpecific,
+      confirmationHistory,
+      settlementAccountMatch,
       raw: body,
     };
   }
 
   /**
-   * Map a polled status response to VerifiedTransaction
-   */
-  private static mapPolledResponse(
-    body: any,
-    provider: string,
-    reference: string,
-    settlementAccount?: string
-  ): VerifiedTransaction {
-    const resultData = Array.isArray(body.data) ? body.data[0] : body.data;
-    const verified = this.findValueInObject(resultData, ['verified']) ?? false;
-    const amount = Number(this.findValueInObject(resultData, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
-    const currency = this.findValueInObject(resultData, ['currency', 'curr', 'currencyCode']) || 'ETB';
-    const payerName = this.findValueInObject(resultData, ['senderName', 'payerName', 'sender', 'payer', 'sender_name', 'payer_name']) || 'Unknown';
-    const receiverName = this.findValueInObject(resultData, ['receiverName', 'receiver', 'recipientName', 'recipient', 'creditedPartyName', 'merchantName', 'payee', 'receiver_name', 'recipient_name']);
-    const receiverAccount = this.findValueInObject(resultData, ['receiverAccount', 'receiver_account', 'receiverNo', 'receiverNumber', 'creditedPartyAccountNo', 'account', 'accountNo', 'accountNumber']);
-    const rawTimestamp = this.findValueInObject(resultData, ['timestamp', 'completedAt', 'paymentDate', 'date', 'txnDate', 'created_at']);
-    const paymentDate = rawTimestamp ? new Date(rawTimestamp) : new Date();
-
-    const statusValue = this.findValueInObject(resultData, ['status', 'processingStatus']);
-    const isSuccess = statusValue === 'success' || statusValue === 'completed' || verified === true;
-
-    return {
-      success: isSuccess,
-      verified: verified === true || String(verified).toLowerCase() === 'true',
-      provider: this.findValueInObject(resultData, ['bank', 'provider', 'type']) || provider,
-      transactionId: this.findValueInObject(resultData, ['referenceNumber', 'transactionId', 'transactionNumber', 'reference', 'txnId']) || reference,
-      referenceNumber: this.findValueInObject(resultData, ['referenceNumber']),
-      amount,
-      currency,
-      payerName,
-      paymentDate,
-      receiverName,
-      receiverAccount,
-      settlementAccountMatch: settlementAccount ? {
-        matched: this.matchAccounts(settlementAccount, receiverAccount),
-        expected: settlementAccount,
-        actual: receiverAccount,
-      } : undefined,
-      raw: body,
-    };
-  }
-
-  /**
-   * Build a failed VerifiedTransaction
+   * Build a failed VerifiedTransaction for error cases
    */
   private static failedResult(
     provider: string,
@@ -335,13 +252,14 @@ export class VerificationService {
   ): VerifiedTransaction {
     return {
       success: false,
+      bank: provider,
+      status: 'failed',
       verified: false,
-      provider,
-      transactionId: reference,
+      senderName: 'N/A',
       amount: 0,
       currency: 'ETB',
-      payerName: 'N/A',
-      paymentDate: new Date(),
+      referenceNumber: reference,
+      timestamp: new Date(),
       raw,
     };
   }

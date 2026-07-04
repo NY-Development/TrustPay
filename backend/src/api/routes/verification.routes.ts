@@ -2,10 +2,9 @@ import { Router } from 'express';
 import * as verificationController from '../controllers/verification.controller';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { 
-  verifyManualSchema, 
-  verifyUniversalSchema, 
-  verifyOcrSchema 
+import {
+  verifyManualSchema,
+  verifyOcrSchema
 } from '../validators/verification.validator';
 import { verificationRateLimiter } from '../../middleware/security';
 
@@ -14,23 +13,16 @@ const router = Router();
 router.use(authenticate);
 
 router.post(
-  '/verify', 
+  '/verify',
   verificationRateLimiter,
-  validate(verifyManualSchema), 
+  validate(verifyManualSchema),
   verificationController.verifyManual
 );
 
-// router.post(
-//   '/verify-universal', 
-//   verificationRateLimiter,
-//   validate(verifyUniversalSchema), 
-//   verificationController.verifyUniversal
-// );
-
 router.post(
-  '/verify-ocr', 
+  '/verify-ocr',
   verificationRateLimiter,
-  validate(verifyOcrSchema), 
+  validate(verifyOcrSchema),
   verificationController.verifyOcr
 );
 
