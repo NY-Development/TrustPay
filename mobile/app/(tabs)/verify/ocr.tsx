@@ -23,6 +23,7 @@ import { useColorScheme } from 'nativewind';
 import { runOCR } from '@/src/ocr/ocr-processor';
 import { organizeReceiptData } from '@/src/ocr/ai-organizer';
 import { normalizeVerificationResponse } from '@/src/mappers/verification.mapper';
+import { detectProvider } from '@/src/utils/provider-detector';
 
 export default function OcrVerification() {
   const { colorScheme } = useColorScheme();
@@ -34,6 +35,7 @@ export default function OcrVerification() {
   const [scanning, setScanning] = React.useState(false);
   const [ocrText, setOcrText] = React.useState<string | null>(null);
   const [referenceId, setReferenceId] = React.useState<string | null>(null);
+  const [verifiedId, setVerifiedId] = React.useState<string | null>(null);
 
   const [copied, setCopied] = React.useState(false);
 
@@ -80,28 +82,36 @@ export default function OcrVerification() {
 
       setReferenceId(extractedRef);
 
+      const detected = ai?.provider || detectProvider(extractedRef);
+
       verifyManualMutation.mutate(
-        { reference: extractedRef },
+        {
+          reference: extractedRef,
+          provider: detected,
+        },
         {
           onSuccess: (res: any) => {
+            if (res.success && res.data) {
+              setVerifiedId(res.data._id || res.data.id);
+            }
             const normalized = normalizeVerificationResponse(res);
 
             setScanning(false);
-          setModal({
-            visible: true,
-            type:
-              normalized.severity.severity === 'fraud_risk' ||
-              normalized.severity.severity === 'duplicate'
-                ? 'error'
-                : normalized.ui.type === 'success'
-                ? 'success'
-                : 'error',
-            title: normalized.ui.title,
-            message:
-              normalized.ui.description ||
-              normalized.message ||
-              'Verification completed',
-          });
+            setModal({
+              visible: true,
+              type:
+                normalized.severity.severity === 'fraud_risk' ||
+                normalized.severity.severity === 'duplicate'
+                  ? 'error'
+                  : normalized.ui.type === 'success'
+                  ? 'success'
+                  : 'error',
+              title: normalized.ui.title,
+              message:
+                normalized.ui.description ||
+                normalized.message ||
+                'Verification completed',
+            });
           },
           onError: () => {
             setScanning(false);
@@ -190,9 +200,12 @@ export default function OcrVerification() {
 
         <StatusModal
           {...modal}
-          onClose={() =>
-            setModal((p) => ({ ...p, visible: false }))
-          }
+          onClose={() => {
+            setModal((p) => ({ ...p, visible: false }));
+            if (modal.type === 'success' && verifiedId) {
+              router.replace(`/verification/${verifiedId}` as any);
+            }
+          }}
         />
       </SafeAreaView>
     </View>

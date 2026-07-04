@@ -12,9 +12,10 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 
-import { useVerifyUniversal } from '@/src/hooks/useVerification';
+import { useVerifyManual } from '@/src/hooks/useVerification';
 import { StatusModal } from '@/src/components/StatusModal';
 import { normalizeVerificationResponse } from '@/src/mappers/verification.mapper';
+import { detectProvider } from '@/src/utils/provider-detector';
 
 export default function QRScanner() {
   const { colorScheme } = useColorScheme();
@@ -23,6 +24,7 @@ export default function QRScanner() {
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [verifiedId, setVerifiedId] = useState<string | null>(null);
 
   const [modal, setModal] = useState({
     visible: false,
@@ -31,7 +33,7 @@ export default function QRScanner() {
     message: '',
   });
 
-  const verifyMutation = useVerifyUniversal();
+  const verifyMutation = useVerifyManual();
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (scanned) return;
@@ -48,10 +50,15 @@ export default function QRScanner() {
         data;
     } catch {}
 
+    const provider = detectProvider(reference);
+
     verifyMutation.mutate(
-      { reference },
+      { reference, provider },
       {
         onSuccess: (res: any) => {
+          if (res.success && res.data) {
+            setVerifiedId(res.data._id || res.data.id);
+          }
           const normalized = normalizeVerificationResponse(res);
 
           setModal({
@@ -164,6 +171,9 @@ export default function QRScanner() {
         onClose={() => {
           setModal((p) => ({ ...p, visible: false }));
           setScanned(false);
+          if (modal.type === 'success' && verifiedId) {
+            router.replace(`/verification/${verifiedId}` as any);
+          }
         }}
       />
     </View>

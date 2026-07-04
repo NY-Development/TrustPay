@@ -47,12 +47,11 @@ export default function VerifyEntry() {
   ];
 
   const handleOptionPress = (id: string, route: string) => {
-    if (id === 'manual') {
-      router.push(route as any);
-      return;
-    }
-
-    setComingSoonVisible(true);
+    if (id === 'new') {
+      setComingSoonVisible(true);
+    };
+    router.push(route as any);
+    return;
   };
 
   return (

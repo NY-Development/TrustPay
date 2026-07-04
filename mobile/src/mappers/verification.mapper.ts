@@ -47,11 +47,80 @@ export interface NormalizedVerification {
 ========================================================= */
 
 export const normalizeVerificationResponse = (
-  res: VerificationResultPayload
+  res: any
 ): NormalizedVerification => {
-  const tx: VerifiedTransaction =
-    res?.verification?.result ||
-    res?.data?.[0];
+  let tx: VerifiedTransaction | undefined;
+
+  // Check if res.data is a single DB VerificationRecord
+  if (
+    res?.data &&
+    typeof res.data === 'object' &&
+    !Array.isArray(res.data) &&
+    (res.data._id || res.data.transactionId)
+  ) {
+    const dbRecord = res.data;
+    tx = {
+      bank: (dbRecord.provider || 'unknown') as any,
+      status: dbRecord.status === 'completed' ? 'success' : dbRecord.status === 'failed' ? 'failed' : 'pending',
+      verified: dbRecord.verified ?? true,
+      senderName: dbRecord.payerName || 'Unknown',
+      receiverName: dbRecord.receiverName || 'Unknown',
+      amount: dbRecord.amount || 0,
+      currency: dbRecord.currency || 'ETB',
+      referenceNumber: dbRecord.referenceNumber || dbRecord.transactionId || '',
+      accountSuffix: dbRecord.receiverAccount ? dbRecord.receiverAccount.slice(-4) : '',
+      timestamp: dbRecord.paymentDate || dbRecord.createdAt || '',
+      settlementAccountMatch: dbRecord.rawResponse?.settlementAccountMatch || {
+        matched: true,
+        matchType: 'exact',
+        matchConfidence: 'high',
+        source: 'db',
+        bank: dbRecord.provider || 'unknown',
+        receiverAccount: dbRecord.receiverAccount || '',
+        matchedUserBankAccountId: null,
+        matchedBusinessBankAccountId: null,
+        candidateCount: 1,
+        ambiguous: false,
+        reason: 'Successfully matched with settlement account',
+      },
+      confirmationHistory: dbRecord.rawResponse?.confirmationHistory || {
+        scope: 'business',
+        isFirstConfirmation: true,
+        confirmedBefore: false,
+        firstConfirmedAt: dbRecord.paymentDate || dbRecord.createdAt || '',
+        lastConfirmedAt: dbRecord.paymentDate || dbRecord.createdAt || '',
+        confirmationCount: 1,
+      },
+      bankSpecific: dbRecord.rawResponse?.bankSpecific || {
+        senderName: dbRecord.payerName || 'Unknown',
+        senderAccount: '',
+        senderAccountLast4: '',
+        receiverName: dbRecord.receiverName || 'Unknown',
+        receiverAccount: dbRecord.receiverAccount || '',
+        receiverAccountLast4: dbRecord.receiverAccount ? dbRecord.receiverAccount.slice(-4) : '',
+        transactionDateRaw: dbRecord.paymentDate || dbRecord.createdAt || '',
+        transactionDateIsoUtc: dbRecord.paymentDate || dbRecord.createdAt || '',
+        amountValue: dbRecord.amount || 0,
+        reference: dbRecord.referenceNumber || dbRecord.transactionId || '',
+        branch: '',
+        payerAccount: '',
+        reason: '',
+        dateRaw: '',
+        amountRaw: String(dbRecord.amount || 0),
+        serviceCharge: 0,
+        serviceChargeRaw: '0',
+        vatOnCommission: 0,
+        vatOnCommissionRaw: '0',
+        totalDebited: dbRecord.amount || 0,
+        totalDebitedRaw: String(dbRecord.amount || 0),
+        amountInWords: '',
+        currency: dbRecord.currency || 'ETB',
+        source: dbRecord.source || 'manual',
+      },
+    };
+  } else {
+    tx = res?.verification?.result || res?.data?.[0];
+  }
 
   if (!tx) {
     throw new Error(
@@ -107,9 +176,9 @@ export const normalizeVerificationResponse = (
     transaction: tx,
 
     meta: {
-      requestId: res.requestId,
-      processingStatus: res.verification.processingStatus,
-      verified: res.verification.verified,
+      requestId: res.requestId || res.data?.requestId || '',
+      processingStatus: res.verification?.processingStatus || (tx.verified ? 'completed' : 'pending'),
+      verified: res.verification?.verified ?? tx.verified,
     },
 
     ui: {

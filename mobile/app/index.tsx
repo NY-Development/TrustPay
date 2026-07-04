@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { useAppBootstrap } from '@/src/providers/AppBootstrap';
 
 export default function Index() {
-  const { isReady } = useAppBootstrap();
   const [showSplash, setShowSplash] = useState(true);
 
   /**
    * FORCE MINIMUM SPLASH TIME (4s)
+   * AuthProvider handles all navigation after hydration.
    */
   useEffect(() => {
     const t = setTimeout(() => {
@@ -19,22 +17,17 @@ export default function Index() {
   }, []);
 
   /**
-   * NAVIGATION CONTROL
-   */
-  useEffect(() => {
-    if (!isReady || showSplash) return;
-
-    router.replace('/(tabs)');
-  }, [isReady, showSplash]);
-
-  /**
-   * WHILE LOADING → SHOW SPLASH SCREEN ROUTE
+   * WHILE LOADING → SHOW SPLASH SCREEN
    */
   if (showSplash) {
     const Splash = require('./splash').default;
     return <Splash />;
   }
 
+  /**
+   * AFTER SPLASH → AuthProvider + route guard will navigate away.
+   * Render a minimal loading state while that happens.
+   */
   return (
     <View className="flex-1 items-center justify-center bg-background">
       <ActivityIndicator />

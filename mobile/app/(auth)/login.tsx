@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLogin } from '@/src/hooks/useAuth';
 import { StatusModal, StatusModalProps } from '@/src/components/StatusModal';
 import { BiometricService } from '@/src/utils/biometrics';
+import * as SecureStore from 'expo-secure-store';
+import { TokenService } from '@/src/services/token.service';
 
 import { useAuthStore } from '@/src/store/authStore';
 import {
@@ -30,11 +32,12 @@ export default function Login() {
   const isDark = colorScheme === 'dark';
 
   const loginMutation = useLogin();
-  const { setUser, setBiometricsEnabled } = useAuthStore();
+  const { setUser, setBiometricsEnabled, biometricsEnabled } = useAuthStore();
 
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const [biometricsPrompted, setBiometricsPrompted] = React.useState(false);
 
   const [modalState, setModalState] = React.useState<StatusModalProps>({
     visible: false,
@@ -46,7 +49,112 @@ export default function Login() {
   });
 
   /* =========================================================
-     BIOMETRIC HANDLER
+     BIOMETRIC AUTO & INPUT TRIGGER
+  ========================================================= */
+  const triggerBiometricsIfEnabled = async () => {
+    if (biometricsPrompted) return;
+    const bioEnabled = useAuthStore.getState().biometricsEnabled;
+    if (!bioEnabled) return;
+
+    try {
+      const savedEmail = await SecureStore.getItemAsync('savedEmail');
+      const savedPassword = await SecureStore.getItemAsync('savedPassword');
+      if (!savedEmail || !savedPassword) return;
+
+      setBiometricsPrompted(true);
+      const result = await BiometricService.authenticate('Sign in to TrustPay');
+      if (result) {
+        setEmail(savedEmail);
+        setPassword(savedPassword);
+
+        loginMutation.mutate(
+          { email: savedEmail, password: savedPassword },
+          {
+            onSuccess: async (data: any) => {
+              await setUser(data.data.user, {
+                accessToken: data.data.accessToken,
+                refreshToken: data.data.refreshToken,
+              });
+              clearAuthCache();
+              await hydrateAuthCache();
+              router.replace('/(tabs)');
+            },
+            onError: (err) => {
+              console.error('Biometric authentication login failed:', err);
+              setBiometricsPrompted(false);
+            },
+          }
+        );
+      } else {
+        setBiometricsPrompted(false);
+      }
+    } catch (err) {
+      console.warn('Biometric input trigger failed:', err);
+      setBiometricsPrompted(false);
+    }
+  };
+
+  React.useEffect(() => {
+    let active = true;
+    const checkAndTriggerBiometrics = async () => {
+      try {
+        const hasToken = await TokenService.getAccessToken();
+        if (hasToken) return;
+
+        const bioEnabled = useAuthStore.getState().biometricsEnabled;
+        if (!bioEnabled) return;
+
+        const { isAvailable, isEnrolled } = await BiometricService.checkAvailability();
+        if (!isAvailable || !isEnrolled) return;
+
+        const savedEmail = await SecureStore.getItemAsync('savedEmail');
+        const savedPassword = await SecureStore.getItemAsync('savedPassword');
+
+        if (savedEmail && savedPassword && active) {
+          setBiometricsPrompted(true);
+          const result = await BiometricService.authenticate('Sign in to TrustPay');
+          if (result && active) {
+            loginMutation.mutate(
+              { email: savedEmail, password: savedPassword },
+              {
+                onSuccess: async (data: any) => {
+                  if (!active) return;
+                  await setUser(data.data.user, {
+                    accessToken: data.data.accessToken,
+                    refreshToken: data.data.refreshToken,
+                  });
+                  clearAuthCache();
+                  await hydrateAuthCache();
+                  router.replace('/(tabs)');
+                },
+                onError: (err) => {
+                  console.error('Biometric auto-login failed:', err);
+                  if (active) setBiometricsPrompted(false);
+                },
+              }
+            );
+          } else {
+            if (active) setBiometricsPrompted(false);
+          }
+        }
+      } catch (err) {
+        console.warn('Biometric auto-challenge failed:', err);
+        if (active) setBiometricsPrompted(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      checkAndTriggerBiometrics();
+    }, 600);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  /* =========================================================
+     BIOMETRIC GATE
   ========================================================= */
   const handleBiometricGate = async () => {
     const { isAvailable, isEnrolled } =
@@ -80,6 +188,12 @@ export default function Login() {
       {
         onSuccess: async (data: any) => {
           try {
+            /**
+             * Save credentials to SecureStore for future biometrics
+             */
+            await SecureStore.setItemAsync('savedEmail', email);
+            await SecureStore.setItemAsync('savedPassword', password);
+
             /**
              * 1. Store user + tokens
              */
@@ -190,6 +304,8 @@ export default function Login() {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  onFocus={triggerBiometricsIfEnabled}
+                  onTouchStart={triggerBiometricsIfEnabled}
                 />
               </View>
             </View>
@@ -220,6 +336,8 @@ export default function Login() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  onFocus={triggerBiometricsIfEnabled}
+                  onTouchStart={triggerBiometricsIfEnabled}
                 />
 
                 <TouchableOpacity

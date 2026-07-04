@@ -34,6 +34,7 @@ export default function ManualEntry() {
   const [provider, setProvider] = React.useState('cbe');
   const [reference, setReference] = React.useState('');
   const [amount, setAmount] = React.useState('');
+  const [verifiedId, setVerifiedId] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<{
     visible: boolean;
     type: 'success' | 'error' | 'info';
@@ -64,9 +65,13 @@ export default function ManualEntry() {
 
     verifyMutation.mutate({
       reference,
+      provider,
       amountExpected: amount ? parseFloat(amount) : undefined,
     }, {
       onSuccess: (res) => {
+        if (res.success && res.data) {
+          setVerifiedId(res.data._id || res.data.id);
+        }
         setModal({
           visible: true,
           type: res.success ? 'success' : 'error',
@@ -172,7 +177,9 @@ export default function ManualEntry() {
           message={modal.message}
           onClose={() => {
             setModal({ ...modal, visible: false });
-            if (modal.type === 'success') router.replace(`/verification/${filteredHistory?.[0]._id || filteredHistory?.[0].id}` as any);
+            if (modal.type === 'success' && verifiedId) {
+              router.replace(`/verification/${verifiedId}` as any);
+            }
           }} 
         />
       </SafeAreaView>
