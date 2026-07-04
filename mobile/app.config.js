@@ -42,7 +42,6 @@ export default {
       "expo-router",
       "expo-secure-store",
       "expo-camera",
-      "expo-ai-kit",
       [
         "expo-notifications",
         {
