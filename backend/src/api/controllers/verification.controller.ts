@@ -67,7 +67,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   }
 
   // 4. Settlement Account Match Check (from Verify.ET response)
-  if (result.settlementAccountMatch && !result.raw.success) {
+  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
       reference,
       provider: resolvedProvider,
@@ -181,7 +181,7 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // 5. Settlement Account Match Check
-  if (result.settlementAccountMatch && !result.raw.success) {
+  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
     throw new BadRequestError(
       `Settlement account mismatch. Reason: ${result.settlementAccountMatch.reason}`
     );
