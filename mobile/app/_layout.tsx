@@ -1,5 +1,9 @@
+import React, { useEffect } from 'react';
+import { View, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -51,6 +55,16 @@ function RootNavigator() {
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
 
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      try {
+        NavigationBar.setStyle(colorScheme === 'dark' ? 'dark' : 'light');
+      } catch (err) {
+        console.warn('Failed to set Android navigation bar style:', err);
+      }
+    }
+  }, [colorScheme]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OTAProvider>
@@ -68,11 +82,19 @@ export default function RootLayout() {
 
                   <NotificationProvider>
 
-                    {/* NAVIGATION */}
-                    <RootNavigator />
+                    {/* ROOT CLASS FOR NATIVEWIND COLOR THEME */}
+                    <View className={colorScheme === 'dark' ? 'dark' : ''} style={{ flex: 1 }}>
+                      
+                      {/* STATUS BAR */}
+                      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-                    {/* GLOBAL OVERLAY UI (IMPORTANT) */}
-                    <FloatingThemeToggle />
+                      {/* NAVIGATION */}
+                      <RootNavigator />
+
+                      {/* GLOBAL OVERLAY UI (IMPORTANT) */}
+                      <FloatingThemeToggle />
+
+                    </View>
 
                   </NotificationProvider>
 

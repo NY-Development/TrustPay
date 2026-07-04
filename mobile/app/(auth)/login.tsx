@@ -83,9 +83,9 @@ export default function Login() {
             /**
              * 1. Store user + tokens
              */
-            await setUser(data.user, {
-              accessToken: data.accessToken,
-              refreshToken: data.refreshToken,
+            await setUser(data.data.user, {
+              accessToken: data.data.accessToken,
+              refreshToken: data.data.refreshToken,
             });
 
             /**

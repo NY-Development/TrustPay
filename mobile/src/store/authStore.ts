@@ -107,23 +107,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         STORAGE_KEYS.BIOMETRICS_ENABLED
       );
 
-      let authenticated = !!accessToken;
-
-      /* =====================================================
-         BIOMETRIC GATE (ONLY IF TOKEN EXISTS)
-      ===================================================== */
-      if (authenticated && bioEnabled) {
-        const result = await BiometricService.authenticate(
-          'Unlock TrustPay'
-        );
-
-        if (!result) {
-          authenticated = false;
-        }
-      }
-
       set({
-        isAuthenticated: authenticated,
+        isAuthenticated: !!accessToken,
         hasSeenOnboarding: !!onboarded,
         biometricsEnabled: !!bioEnabled,
         isHydrated: true,

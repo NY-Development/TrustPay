@@ -68,7 +68,7 @@ export default function Dashboard() {
             <View className="flex-1 bg-card border border-border rounded-3xl p-6">
               <Text className="text-muted-foreground font-medium mb-1">Today</Text>
               <Text className="text-foreground text-2xl font-bold">
-                {history?.data?.filter(v => new Date(v.paymentDate).toDateString() === new Date().toDateString()).length || 0}
+                {history?.data?.filter(v => new Date(v.createdAt).toDateString() === new Date().toDateString()).length || 0}
               </Text>
             </View>
             <View className="flex-1 bg-card border border-border rounded-3xl p-6">
