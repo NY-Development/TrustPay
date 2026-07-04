@@ -67,7 +67,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   }
 
   // 4. Settlement Account Match Check (from Verify.ET response)
-  if (result.settlementAccountMatch && !result.success) {
+  if (result.settlementAccountMatch && result.status !== 'success') {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
       reference,
       provider: resolvedProvider,
