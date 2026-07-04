@@ -28,3 +28,5 @@
 {"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-04T02:26:25.731Z"}
 {"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-02.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-04T02:26:43.202Z"}
 {"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-04T02:26:43.210Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-01.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-04T02:26:58.109Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-04T02:26:58.115Z"}

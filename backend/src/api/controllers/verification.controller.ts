@@ -4,19 +4,18 @@ import { OcrService } from '../../services/verification/ocr.service';
 import { Verification } from '../../models/Verification';
 import { AuditLog } from '../../models/AuditLog';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { 
-  BadRequestError, 
-  ConflictError, 
-  NotFoundError, 
-  TooManyRequestsError 
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError
 } from '../../utils/AppError';
+
 import { VerifiedTransaction } from '../../types';
 import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
 import { NotificationService } from '../../services/notification.service';
 import { User } from '../../models/User';
 
-/**
 /**
  * @desc    Verify payment manually
  * @route   POST /api/v1/verifications/verify
@@ -25,90 +24,96 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   const { reference, provider: clientProvider, amountExpected, branchId } = req.body;
   const userId = req.user?.userId;
 
-  // 1. Check for duplicate (Idempotency)
-  const existing = await Verification.findOne({ transactionId: reference.toUpperCase() });
+  const existing = await Verification.findOne({
+    transactionId: reference.toUpperCase()
+  });
+
   if (existing) {
     throw new ConflictError('This transaction reference has already been verified.');
   }
 
-  // 2. Look up the verifier's account number for settlement matching
   const verifier = await User.findById(userId);
-  const resolvedProvider = clientProvider || VerificationService.detectProvider(reference);
-  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === resolvedProvider);
+
+  const resolvedProvider =
+    clientProvider || VerificationService.detectProvider(reference);
+
+  const matchingAccount = verifier?.accounts?.find(
+    acc => acc.accountProvider === resolvedProvider
+  );
+
   if (!matchingAccount) {
-    throw new BadRequestError(`No registered payment account found for provider '${resolvedProvider}'. Please register this provider in your settings.`);
+    throw new BadRequestError(
+      `No registered payment account found for provider '${resolvedProvider}'.`
+    );
   }
 
   const settlementAccount = matchingAccount.accountNumber;
-  
+
   let derivedSuffix = '';
   if (resolvedProvider === 'cbe') {
-    derivedSuffix = settlementAccount.length >= 8 ? settlementAccount.slice(-8) : settlementAccount;
+    derivedSuffix = settlementAccount.slice(-8);
   } else if (resolvedProvider === 'boa') {
-    derivedSuffix = settlementAccount.length >= 5 ? settlementAccount.slice(-5) : settlementAccount;
+    derivedSuffix = settlementAccount.slice(-5);
   } else {
-    derivedSuffix = settlementAccount.length >= 4 ? settlementAccount.slice(-4) : settlementAccount;
+    derivedSuffix = settlementAccount.slice(-4);
   }
 
-  const derivedPhone = (resolvedProvider === 'cbebirr' || resolvedProvider === 'kaafiebirr') ? settlementAccount : undefined;
-
-  // 3. Perform Verification via Verify.ET
   const result: VerifiedTransaction = await VerificationService.verifyWithProvider({
     provider: resolvedProvider,
     reference,
     suffix: derivedSuffix,
     accountSuffix: derivedSuffix,
-    phoneNumber: derivedPhone,
-    settlementAccount,
+    settlementAccount
   });
 
   if (!result.verified) {
-    await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, { reference, provider: resolvedProvider, error: 'Provider reported invalid reference' });
-    throw new BadRequestError('Payment verification failed. Invalid reference.');
+    throw new BadRequestError('Payment verification failed.');
   }
 
-  // 4. Verification Settlement Match Check
-  if (result.settlementAccountMatch && result.success === false) {
-    await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
-      reference,
-      provider: resolvedProvider,
-      error: `Settlement account mismatch. Expected: ${settlementAccount}, Got: ${result.receiverAccount}`
-    });
-    throw new BadRequestError(`Settlement account mismatch. Expected payment to go to your account '${settlementAccount}', but it actually went to '${result.receiverAccount || 'Unknown'}'`);
+  // ✅ Settlement check (NEW STRUCTURE)
+  if (result.settlementAccountMatch?.matched === false) {
+    throw new BadRequestError(
+      `Settlement mismatch. Expected ${settlementAccount}`
+    );
   }
 
-  // 5. Amount Validation
   if (amountExpected && result.amount < amountExpected) {
-    throw new BadRequestError(`Amount mismatch. Expected: ${amountExpected}, Verified: ${result.amount}`);
+    throw new BadRequestError(
+      `Amount mismatch. Expected ${amountExpected}, got ${result.amount}`
+    );
   }
 
-  // 6. Save and return
   const verification = await Verification.create({
-    transactionId: result.transactionId.toUpperCase(),
-    referenceNumber: result.referenceNumber || reference.toUpperCase(),
-    provider: result.provider,
+    transactionId: result.referenceNumber.toUpperCase(),
+    referenceNumber: result.referenceNumber,
+    provider: result.bank,
     amount: result.amount,
     currency: result.currency,
-    payerName: result.payerName,
-    paymentDate: result.paymentDate,
+    payerName: result.senderName,
+    receiverName: result.receiverName,
+    receiverAccount: result.bankSpecific?.receiverAccount,
+    paymentDate: result.timestamp,
     verified: true,
     verifiedBy: userId,
     businessId: req.user?.businessId,
     branchId: branchId || req.user?.branchId,
     source: 'manual',
-    rawResponse: result.raw,
+    rawResponse: result,
     status: 'completed'
   });
 
-  await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT, { verificationId: verification._id, reference });
+  await AuditLog.create({
+    action: AUDIT_ACTIONS.VERIFY_PAYMENT,
+    actor: userId,
+    metadata: { verificationId: verification._id }
+  });
 
-  // Send Push Notification to the user who verified
   if (verifier?.pushToken) {
     NotificationService.sendNotification(
       verifier.pushToken,
       'Payment Verified',
-      `Transaction ${result.transactionId} of ${result.amount} ${result.currency} was successful.`
-    ).catch(err => logger.error('Push notification failed', err));
+      `Transaction ${result.referenceNumber} verified.`
+    ).catch(err => logger.error(err));
   }
 
   res.status(200).json({
@@ -119,170 +124,113 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
 });
 
 /**
- * @desc    Verify payment from OCR text (Screenshot)
+ * @desc    Verify payment from OCR text
  * @route   POST /api/v1/verifications/verify-ocr
  */
 export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
-  const { rawText, branchId, amountExpected } = req.body;
+  const { rawText, branchId } = req.body;
   const userId = req.user?.userId;
 
-  // 1. Extract transaction info using OcrService (Regex -> AI)
   const extracted = await OcrService.extract(rawText);
 
   if (!extracted.transactionId) {
-    throw new BadRequestError('Could not extract transaction ID from the text. Please enter manually.');
+    throw new BadRequestError('Could not extract transaction ID.');
   }
 
-  // 2. Proceed with verification
-  const existing = await Verification.findOne({ transactionId: extracted.transactionId.toUpperCase() });
+  const existing = await Verification.findOne({
+    transactionId: extracted.transactionId.toUpperCase()
+  });
+
   if (existing) {
     throw new ConflictError('Transaction already processed.');
   }
 
-  // Look up the verifier's account number for settlement matching
   const verifier = await User.findById(userId);
-  const detectedProvider = extracted.provider || VerificationService.detectProvider(extracted.transactionId);
-  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === detectedProvider);
-  const settlementAccount = matchingAccount?.accountNumber || verifier?.accounts?.[0]?.accountNumber;
+
+  const detectedProvider =
+    extracted.provider || VerificationService.detectProvider(extracted.transactionId);
+
+  const matchingAccount = verifier?.accounts?.find(
+    acc => acc.accountProvider === detectedProvider
+  );
+
+  const settlementAccount =
+    matchingAccount?.accountNumber || verifier?.accounts?.[0]?.accountNumber;
 
   if (!settlementAccount) {
-    throw new BadRequestError('No registered payment account found. Please register at least one payment account in your settings.');
+    throw new BadRequestError('No settlement account found.');
   }
 
-  const resolvedProvider = matchingAccount?.accountProvider || detectedProvider;
+  let derivedSuffix = settlementAccount.slice(-4);
 
-  let derivedSuffix = '';
-  if (resolvedProvider === 'cbe') {
-    derivedSuffix = settlementAccount.length >= 8 ? settlementAccount.slice(-8) : settlementAccount;
-  } else if (resolvedProvider === 'boa') {
-    derivedSuffix = settlementAccount.length >= 5 ? settlementAccount.slice(-5) : settlementAccount;
-  } else {
-    derivedSuffix = settlementAccount.length >= 4 ? settlementAccount.slice(-4) : settlementAccount;
-  }
-
-  const derivedPhone = (resolvedProvider === 'cbebirr' || resolvedProvider === 'kaafiebirr') ? settlementAccount : undefined;
-
-  const result = await VerificationService.verifyWithProvider({
-    provider: resolvedProvider,
+  const result: VerifiedTransaction = await VerificationService.verifyWithProvider({
+    provider: detectedProvider,
     reference: extracted.transactionId,
     suffix: derivedSuffix,
     accountSuffix: derivedSuffix,
-    phoneNumber: derivedPhone,
     settlementAccount
   });
 
   if (!result.verified) {
-    throw new BadRequestError('Extracted reference is invalid or could not be verified.');
+    throw new BadRequestError('Verification failed.');
   }
 
-  // Verification Settlement Match Check
-  if (result.settlementAccountMatch && result.settlementAccountMatch.matched === false) {
-    throw new BadRequestError(`Settlement account mismatch. Expected payment to go to your account '${settlementAccount}', but it actually went to '${result.receiverAccount || 'Unknown'}'`);
+  if (result.settlementAccountMatch?.matched === false) {
+    throw new BadRequestError('Settlement mismatch detected.');
   }
 
   const verification = await Verification.create({
-    transactionId: result.transactionId.toUpperCase(),
-    provider: result.provider,
+    transactionId: result.referenceNumber.toUpperCase(),
+    provider: result.bank,
     amount: result.amount,
     currency: result.currency,
-    payerName: result.payerName,
-    paymentDate: result.paymentDate,
+    payerName: result.senderName,
+    receiverName: result.receiverName,
+    receiverAccount: result.bankSpecific?.receiverAccount,
+    paymentDate: result.timestamp,
     verified: true,
     verifiedBy: userId,
     businessId: req.user?.businessId,
     branchId: branchId || req.user?.branchId,
     source: 'screenshot',
     rawOcrText: rawText,
-    rawResponse: result.raw,
+    rawResponse: result,
     status: 'completed'
   });
 
-  // Send Push Notification
-  if (verifier?.pushToken) {
-    NotificationService.sendNotification(
-      verifier.pushToken,
-      'OCR Verification Success',
-      `Transaction ${result.transactionId} verified for ${result.amount} ${result.currency}.`
-    ).catch(err => logger.error('Push notification failed', err));
-  }
-
-  res.status(200).json({ success: true, data: verification, extracted });
-});
-
-/**
- * @desc    Get all verifications for the authenticated user's business
- * @route   GET /api/v1/verifications/business-history
- * @access  Private
- */
-export const getBusinessVerifications = asyncHandler(async (req: Request, res: Response) => {
-  const query: any = {};
-
-  // Restrict to businessId unless they are SUPER_ADMIN
-  if (req.user?.role !== 'SUPER_ADMIN') {
-    query.businessId = req.user?.businessId;
-  }
-
-  const verifications = await Verification.find(query).sort({ createdAt: -1 });
-
   res.status(200).json({
     success: true,
-    data: verifications
+    data: verification,
+    extracted
   });
 });
 
 /**
- * @desc    Get ONLY my verification history
- * @route   GET /api/v1/verifications/my-history
- * @access  Private
+ * @desc Get my history
  */
 export const getMyVerifications = asyncHandler(async (req: Request, res: Response) => {
-  const query: any = { verifiedBy: req.user?.userId };
+  const verifications = await Verification.find({
+    verifiedBy: req.user?.userId
+  }).sort({ createdAt: -1 });
 
-  const verifications = await Verification.find(query).sort({ createdAt: -1 });
-
-  res.status(200).json({
+  res.json({
     success: true,
     data: verifications
   });
 });
 
 /**
- * @desc    Get verification details by ID
- * @route   GET /api/v1/verifications/:id
+ * @desc Get by ID
  */
 export const getVerificationById = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const query: any = { _id: id };
-
-  if (req.user?.role !== 'SUPER_ADMIN') {
-    query.businessId = req.user?.businessId;
-  }
-
-  const verification = await Verification.findOne(query);
+  const verification = await Verification.findById(req.params.id);
 
   if (!verification) {
-    throw new NotFoundError('Verification record not found.');
+    throw new NotFoundError('Not found');
   }
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: verification
   });
 });
-
-// Helper for audit logging
-async function logAudit(req: Request, action: string, metadata: any) {
-  try {
-    await AuditLog.create({
-      action,
-      actor: req.user?.userId,
-      ip: req.ip,
-      deviceId: req.headers['x-device-id'],
-      appVersion: req.headers['x-app-version'],
-      userAgent: req.headers['user-agent'],
-      metadata
-    });
-  } catch (err) {
-    logger.error('Failed to save audit log', err);
-  }
-}
