@@ -27,6 +27,8 @@ export default function Settings() {
 
   const handleLogout = () => {
     logoutMutation.mutate(void 0);
+    // redirect to login.
+    router.replace('/(auth)/login');
   };
 
   const settingsItems = [

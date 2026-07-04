@@ -12,13 +12,17 @@ import { AppBootstrapProvider } from '@/src/providers/AppBootstrap';
 import { AuthProvider } from '@/src/providers/AuthProvider';
 import { OTAProvider } from '@/src/providers/OTAProvider';
 
+import { FloatingThemeToggle } from '@/src/components/FloatingThemeToggle';
+
 import "../global.css";
+
+/* ========================================================= */
 
 function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="splash" options={{ headerShown: false }} />
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="splash" />
+      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="verification" />
@@ -26,25 +30,45 @@ function RootNavigator() {
   );
 }
 
+/* ========================================================= */
+
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OTAProvider>
+
         <AppBootstrapProvider>
+
           <AuthProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+
+            <ThemeProvider
+              value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+            >
               <SafeAreaProvider>
+
                 <QueryProvider>
+
                   <NotificationProvider>
+
+                    {/* NAVIGATION */}
                     <RootNavigator />
+
+                    {/* GLOBAL OVERLAY UI (IMPORTANT) */}
+                    <FloatingThemeToggle />
+
                   </NotificationProvider>
+
                 </QueryProvider>
+
               </SafeAreaProvider>
             </ThemeProvider>
+
           </AuthProvider>
+
         </AppBootstrapProvider>
+
       </OTAProvider>
     </GestureHandlerRootView>
   );
