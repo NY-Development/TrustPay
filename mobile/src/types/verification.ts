@@ -132,3 +132,31 @@ export interface VerificationResultPayload {
     statusUrl: string;
   };
 }
+
+export type VerificationSeverity =
+  | 'success'
+  | 'info'
+  | 'warning'
+  | 'fraud_risk'
+  | 'duplicate'
+  | 'error';
+
+  export interface Verification {
+  success: boolean;
+  message: string;
+
+  requestId: string;
+
+  processingStatus: string;
+  status: VerificationStatus;
+  verified: boolean;
+
+  transaction: VerifiedTransaction;
+
+  raw?: {
+    data: VerifiedTransaction[];
+    links?: {
+      statusUrl: string;
+    };
+  };
+}

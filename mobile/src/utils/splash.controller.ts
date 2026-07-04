@@ -19,7 +19,7 @@ class SplashControllerClass {
   }
 
   /**
-   * Hide splash screen safely (idempotent)
+   * Safe hide with retry + fallback protection
    */
   async hide(): Promise<void> {
     if (this.isHidden) return;
@@ -29,6 +29,26 @@ class SplashControllerClass {
       await SplashScreen.hideAsync();
     } catch (err) {
       console.log('[SplashController] hide error:', err);
+
+      // Fallback retry (Expo sometimes throws transient errors)
+      try {
+        setTimeout(() => {
+          SplashScreen.hideAsync().catch(() => {});
+        }, 300);
+      } catch {}
+    }
+  }
+
+  /**
+   * Emergency force hide (use if app is stuck)
+   */
+  async forceHide(): Promise<void> {
+    this.isHidden = true;
+
+    try {
+      await SplashScreen.hideAsync();
+    } catch {
+      // last resort: ignore
     }
   }
 

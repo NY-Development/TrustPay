@@ -1,4 +1,13 @@
-import { VerificationResultPayload, VerifiedTransaction } from '@/src/types/verification';
+import {
+  VerificationResultPayload,
+  VerifiedTransaction,
+} from '@/src/types/verification';
+
+import { computeVerificationSeverity } from '@/src/utils/verification-severity';
+
+/* =========================================================
+   NORMALIZED CORE STRUCTURE
+========================================================= */
 
 export interface NormalizedVerification {
   success: boolean;
@@ -14,7 +23,7 @@ export interface NormalizedVerification {
 
   ui: {
     title: string;
-    type: 'success' | 'error' | 'warning';
+    type: 'success' | 'error' | 'warning' | 'info';
     description: string;
   };
 
@@ -23,27 +32,73 @@ export interface NormalizedVerification {
     confidence: string;
     reason: string;
   };
+
+  severity: {
+    severity: 'success' | 'info' | 'warning' | 'fraud_risk' | 'duplicate' | 'error';
+    title: string;
+    description: string;
+    color: string;
+    icon: string;
+  };
 }
+
+/* =========================================================
+   MAPPER
+========================================================= */
 
 export const normalizeVerificationResponse = (
   res: VerificationResultPayload
 ): NormalizedVerification => {
-  const tx =
+  const tx: VerifiedTransaction =
     res?.verification?.result ||
     res?.data?.[0];
 
   if (!tx) {
-    throw new Error('Invalid verification response: missing transaction');
+    throw new Error(
+      'Invalid verification response: missing transaction object'
+    );
   }
 
   const matched = tx.settlementAccountMatch?.matched ?? false;
 
-  const uiType =
+  /* =========================================================
+     BASIC UI TYPE (LIGHTWEIGHT DECISION)
+  ========================================================= */
+
+  const uiType: 'success' | 'warning' | 'error' =
     res.success && tx.verified
       ? 'success'
       : matched
       ? 'warning'
       : 'error';
+
+  /* =========================================================
+     SEVERITY ENGINE (FULL LOGIC)
+  ========================================================= */
+
+  const severity = computeVerificationSeverity(tx, res);
+
+  /* =========================================================
+     UI MAPPING (FRONTEND FRIENDLY)
+  ========================================================= */
+
+  const uiTitleMap: Record<string, string> = {
+    success: 'Payment Verified',
+    warning: 'Partially Verified',
+    error: 'Verification Failed',
+    info: 'Verification Completed',
+    fraud_risk: 'Fraud Risk Detected',
+    duplicate: 'Duplicate Transaction',
+  };
+
+  const uiDescription =
+    tx.referenceNumber
+      ? `Transaction ${tx.referenceNumber} processed`
+      : 'Transaction processed';
+
+  /* =========================================================
+     FINAL RETURN
+  ========================================================= */
 
   return {
     success: res.success,
@@ -58,25 +113,24 @@ export const normalizeVerificationResponse = (
     },
 
     ui: {
-      title:
-        uiType === 'success'
-          ? 'Payment Verified'
-          : uiType === 'warning'
-          ? 'Partially Verified'
-          : 'Verification Failed',
+      title: uiTitleMap[severity.severity] || uiTitleMap[uiType],
+      type:
+        severity.severity === 'fraud_risk' ||
+        severity.severity === 'duplicate'
+          ? 'error'
+          : uiType,
 
-      type: uiType,
-
-      description:
-        tx.referenceNumber
-          ? `Transaction ${tx.referenceNumber} processed`
-          : 'Transaction processed',
+      description: uiDescription,
     },
 
     settlement: {
-      matched: matched,
-      confidence: tx.settlementAccountMatch?.matchConfidence || 'none',
-      reason: tx.settlementAccountMatch?.reason || 'unknown',
+      matched,
+      confidence:
+        tx.settlementAccountMatch?.matchConfidence || 'none',
+      reason:
+        tx.settlementAccountMatch?.reason || 'unknown',
     },
+
+    severity,
   };
 };

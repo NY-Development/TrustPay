@@ -1,10 +1,16 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import * as Updates from 'expo-updates';
 
 import { useAuthStore } from '@/src/store/authStore';
 import { TokenService } from '@/src/services/token.service';
 import { BiometricService } from '@/src/utils/biometrics';
 import { SplashController } from '@/src/utils/splash.controller';
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const BOOTSTRAP_TIMEOUT = 10000; // 10s hard fallback
 
 /* =========================================================
    CONTEXT
@@ -34,33 +40,68 @@ export function AppBootstrapProvider({
   const [isReady, setIsReady] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
+  const hydratedRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const hydrate = useAuthStore((s) => s.hydrate);
   const biometricsEnabled = useAuthStore((s) => s.biometricsEnabled);
   const logout = useAuthStore((s) => s.logout);
-  const setUser = useAuthStore((s) => s.setUser);
 
+  /**
+   * FINALIZATION GUARANTEE
+   */
+  const finalize = async () => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+
+    setIsReady(true);
+    setIsBootstrapping(false);
+
+    await SplashController.hide();
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  };
+
+  /**
+   * BOOTSTRAP FLOW
+   */
   const runBootstrap = async () => {
     setIsBootstrapping(true);
 
     try {
       /* =====================================================
-         0. SPLASH CONTROL (SINGLE SOURCE OF TRUTH)
+         0. SPLASH LOCK
       ===================================================== */
       await SplashController.lock();
 
       /* =====================================================
-         1. OTA UPDATE (EARLY EXIT)
+         1. HARD TIMEOUT SAFETY NET
       ===================================================== */
-      const update = await Updates.checkForUpdateAsync();
+      timeoutRef.current = setTimeout(() => {
+        console.warn('[Bootstrap] Timeout reached → forcing finalize');
+        SplashController.forceHide();
+        finalize();
+      }, BOOTSTRAP_TIMEOUT);
 
-      if (update.isAvailable) {
-        await Updates.fetchUpdateAsync();
-        await Updates.reloadAsync();
-        return;
+      /* =====================================================
+         2. OTA UPDATE CHECK (SAFE)
+      ===================================================== */
+      try {
+        const update = await Updates.checkForUpdateAsync();
+
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+          return; // app reload resets bootstrap
+        }
+      } catch (e) {
+        console.log('[Bootstrap] OTA check failed (ignored):', e);
       }
 
       /* =====================================================
-         2. HYDRATE LOCAL STATE
+         3. HYDRATE AUTH STATE
       ===================================================== */
       await hydrate();
 
@@ -71,51 +112,48 @@ export function AppBootstrapProvider({
 
       if (!hasSession) {
         await logout('expired');
-        finalize();
+        await finalize();
         return;
       }
 
       /* =====================================================
-         3. BIOMETRIC SECURITY GATE
+         4. BIOMETRIC GATE (SAFE FAIL-OPEN CONTROLLED)
       ===================================================== */
       if (biometricsEnabled) {
-        const ok = await BiometricService.authenticate(
-          'Unlock TrustPay'
-        );
+        try {
+          const ok = await BiometricService.authenticate(
+            'Unlock App'
+          );
 
-        if (!ok) {
-          await logout('expired');
-          finalize();
-          return;
+          if (!ok) {
+            await logout('expired');
+            await finalize();
+            return;
+          }
+        } catch (e) {
+          console.log('[Bootstrap] Biometrics failed:', e);
+          // fail-safe: do NOT block app forever
         }
       }
 
       /* =====================================================
-         4. FINALIZE AUTH STATE SAFELY
+         5. FINALIZE SUCCESS
       ===================================================== */
-      setIsReady(true);
-      setIsBootstrapping(false);
-
-      await SplashController.hide();
+      await finalize();
     } catch (error) {
-      console.error('[Bootstrap] Failed:', error);
+      console.error('[Bootstrap] Critical failure:', error);
 
       await logout('expired');
-      finalize();
+      await finalize();
     }
-  };
-
-  /* =========================================================
-     FINALIZATION HELPER
-  ========================================================= */
-  const finalize = async () => {
-    setIsReady(true);
-    setIsBootstrapping(false);
-    await SplashController.hide();
   };
 
   useEffect(() => {
     runBootstrap();
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   return (

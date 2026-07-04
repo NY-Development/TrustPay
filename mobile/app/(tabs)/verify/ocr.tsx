@@ -8,13 +8,13 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useVerifyManual } from '@/src/hooks/useVerification';
-import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { StatusModal } from '@/src/components/StatusModal';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ import { useColorScheme } from 'nativewind';
 
 import { runOCR } from '@/src/ocr/ocr-processor';
 import { organizeReceiptData } from '@/src/ocr/ai-organizer';
+import { normalizeVerificationResponse } from '@/src/mappers/verification.mapper';
 
 export default function OcrVerification() {
   const { colorScheme } = useColorScheme();
@@ -44,21 +45,10 @@ export default function OcrVerification() {
   });
 
   const verifyManualMutation = useVerifyManual();
-  const { data: history } = useVerificationHistory();
-
-  const filteredHistory =
-    referenceId && history?.data
-      ? history.data.filter(
-          (item: any) =>
-            item.transactionId?.toLowerCase().includes(referenceId.toLowerCase()) ||
-            item.referenceNumber?.toLowerCase().includes(referenceId.toLowerCase())
-        )
-      : [];
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
       quality: 1,
     });
 
@@ -71,21 +61,13 @@ export default function OcrVerification() {
 
   const processImage = async (uri: string) => {
     setScanning(true);
-    setOcrText(null);
-    setReferenceId(null);
 
     try {
-      // 1. OCR
       const ocr = await runOCR(uri);
       const rawText = ocr.text || '';
 
       setOcrText(rawText);
 
-      if (!rawText.trim()) {
-        throw new Error('No text detected');
-      }
-
-      // 2. AI extraction
       const ai = await organizeReceiptData(rawText);
 
       const extractedRef =
@@ -94,56 +76,52 @@ export default function OcrVerification() {
         ai?.receiptNumber ||
         null;
 
-      if (!extractedRef) {
-        throw new Error('No transaction reference found');
-      }
+      if (!extractedRef) throw new Error('Reference not found');
 
       setReferenceId(extractedRef);
 
-      // 3. Verify backend
       verifyManualMutation.mutate(
         { reference: extractedRef },
         {
           onSuccess: (res: any) => {
+            const normalized = normalizeVerificationResponse(res);
+
             setScanning(false);
-            setModal({
-              visible: true,
-              type: res.success ? 'success' : 'error',
-              title: res.success ? 'Verified' : 'Failed',
-              message: res.message || 'Verification complete',
-            });
+          setModal({
+            visible: true,
+            type:
+              normalized.severity.severity === 'fraud_risk' ||
+              normalized.severity.severity === 'duplicate'
+                ? 'error'
+                : normalized.ui.type === 'success'
+                ? 'success'
+                : 'error',
+            title: normalized.ui.title,
+            message:
+              normalized.ui.description ||
+              normalized.message ||
+              'Verification completed',
+          });
           },
-          onError: (err: any) => {
+          onError: () => {
             setScanning(false);
             setModal({
               visible: true,
               type: 'error',
-              title: 'Verification Error',
-              message:
-                err?.response?.data?.message ||
-                'Could not verify transaction',
+              title: 'Verification Failed',
+              message: 'Could not verify transaction',
             });
           },
         }
       );
     } catch (err: any) {
-      console.error('[OCR ERROR]', err);
-
       setScanning(false);
-
       setModal({
         visible: true,
         type: 'error',
         title: 'OCR Failed',
-        message: err.message || 'Could not process image',
+        message: err.message,
       });
-    }
-  };
-
-  const copyText = async () => {
-    if (ocrText) {
-      await Clipboard.setStringAsync(ocrText);
-      setCopied(true);
     }
   };
 
@@ -170,25 +148,16 @@ export default function OcrVerification() {
               onPress={pickImage}
               className="h-96 bg-card border border-border rounded-3xl items-center justify-center"
             >
-              <Ionicons
-                name="cloud-upload-outline"
-                size={48}
-                color={themePrimary}
-              />
+              <Ionicons name="cloud-upload-outline" size={48} color={themePrimary} />
               <Text className="text-foreground mt-4 font-bold">
                 Upload Receipt
               </Text>
             </TouchableOpacity>
           ) : (
             <>
-              <Image
-                source={{ uri: image }}
-                className="h-96 rounded-3xl mb-4"
-              />
+              <Image source={{ uri: image }} className="h-96 rounded-3xl mb-4" />
 
-              {scanning && (
-                <ActivityIndicator color={themePrimary} size="large" />
-              )}
+              {scanning && <ActivityIndicator color={themePrimary} />}
 
               {ocrText && (
                 <View className="bg-card p-4 rounded-2xl mt-4">
@@ -203,9 +172,14 @@ export default function OcrVerification() {
                     className="text-muted-foreground"
                   />
 
-                  <TouchableOpacity onPress={copyText}>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await Clipboard.setStringAsync(ocrText);
+                      setCopied(true);
+                    }}
+                  >
                     <Text className="text-primary mt-2">
-                      {copied ? 'Copied' : 'Copy Text'}
+                      {copied ? 'Copied' : 'Copy'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -216,7 +190,9 @@ export default function OcrVerification() {
 
         <StatusModal
           {...modal}
-          onClose={() => setModal((p) => ({ ...p, visible: false }))}
+          onClose={() =>
+            setModal((p) => ({ ...p, visible: false }))
+          }
         />
       </SafeAreaView>
     </View>
