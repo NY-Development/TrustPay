@@ -178,7 +178,7 @@ export default function ManualEntry() {
           onClose={() => {
             setModal({ ...modal, visible: false });
             if (modal.type === 'success' && verifiedId) {
-              router.replace(`/verification/${verifiedId}` as any);
+              router.push(`/verification/${verifiedId}` as any);
             }
           }} 
         />

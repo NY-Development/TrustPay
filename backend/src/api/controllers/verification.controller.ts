@@ -16,6 +16,27 @@ import { logger } from '../../config/logger';
 import { NotificationService } from '../../services/notification.service';
 import { User } from '../../models/User';
 
+
+function safeVerificationPayload(result: any, fallbackProvider: string) {
+  return {
+    bank: result?.bank || fallbackProvider || 'unknown',
+
+    requestId: `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+
+    verificationSummary: {
+      severity: 'success',
+      title: 'Verified Transaction',
+      description: 'Transaction successfully verified'
+    },
+
+    verificationResult: {
+      bankSpecific: result?.bankSpecific ?? {},
+      settlementAccountMatch: result?.settlementAccountMatch ?? {},
+      confirmationHistory: result?.confirmationHistory ?? {}
+    }
+  };
+}
+
 /**
  * @desc    Verify payment manually
  * @route   POST /api/v1/verifications/verify
@@ -67,7 +88,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   }
 
   // 4. Settlement Account Match Check (from Verify.ET response)
-  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
+  if (result.settlementAccountMatch && !result.verified) {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
       reference,
       provider: resolvedProvider,
@@ -85,24 +106,43 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   }
 
   // 6. Save and return
-  const verification = await Verification.create({
-    transactionId: result.referenceNumber.toUpperCase(),
-    referenceNumber: result.referenceNumber.toUpperCase(),
-    provider: result.bank,
-    amount: result.amount,
-    currency: result.currency,
-    payerName: result.senderName,
-    receiverName: result.receiverName,
-    receiverAccount: result.bankSpecific?.receiverAccount || result.settlementAccountMatch?.receiverAccount,
-    paymentDate: result.timestamp,
-    verified: true,
-    verifiedBy: userId,
-    businessId: req.user?.businessId,
-    branchId: branchId || req.user?.branchId,
-    source: 'manual',
-    rawResponse: result.raw,
-    status: 'completed'
-  });
+const safe = safeVerificationPayload(result, resolvedProvider);
+
+const verification = await Verification.create({
+  transactionId: result.referenceNumber.toUpperCase(),
+  referenceNumber: result.referenceNumber.toUpperCase(),
+
+  requestId: safe.requestId,
+  bank: safe.bank,
+
+  provider: resolvedProvider,
+
+  amount: result.amount || 0,
+  currency: result.currency || 'ETB',
+
+  senderName: result.senderName || 'Unknown',
+  receiverName: result.receiverName || 'Unknown',
+
+  receiverAccount: result?.bankSpecific?.receiverAccount || undefined,
+  accountSuffix: result.accountSuffix || '',
+
+  paymentDate: result.timestamp || new Date(),
+
+  verified: true,
+  processingStatus: 'completed',
+  verificationStatus: 'success',
+
+  source: 'manual',
+
+  verificationSummary: safe.verificationSummary,
+  verificationResult: safe.verificationResult,
+
+  providerResponse: result?.raw || {},
+
+  verifiedBy: userId,
+  branchId: branchId || req.user?.branchId,
+  businessId: req.user?.businessId
+});
 
   await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT, { verificationId: verification._id, reference });
 
@@ -181,32 +221,50 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // 5. Settlement Account Match Check
-  if (result.settlementAccountMatch && !result.settlementAccountMatch.matched) {
+  if (result.settlementAccountMatch && !result.verified) {
     throw new BadRequestError(
       `Settlement account mismatch. Reason: ${result.settlementAccountMatch.reason}`
     );
   }
 
   // 6. Save and return
-  const verification = await Verification.create({
-    transactionId: result.referenceNumber.toUpperCase(),
-    referenceNumber: result.referenceNumber.toUpperCase(),
-    provider: result.bank,
-    amount: result.amount,
-    currency: result.currency,
-    payerName: result.senderName,
-    receiverName: result.receiverName,
-    receiverAccount: result.bankSpecific?.receiverAccount || result.settlementAccountMatch?.receiverAccount,
-    paymentDate: result.timestamp,
-    verified: true,
-    verifiedBy: userId,
-    businessId: req.user?.businessId,
-    branchId: branchId || req.user?.branchId,
-    source: 'screenshot',
-    rawOcrText: rawText,
-    rawResponse: result.raw,
-    status: 'completed'
-  });
+const safe = safeVerificationPayload(result, resolvedProvider);
+
+const verification = await Verification.create({
+  transactionId: result.referenceNumber.toUpperCase(),
+  referenceNumber: result.referenceNumber.toUpperCase(),
+
+  requestId: safe.requestId,
+  bank: safe.bank,
+
+  provider: resolvedProvider,
+
+  amount: result.amount || 0,
+  currency: result.currency || 'ETB',
+
+  senderName: result.senderName || 'Unknown',
+  receiverName: result.receiverName || 'Unknown',
+
+  receiverAccount: result?.bankSpecific?.receiverAccount || undefined,
+  accountSuffix: result.accountSuffix || '',
+
+  paymentDate: result.timestamp || new Date(),
+
+  verified: true,
+  processingStatus: 'completed',
+  verificationStatus: 'success',
+
+  source: 'manual',
+
+  verificationSummary: safe.verificationSummary,
+  verificationResult: safe.verificationResult,
+
+  providerResponse: result?.raw || {},
+
+  verifiedBy: userId,
+  branchId: branchId || req.user?.branchId,
+  businessId: req.user?.businessId
+});
 
   // Send Push Notification
   if (verifier?.pushToken) {

@@ -172,7 +172,7 @@ export default function QRScanner() {
           setModal((p) => ({ ...p, visible: false }));
           setScanned(false);
           if (modal.type === 'success' && verifiedId) {
-            router.replace(`/verification/${verifiedId}` as any);
+            router.push(`/verification/${verifiedId}` as any);
           }
         }}
       />

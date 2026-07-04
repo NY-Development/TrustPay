@@ -203,7 +203,7 @@ export default function OcrVerification() {
           onClose={() => {
             setModal((p) => ({ ...p, visible: false }));
             if (modal.type === 'success' && verifiedId) {
-              router.replace(`/verification/${verifiedId}` as any);
+              router.push(`/verification/${verifiedId}` as any);
             }
           }}
         />
