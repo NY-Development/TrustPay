@@ -14,10 +14,13 @@ import { onUnauthorized } from '@/src/api/auth-events';
 
 interface AuthState {
   user: User | null;
+
   isAuthenticated: boolean;
   isHydrated: boolean;
+
   hasSeenOnboarding: boolean;
   biometricsEnabled: boolean;
+
   isLoggingOut: boolean;
 
   setUser: (
@@ -31,6 +34,8 @@ interface AuthState {
   logout: (reason?: 'manual' | 'expired') => Promise<void>;
 
   hydrate: () => Promise<void>;
+
+  refreshUser: () => Promise<void>;
 
   setHasSeenOnboarding: (value: boolean) => Promise<void>;
 
@@ -50,6 +55,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hasSeenOnboarding: false,
   biometricsEnabled: false,
   isLoggingOut: false,
+      
 
   /* =========================================================
      SET USER (LOGIN)
@@ -65,7 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({
       user,
-      isAuthenticated: true,
+      isAuthenticated: !!user,
     });
   },
 
@@ -107,8 +113,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         STORAGE_KEYS.BIOMETRICS_ENABLED
       );
 
+      let user: User | null = null;
+
+      if (accessToken) {
+        try {
+          const response = await authApi.getMe();
+
+          if (response?.data?.user) {
+            user = response.data.user;
+          }
+        } catch {
+          await TokenService.clearTokens();
+        }
+      }
+
       set({
-        isAuthenticated: !!accessToken,
+        user,
+        isAuthenticated: !!user,
         hasSeenOnboarding: !!onboarded,
         biometricsEnabled: !!bioEnabled,
         isHydrated: true,
@@ -122,6 +143,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     }
   },
+
+refreshUser: async () => {
+  try {
+    const response = await authApi.getMe();
+
+    if (response?.data?.user) {
+      set({
+        user: response.data.user,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to refresh user', error);
+  }
+},
 
   /* =========================================================
      ONBOARDING
@@ -151,8 +186,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({
           user: {
-            ...user,
-            pushToken: token,
+              ...user,
+              pushToken: token,
+              daysLeft: user.daysLeft,
+              trialEndDate: user.trialEndDate,
+              trialStartDate: user.trialStartDate,
+              hasUsedTrial: user.hasUsedTrial,
           },
         });
       }

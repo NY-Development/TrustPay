@@ -1,15 +1,25 @@
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VERIFIER';
-  businessId?: string;
-  branchId?: string;
-  pushToken?: string;
-  accounts?: {
+
+  role: string;
+
+  accounts: {
     accountNumber: string;
     accountProvider: string;
   }[];
+
+  pushToken?: string;
+
+  // Trial
+  trialStartDate?: string;
+  trialEndDate?: string;
+  hasUsedTrial?: boolean;
+  daysLeft?: number;
+
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Verification {
@@ -57,6 +67,9 @@ export interface SubscriptionStatusData {
   isPartialPayment: boolean;
   subscription: Subscription | null;
   remainingAmount: number;
+  isSubsAccessAllowed?: boolean;
+  subsAccessSource?: 'trial' | 'subscription' | 'none';
+  subsAccessTrialExpiresAt?: string | null;
 }
 
 export interface SubscriptionVerifyResponse {

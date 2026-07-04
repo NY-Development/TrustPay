@@ -123,7 +123,7 @@ export default function PrivacyPolicyScreen() {
             <View className="bg-card border border-border rounded-[24px] p-5 shadow-xs">
               <View className="flex-row items-center mb-4">
                 <View className="w-9 h-9 rounded-xl bg-primary/10 items-center justify-center mr-3">
-                  <Ionicons name="gavel-outline" size={18} color={themePrimary} />
+                  <Ionicons name="scale-outline" size={18} color={themePrimary} />
                 </View>
                 <Text className="text-foreground text-lg font-bold">Your Rights</Text>
               </View>

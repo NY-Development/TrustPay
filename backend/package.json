@@ -8,7 +8,8 @@
     "dev:nodemon": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cleanup": "ts-node src/scripts/cleanup-dummy-data.ts"
   },
   "keywords": [],
   "author": "",

@@ -56,10 +56,18 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: 'User registered successfully',
     data: {
-      user,
+      user: {
+        ...user.toJSON(),
+        trial: {
+          hasUsedTrial: user.hasUsedTrial,
+          trialStartDate: user.trialStartDate,
+          trialEndDate: user.trialEndDate,
+          daysLeft: user.daysLeft,
+        },
+      },
       accessToken,
-      refreshToken
-    }
+      refreshToken,
+    },
   });
 });
 
@@ -90,10 +98,18 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: 'Logged in successfully',
     data: {
-      user,
+      user: {
+        ...user.toJSON(),
+        trial: {
+          hasUsedTrial: user.hasUsedTrial,
+          trialStartDate: user.trialStartDate,
+          trialEndDate: user.trialEndDate,
+          daysLeft: user.daysLeft,
+        },
+      },
       accessToken,
-      refreshToken
-    }
+      refreshToken,
+    },
   });
 });
 
@@ -188,7 +204,17 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({
     success: true,
-    data: { user }
+    data: {
+      user: {
+        ...user.toJSON(),
+        trial: {
+          hasUsedTrial: user.hasUsedTrial,
+          trialStartDate: user.trialStartDate,
+          trialEndDate: user.trialEndDate,
+          daysLeft: user.daysLeft,
+        },
+      },
+    },
   });
 });
 

@@ -20,7 +20,8 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.negyam.trustpay",
-      buildNumber: packageJson.version
+      buildNumber: packageJson.version,
+      deploymentTarget: "15.0"
     },
     android: {
       adaptiveIcon: {
@@ -29,6 +30,7 @@ export default {
       },
       package: "com.negyam.trustpay",
       versionCode: 1,
+      minSdkVersion: 26,
       googleServicesFile: "./google-services.json"
     },
     web: {
@@ -40,6 +42,7 @@ export default {
       "expo-router",
       "expo-secure-store",
       "expo-camera",
+      "expo-ai-kit",
       [
         "expo-notifications",
         {
