@@ -141,14 +141,16 @@ export type VerificationSeverity =
   | 'duplicate'
   | 'error';
 
-  export interface Verification {
+export interface NormalizedVerification {
   success: boolean;
   message: string;
 
   requestId: string;
 
   processingStatus: string;
+
   status: VerificationStatus;
+
   verified: boolean;
 
   transaction: VerifiedTransaction;
@@ -159,4 +161,39 @@ export type VerificationSeverity =
       statusUrl: string;
     };
   };
-}
+};
+
+export interface VerificationRecord {
+  id: string;
+  _id?: string;
+
+  transactionId: string;
+
+  referenceNumber: string;
+
+  provider: string;
+
+  amount: number;
+
+  currency: string;
+
+  payerName: string;
+
+  receiverName?: string;
+
+  receiverAccount?: string;
+
+  paymentDate: string;
+
+  verified: boolean;
+
+  verifiedBy: string;
+
+  status: 'pending' | 'completed' | 'failed';
+
+  source: 'screenshot' | 'manual' | 'qr';
+
+  rawResponse?: Record<string, any>;
+
+  createdAt: string;
+};

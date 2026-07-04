@@ -10,7 +10,7 @@ import {
   NotFoundError, 
   TooManyRequestsError 
 } from '../../utils/AppError';
-import { VerificationResult } from '../../types';
+import { VerifiedTransaction } from '../../types';
 import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
 import { NotificationService } from '../../services/notification.service';
@@ -53,7 +53,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   const derivedPhone = (resolvedProvider === 'cbebirr' || resolvedProvider === 'kaafiebirr') ? settlementAccount : undefined;
 
   // 3. Perform Verification via Verify.ET
-  const result: VerificationResult = await VerificationService.verifyWithProvider({
+  const result: VerifiedTransaction = await VerificationService.verifyWithProvider({
     provider: resolvedProvider,
     reference,
     suffix: derivedSuffix,

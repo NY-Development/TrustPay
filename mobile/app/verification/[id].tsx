@@ -12,7 +12,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import * as Clipboard from 'expo-clipboard';
-import {adaptApiResponse} from '@/src/utils/api-adapter'
 
 import { useVerificationDetail } from '@/src/hooks/useVerification';
 import { normalizeVerificationResponse } from '@/src/mappers/verification.mapper';
@@ -55,7 +54,7 @@ export default function VerificationDetailScreen() {
     );
   }
 
-  const normalized = normalizeVerificationResponse(adaptApiResponse(data));
+  const normalized = normalizeVerificationResponse(data);
 
   const tx = normalized.transaction;
   const severity = normalized.severity;

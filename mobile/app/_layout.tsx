@@ -18,6 +18,22 @@ import "../global.css";
 
 /* ========================================================= */
 
+const customLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: 'rgb(249, 250, 251)',
+  },
+};
+
+const customDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: 'rgb(8, 12, 21)',
+  },
+};
+
 function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -44,7 +60,7 @@ export default function RootLayout() {
           <AuthProvider>
 
             <ThemeProvider
-              value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+              value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}
             >
               <SafeAreaProvider>
 

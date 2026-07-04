@@ -215,6 +215,28 @@ export interface VerificationEngineResponse {
   };
 }
 
+// export interface SettlementAccountMatch {
+//   matched: boolean;
+//   expected: string;
+//   actual?: string;
+// }
+
+// export interface VerificationResult {
+//   success: boolean;
+//   verified: boolean;
+//   provider: Provider | string;
+//   transactionId: string;
+//   referenceNumber?: string;
+//   amount: number;
+//   currency: string;
+//   payerName: string;
+//   paymentDate: Date | string;
+//   receiverName?: string;
+//   receiverAccount?: string;
+//   settlementAccountMatch?: SettlementAccountMatch;
+//   raw?: Record<string, unknown>;
+// }
+
 export interface OcrExtractionResult {
   transactionId?: string;
   referenceNumber?: string;

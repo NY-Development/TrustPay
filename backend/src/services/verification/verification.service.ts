@@ -1,6 +1,6 @@
 import { verifyEtConfig } from '../../config/verifier';
 import { logger } from '../../config/logger';
-import { VerificationResult } from '../../types';
+import { VerifiedTransaction } from '../../types';
 
 /**
  * Verify.ET API integration service
@@ -96,7 +96,7 @@ export class VerificationService {
     receiptNumber?: string;
     phoneNumber?: string;
     settlementAccount?: string;
-  }): Promise<VerificationResult> {
+  }): Promise<VerifiedTransaction> {
     const payload = this.buildPayload(params);
 
     try {
@@ -166,7 +166,7 @@ export class VerificationService {
     provider: string,
     reference: string,
     settlementAccount?: string
-  ): Promise<VerificationResult> {
+  ): Promise<VerifiedTransaction> {
     const { maxPollAttempts, defaultPollIntervalMs } = verifyEtConfig;
 
     for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
@@ -243,14 +243,14 @@ export class VerificationService {
   }
 
   /**
-   * Map a completed 200 response to VerificationResult
+   * Map a completed 200 response to VerifiedTransaction
    */
   private static mapCompletedResponse(
     body: any,
     provider: string,
     reference: string,
     settlementAccount?: string
-  ): VerificationResult {
+  ): VerifiedTransaction {
     const resultData = Array.isArray(body.data) ? body.data[0] : body.data;
     const verified = this.findValueInObject(resultData, ['verified']) ?? false;
     const amount = Number(this.findValueInObject(resultData, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
@@ -283,14 +283,14 @@ export class VerificationService {
   }
 
   /**
-   * Map a polled status response to VerificationResult
+   * Map a polled status response to VerifiedTransaction
    */
   private static mapPolledResponse(
     body: any,
     provider: string,
     reference: string,
     settlementAccount?: string
-  ): VerificationResult {
+  ): VerifiedTransaction {
     const resultData = Array.isArray(body.data) ? body.data[0] : body.data;
     const verified = this.findValueInObject(resultData, ['verified']) ?? false;
     const amount = Number(this.findValueInObject(resultData, ['amount', 'settledAmount', 'totalPaidAmount', 'amountExpected', 'value'])) || 0;
@@ -326,13 +326,13 @@ export class VerificationService {
   }
 
   /**
-   * Build a failed VerificationResult
+   * Build a failed VerifiedTransaction
    */
   private static failedResult(
     provider: string,
     reference: string,
     raw: any
-  ): VerificationResult {
+  ): VerifiedTransaction {
     return {
       success: false,
       verified: false,
