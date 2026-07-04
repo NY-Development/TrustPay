@@ -43,26 +43,176 @@ export interface DeviceInfo {
 }
 
 // ─── Verification ─────────────────────────────
+// ─────────────────────────────────────────────
+// Verification Engine Types
+// ─────────────────────────────────────────────
+
+export type VerificationStatus =
+  | 'success'
+  | 'failed'
+  | 'pending';
+
+export type MatchConfidence =
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'none';
+
 export interface SettlementAccountMatch {
   matched: boolean;
-  expected: string;
-  actual?: string;
+
+  matchType: string;
+
+  matchConfidence: MatchConfidence;
+
+  source: string;
+
+  bank: Provider | string;
+
+  receiverAccount: string;
+
+  matchedUserBankAccountId?: string | null;
+
+  matchedBusinessBankAccountId?: string | null;
+
+  candidateCount: number;
+
+  ambiguous: boolean;
+
+  reason: string;
+
+  debug?: {
+    receiverAccount: string;
+    candidateCount: number;
+    matchType: string;
+    visiblePrefix: string;
+    visibleSuffix: string;
+    visibleCharacterCount: number;
+
+    matchedUserBankAccountId?: string | null;
+
+    matchedBusinessBankAccountId?: string | null;
+  };
 }
 
-export interface VerificationResult {
-  success: boolean;
-  verified: boolean;
-  provider: Provider | string;
-  transactionId: string;
-  referenceNumber?: string;
-  amount: number;
+export interface ConfirmationHistory {
+  scope: string;
+
+  isFirstConfirmation: boolean;
+
+  confirmedBefore: boolean;
+
+  firstConfirmedAt: Date | string;
+
+  lastConfirmedAt: Date | string;
+
+  confirmationCount: number;
+}
+
+export interface BankSpecific {
+  senderName: string;
+
+  senderAccount: string;
+
+  senderAccountLast4: string;
+
+  receiverName: string;
+
+  receiverAccount: string;
+
+  receiverAccountLast4: string;
+
+  transactionDateRaw: string;
+
+  transactionDateIsoUtc: Date | string;
+
+  amountValue: number;
+
+  reference: string;
+
+  branch: string;
+
+  payerAccount: string;
+
+  reason: string;
+
+  dateRaw: string;
+
+  amountRaw: string;
+
+  serviceCharge: number;
+
+  serviceChargeRaw: string;
+
+  vatOnCommission: number;
+
+  vatOnCommissionRaw: string;
+
+  totalDebited: number;
+
+  totalDebitedRaw: string;
+
+  amountInWords: string;
+
   currency: string;
-  payerName: string;
-  paymentDate: Date | string;
+
+  source: string;
+}
+
+export interface VerifiedTransaction {
+  bank: Provider | string;
+
+  status: VerificationStatus;
+
+  verified: boolean;
+
+  senderName?: string;
+
   receiverName?: string;
-  receiverAccount?: string;
-  settlementAccountMatch?: SettlementAccountMatch;
-  raw?: Record<string, unknown>;
+
+  amount: number;
+
+  currency: string;
+
+  referenceNumber: string;
+
+  accountSuffix: string;
+
+  timestamp: Date | string;
+
+  bankSpecific?: BankSpecific;
+
+  confirmationHistory: ConfirmationHistory;
+
+  settlementAccountMatch: SettlementAccountMatch;
+}
+
+export interface VerificationPayload {
+  requestId: string;
+
+  processingStatus: string;
+
+  status: VerificationStatus;
+
+  verified: boolean;
+
+  result: VerifiedTransaction;
+}
+
+export interface VerificationEngineResponse {
+  success: boolean;
+
+  message: string;
+
+  requestId: string;
+
+  data: VerifiedTransaction[];
+
+  verification: VerificationPayload;
+
+  links?: {
+    statusUrl: string;
+  };
 }
 
 export interface OcrExtractionResult {
@@ -76,10 +226,21 @@ export interface OcrExtractionResult {
 
 // ─── API Responses ────────────────────────────
 export interface ApiResponse<T = unknown> {
-  success: boolean;
-  message: string;
-  data?: T;
-  error?: string;
+    success: boolean;
+
+    message: string;
+
+    data?: T;
+
+    error?: string;
+
+    requestId?: string;
+
+    verification?: unknown;
+
+    links?: {
+        statusUrl: string;
+    };
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {

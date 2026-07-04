@@ -1,118 +1,284 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { ALL_PROVIDERS } from '../constants';
+
+/* ============================================================
+   ENUMS
+============================================================ */
+
+export type VerificationSource =
+  | 'manual'
+  | 'qr'
+  | 'ocr'
+  | 'screenshot';
+
+export type VerificationStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed';
+
+export type VerificationSeverity =
+  | 'success'
+  | 'info'
+  | 'warning'
+  | 'duplicate'
+  | 'fraud_risk'
+  | 'error';
+
+/* ============================================================
+   SUB DOCUMENTS
+============================================================ */
+
+const VerificationSummarySchema = new Schema(
+  {
+    severity: String,
+    title: String,
+    description: String,
+  },
+  { _id: false }
+);
+
+const VerificationResultSchema = new Schema(
+  {
+    bankSpecific: Schema.Types.Mixed,
+
+    settlementAccountMatch: Schema.Types.Mixed,
+
+    confirmationHistory: Schema.Types.Mixed,
+  },
+  { _id: false }
+);
+
+/* ============================================================
+   DOCUMENT
+============================================================ */
 
 export interface IVerification extends Document {
   transactionId: string;
-  referenceNumber?: string;
+
+  referenceNumber: string;
+
+  requestId: string;
+
+  bank: string;
+
   provider: string;
+
   amount: number;
+
   currency: string;
-  payerName: string;
-  receiverName?: string;
-  receiverAccount?: string;
+
+  senderName: string;
+
+  receiverName: string;
+
+  receiverAccount: string;
+
+  accountSuffix: string;
+
   paymentDate: Date;
+
   verified: boolean;
-  verifiedBy: mongoose.Types.ObjectId;
-  branchId?: mongoose.Types.ObjectId;
-  businessId?: mongoose.Types.ObjectId;
-  source: string;
+
+  processingStatus: VerificationStatus;
+
+  verificationStatus: string;
+
+  source: VerificationSource;
+
+  verificationSummary: {
+    severity: VerificationSeverity;
+    title: string;
+    description: string;
+  };
+
+  verificationResult: {
+    bankSpecific: Record<string, unknown>;
+
+    settlementAccountMatch: Record<string, unknown>;
+
+    confirmationHistory: Record<string, unknown>;
+  };
+
+  providerResponse: Record<string, unknown>;
+
   rawOcrText?: string;
-  rawResponse?: Record<string, unknown>;
-  status: string;
+
+  verifiedBy: mongoose.Types.ObjectId;
+
+  branchId?: mongoose.Types.ObjectId;
+
+  businessId?: mongoose.Types.ObjectId;
+
   createdAt: Date;
+
   updatedAt: Date;
 }
 
 const verificationSchema = new Schema<IVerification>(
-  {
-    transactionId: {
-      type: String,
-      required: true,
-      trim: true,
-      uppercase: true,
+{
+    transactionId:{
+        type:String,
+        required:true,
+        uppercase:true,
+        trim:true
     },
-    referenceNumber: {
-      type: String,
-      trim: true,
-      uppercase: true,
+
+    referenceNumber:{
+        type:String,
+        required:true,
+        uppercase:true,
+        trim:true
     },
-    provider: {
-      type: String,
-      required: true,
-      lowercase: true,
+
+    requestId:{
+        type:String,
+        required:true,
+        index:true
     },
-    amount: {
-      type: Number,
-      required: true,
-      min: 0,
+
+    bank:{
+        type:String,
+        required:true,
+        lowercase:true
     },
-    currency: {
-      type: String,
-      default: 'ETB',
+
+    provider:{
+        type:String,
+        required:true,
+        lowercase:true
     },
-    payerName: {
-      type: String,
-      default: 'Anonymous Payer',
+
+    amount:{
+        type:Number,
+        required:true
     },
-    receiverName: {
-      type: String,
-      default: null,
+
+    currency:{
+        type:String,
+        default:"ETB"
     },
-    receiverAccount: {
-      type: String,
-      default: null,
+
+    senderName:String,
+
+    receiverName:String,
+
+    receiverAccount:String,
+
+    accountSuffix:String,
+
+    paymentDate:{
+        type:Date,
+        required:true
     },
-    paymentDate: {
-      type: Date,
-      required: true,
+
+    verified:{
+        type:Boolean,
+        default:false
     },
-    verified: {
-      type: Boolean,
-      default: false,
+
+    processingStatus:{
+        type:String,
+        enum:[
+            "pending",
+            "processing",
+            "completed",
+            "failed"
+        ],
+        default:"processing"
     },
-    verifiedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
+
+    verificationStatus:{
+        type:String,
+        default:"success"
     },
-    branchId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Branch',
-      default: null,
+
+    source:{
+        type:String,
+        enum:[
+            "manual",
+            "qr",
+            "ocr",
+            "screenshot"
+        ]
     },
-    businessId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Business',
-      default: null,
+
+    verificationSummary:{
+        type:VerificationSummarySchema,
+        required:true
     },
-    source: {
-      type: String,
-      enum: ['screenshot', 'manual', 'qr'],
-      default: 'manual',
+
+    verificationResult:{
+        type:VerificationResultSchema,
+        required:true
     },
-    rawOcrText: {
-      type: String,
-      default: null,
+
+    providerResponse:{
+        type:Schema.Types.Mixed
     },
-    rawResponse: {
-      type: Schema.Types.Mixed,
-      default: null,
+
+    rawOcrText:String,
+
+    verifiedBy:{
+        type:Schema.Types.ObjectId,
+        ref:"User",
+        required:true
     },
-    status: {
-      type: String,
-      enum: ['pending', 'completed', 'failed'],
-      default: 'pending',
+
+    branchId:{
+        type:Schema.Types.ObjectId,
+        ref:"Branch"
     },
-  },
-  {
-    timestamps: true,
-  }
+
+    businessId:{
+        type:Schema.Types.ObjectId,
+        ref:"Business"
+    }
+
+},
+{
+    timestamps:true
+});
+
+verificationSchema.index(
+{
+    transactionId:1
+},
+{
+    unique:true
+});
+
+verificationSchema.index({
+    requestId:1
+});
+
+verificationSchema.index({
+    businessId:1,
+    createdAt:-1
+});
+
+verificationSchema.index({
+    branchId:1,
+    createdAt:-1
+});
+
+verificationSchema.index({
+    verifiedBy:1,
+    createdAt:-1
+});
+
+verificationSchema.index({
+    "verificationSummary.severity":1
+});
+
+verificationSchema.index({
+    verified:1
+});
+
+verificationSchema.index({
+    processingStatus:1
+});
+
+export const Verification = mongoose.model<IVerification>(
+    "Verification",
+    verificationSchema
 );
-
-// Unique reference per provider to prevent replay attacks
-verificationSchema.index({ transactionId: 1 }, { unique: true });
-verificationSchema.index({ verifiedBy: 1, createdAt: -1 });
-verificationSchema.index({ businessId: 1, createdAt: -1 });
-verificationSchema.index({ branchId: 1, createdAt: -1 });
-
-export const Verification = mongoose.model<IVerification>('Verification', verificationSchema);
