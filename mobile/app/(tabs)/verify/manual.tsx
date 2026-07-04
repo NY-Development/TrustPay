@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useVerifyManual } from '@/src/hooks/useVerification';
+import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { StatusModal } from '@/src/components/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
@@ -41,6 +42,13 @@ export default function ManualEntry() {
   }>({ visible: false, type: 'info', title: '', message: '' });
 
   const verifyMutation = useVerifyManual();
+  const { data: history, isLoading, refetch } = useVerificationHistory();
+
+  // history filtered by matching the refrence here and reference on the history fetched okay.
+  const filteredHistory = history?.data?.filter(item => 
+    item.transactionId.toLowerCase().includes(reference.toLowerCase()) || 
+    item.referenceNumber.toLowerCase().includes(reference.toLowerCase())
+  );
 
   React.useEffect(() => {
     if (registeredProviders.length > 0 && !registeredProviders.some(p => p.id === provider)) {
@@ -164,7 +172,7 @@ export default function ManualEntry() {
           message={modal.message}
           onClose={() => {
             setModal({ ...modal, visible: false });
-            if (modal.type === 'success') router.replace('/(tabs)');
+            if (modal.type === 'success') router.replace(`/verification/${filteredHistory?.[0]._id || filteredHistory?.[0].id}` as any);
           }} 
         />
       </SafeAreaView>

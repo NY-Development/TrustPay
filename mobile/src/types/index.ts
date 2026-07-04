@@ -16,6 +16,7 @@ export interface Verification {
   id: string;
   _id?: string;
   transactionId: string;
+  referenceNumber : string;
   provider: string;
   amount: number;
   currency: string;
@@ -70,6 +71,11 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
+
+// optional auth payload support
+  accessToken?: string;
+  refreshToken?: string;
+
   fullyPaid?: boolean;
   remainingAmount?: number;
 }

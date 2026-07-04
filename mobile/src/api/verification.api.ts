@@ -16,7 +16,7 @@ export const verificationApi = {
     return response.data;
   },
   getHistory: async () => {
-    const response = await apiClient.get<ApiResponse<Verification[]>>('/verifications');
+    const response = await apiClient.get<ApiResponse<Verification[]>>('/verifications/my-history');
     return response.data;
   },
   getById: async (id: string) => {
