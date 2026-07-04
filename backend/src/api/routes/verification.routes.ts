@@ -7,10 +7,11 @@ import {
   verifyOcrSchema
 } from '../validators/verification.validator';
 import { verificationRateLimiter } from '../../middleware/security';
+import { requireActiveAccess } from '../../middleware/accessControl';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireActiveAccess);
 
 router.post(
   '/verify',

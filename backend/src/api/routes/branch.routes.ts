@@ -4,10 +4,11 @@ import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { createBranchSchema, updateBranchSchema } from '../validators/business.validator';
 import { ROLES } from '../../constants';
+import { requireActiveAccess } from '../../middleware/accessControl';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireActiveAccess);
 
 router.get('/', branchController.getBranches);
 

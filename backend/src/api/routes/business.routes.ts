@@ -4,10 +4,11 @@ import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { createBusinessSchema, updateBusinessSchema } from '../validators/business.validator';
 import { ROLES } from '../../constants';
+import { requireActiveAccess } from '../../middleware/accessControl';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireActiveAccess);
 
 router.get('/', authorize([ROLES.SUPER_ADMIN]), businessController.getBusinesses);
 router.get('/:id', businessController.getBusiness);
