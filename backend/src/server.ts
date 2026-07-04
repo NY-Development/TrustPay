@@ -10,6 +10,7 @@ import { errorHandler } from './middleware/errorHandler';
 
 const startServer = async () => {
   const app = express();
+  app.set('trust proxy', 1);
 
   // 1. Connect to Database
   await connectDatabase();
