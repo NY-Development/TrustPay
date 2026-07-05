@@ -64,6 +64,9 @@ export default function OcrVerification() {
   const [localBaseUrl, setLocalBaseUrl] = React.useState<string | null>(null);
   const [useWebViewAi, setUseWebViewAi] = React.useState(true);
 
+  // refrence no. from AI
+  const [refNo, setRefNo] = React.useState<string | null>(null);
+
   // Download progress
   const [dlProgress, setDlProgress] = React.useState<DownloadProgress | null>(null);
 
@@ -188,6 +191,8 @@ export default function OcrVerification() {
       ai?.transactionNumber ||
       ai?.receiptNumber ||
       null;
+
+    setRefNo(extractedRef);
 
     if (!extractedRef) {
       setScanning(false);
@@ -504,11 +509,11 @@ export default function OcrVerification() {
                   <TextInput value={ocrText} multiline editable={false} className="text-muted-foreground" />
                   <TouchableOpacity
                     onPress={async () => {
-                      await Clipboard.setStringAsync(ocrText);
+                      await Clipboard.setStringAsync(refNo ?? '');
                       setCopied(true);
                     }}
                   >
-                    <Text className="text-primary mt-2">{copied ? 'Copied' : 'Copy'}</Text>
+                    <Text className="text-primary mt-2">{copied ? `${refNo ?? ''} Copied` : 'Copy'}</Text>
                   </TouchableOpacity>
                 </View>
               )}
