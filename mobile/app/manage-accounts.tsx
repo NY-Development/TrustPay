@@ -127,6 +127,7 @@ export default function ManageAccountsScreen() {
       },
     });
   };
+  const hasChanged = editTarget?.accountNumber !== newNumber || editTarget?.accountProvider !== newProvider;
 
   const getProviderLabel = (value: string) => {
     return PROVIDERS.find(p => p.value === value)?.label || value;
@@ -160,10 +161,10 @@ export default function ManageAccountsScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
-            {/* Add Account Form */}
+            {/* Add & Update Account Form with isEditing boolean control*/}
             {showAddForm && (
               <View className="bg-card border border-border rounded-3xl p-5 mb-6">
-                <Text className="text-foreground font-bold text-base mb-4">Link New Account</Text>
+                <Text className="text-foreground font-bold text-base mb-4">{isEditing ? 'Update Account' : 'Link New Account'}</Text>
 
                 {/* Provider Picker */}
                 <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-2 ml-1">
@@ -176,7 +177,7 @@ export default function ManageAccountsScreen() {
                   <View className="flex-row items-center">
                     <Ionicons name="business-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                     <Text className={`ml-3 text-base ${newProvider ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {newProvider ? getProviderLabel(newProvider) : 'Select provider'}
+                      {isEditing ? editTarget?.accountProvider : newProvider ? getProviderLabel(newProvider) : 'Select provider'}
                     </Text>
                   </View>
                   <Ionicons name="chevron-down" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
@@ -189,9 +190,9 @@ export default function ManageAccountsScreen() {
                 <View className="bg-muted border border-border rounded-2xl px-4 h-14 flex-row items-center mb-5">
                   <Ionicons name="keypad-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                   <TextInput
-                    value={newNumber}
+                    value={isEditing ? editTarget?.accountNumber : newNumber}
                     onChangeText={setNewNumber}
-                    placeholder="e.g. 1000123456789"
+                    placeholder={isEditing ? editTarget?.accountNumber : `e.g. 1000123456789`}
                     placeholderTextColor={isDark ? '#475569' : '#94a3b8'}
                     keyboardType="number-pad"
                     className="flex-1 text-foreground text-base ml-3"
@@ -199,13 +200,13 @@ export default function ManageAccountsScreen() {
                 </View>
 
                 <TouchableOpacity
-                  onPress={handleAdd}
-                  disabled={!newNumber.trim() || !newProvider || addAccountMutation.isPending}
+                  onPress={isEditing? handleUpdate : handleAdd}
+                  disabled={!newNumber.trim() || !newProvider || addAccountMutation.isPending || hasChanged || updateAccountMutation.isPending}
                   className={`h-12 rounded-2xl items-center justify-center ${
                     newNumber.trim() && newProvider ? 'bg-primary active:opacity-80' : 'bg-muted'
                   }`}
                 >
-                  {addAccountMutation.isPending ? (
+                  {addAccountMutation.isPending || updateAccountMutation.isPending ? (
                     <ActivityIndicator color="white" />
                   ) : (
                     <Text className={`font-bold text-sm ${newNumber.trim() && newProvider ? 'text-white' : 'text-muted-foreground'}`}>
@@ -365,7 +366,10 @@ export default function ManageAccountsScreen() {
         visible={!!editTarget}
         transparent
         animationType="fade"
-        onRequestClose={() => setEditTarget(null)}
+        onRequestClose={() => {
+          setEditTarget(null);
+          setShowAddForm(true);
+        }}
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-8">
           <View className="bg-card border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
