@@ -325,7 +325,7 @@ export default function Audit() {
           {/* Navigate to Insights Card CTA */}
           <TouchableOpacity
             onPress={() => router.push('/insights')}
-            className="w-full bg-primary/10 border border-primary/20 rounded-[24px] p-5 flex-row justify-between items-center active:bg-primary/20"
+            className="w-full mb-6 bg-primary/10 border border-primary/20 rounded-[24px] p-5 flex-row justify-between items-center active:bg-primary/20"
           >
             <View className="flex-row items-center flex-1 pr-4">
               <View className="bg-primary/20 p-2.5 rounded-xl mr-4">

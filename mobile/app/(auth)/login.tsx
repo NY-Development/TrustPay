@@ -18,7 +18,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLogin } from '@/src/hooks/useAuth';
 import { StatusModal, StatusModalProps } from '@/src/components/StatusModal';
 import { BiometricService } from '@/src/utils/biometrics';
-import * as SecureStore from 'expo-secure-store';
 import { TokenService } from '@/src/services/token.service';
 
 import { useAuthStore } from '@/src/store/authStore';
@@ -39,24 +38,25 @@ export default function Login() {
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [biometricsPrompted, setBiometricsPrompted] = React.useState(false);
-  const [hasSavedCredentials, setHasSavedCredentials] = React.useState(false);
+  const [hasSavedTokens, setHasSavedTokens] = React.useState(false);
 
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
-  // Check saved credentials and storage-level biometric authorization state
+  // Check if we have active persistent token architectures ready to bypass manual passwords
   React.useEffect(() => {
-    const checkSaved = async () => {
+    const checkSavedTokens = async () => {
       try {
-        const savedEmail = await SecureStore.getItemAsync('savedEmail');
-        const savedPassword = await SecureStore.getItemAsync('savedPassword');
-        if (savedEmail && savedPassword) {
-          setHasSavedCredentials(true);
+        const refreshToken = await TokenService.getRefreshToken();
+        const bioEnabled = await Storage.getItem<boolean>(STORAGE_KEYS.BIOMETRICS_ENABLED);
+        
+        if (refreshToken && bioEnabled) {
+          setHasSavedTokens(true);
         }
       } catch (err) {
-        console.warn('Checking saved credentials failed:', err);
+        console.warn('Checking stored secure credentials engine failed:', err);
       }
     };
-    checkSaved();
+    checkSavedTokens();
   }, []);
 
   const handleBiometricLoginPress = async () => {
@@ -73,42 +73,27 @@ export default function Login() {
         return;
       }
 
-      const savedEmail = await SecureStore.getItemAsync('savedEmail');
-      const savedPassword = await SecureStore.getItemAsync('savedPassword');
-      if (!savedEmail || !savedPassword) return;
+      const refreshToken = await TokenService.getRefreshToken();
+      if (!refreshToken) {
+        setModalState({
+          visible: true,
+          type: 'error',
+          title: 'Session Expired',
+          message: 'Please log in manually with your password to re-enable biometrics.',
+          onClose: () => setModalState((prev) => ({ ...prev, visible: false })),
+        });
+        return;
+      }
 
       const result = await BiometricService.authenticate('Quick sign in to TrustPay');
       if (result) {
-        setEmail(savedEmail);
-        setPassword(savedPassword);
-
-        loginMutation.mutate(
-          { email: savedEmail, password: savedPassword },
-          {
-            onSuccess: async (data: any) => {
-              await setUser(data.data.user, {
-                accessToken: data.data.accessToken,
-                refreshToken: data.data.refreshToken,
-              });
-              clearAuthCache();
-              await hydrateAuthCache();
-              router.replace('/(tabs)');
-            },
-            onError: (err: any) => {
-              console.error('Biometric press login mutation failed:', err);
-              setModalState({
-                visible: true,
-                type: 'error',
-                title: 'Login Failed',
-                message: err.response?.data?.message || 'Biometric login failed. Please sign in manually.',
-                onClose: () => setModalState((prev) => ({ ...prev, visible: false })),
-              });
-            },
-          }
-        );
+        // Hydrate navigation and move inside using token state engine
+        clearAuthCache();
+        await hydrateAuthCache();
+        router.replace('/(tabs)');
       }
     } catch (err: any) {
-      console.warn('Biometric manual authentication failed:', err);
+      console.warn('Biometric interface extraction exception:', err);
     }
   };
 
@@ -122,53 +107,8 @@ export default function Login() {
   });
 
   /* =========================================================
-     BIOMETRIC AUTO & INPUT TRIGGER
+     BIOMETRIC AUTO TRIGGER
   ========================================================= */
-  const triggerBiometricsIfEnabled = async () => {
-    if (biometricsPrompted) return;
-    
-    // FIX: Read directly from persistent Storage to bypass hydration delays
-    const bioEnabled = await Storage.getItem<boolean>(STORAGE_KEYS.BIOMETRICS_ENABLED);
-    if (!bioEnabled) return;
-
-    try {
-      const savedEmail = await SecureStore.getItemAsync('savedEmail');
-      const savedPassword = await SecureStore.getItemAsync('savedPassword');
-      if (!savedEmail || !savedPassword) return;
-
-      setBiometricsPrompted(true);
-      const result = await BiometricService.authenticate('Sign in to TrustPay');
-      if (result) {
-        setEmail(savedEmail);
-        setPassword(savedPassword);
-
-        loginMutation.mutate(
-          { email: savedEmail, password: savedPassword },
-          {
-            onSuccess: async (data: any) => {
-              await setUser(data.data.user, {
-                accessToken: data.data.accessToken,
-                refreshToken: data.data.refreshToken,
-              });
-              clearAuthCache();
-              await hydrateAuthCache();
-              router.replace('/(tabs)');
-            },
-            onError: (err) => {
-              console.error('Biometric authentication login failed:', err);
-              setBiometricsPrompted(false);
-            },
-          }
-        );
-      } else {
-        setBiometricsPrompted(false);
-      }
-    } catch (err) {
-      console.warn('Biometric input trigger failed:', err);
-      setBiometricsPrompted(false);
-    }
-  };
-
   React.useEffect(() => {
     let active = true;
     const checkAndTriggerBiometrics = async () => {
@@ -176,45 +116,27 @@ export default function Login() {
         const hasToken = await TokenService.getAccessToken();
         if (hasToken) return;
 
-        // FIX: Read from persistence here too to beat any hydrate() race condition
         const bioEnabled = await Storage.getItem<boolean>(STORAGE_KEYS.BIOMETRICS_ENABLED);
         if (!bioEnabled) return;
 
         const { isAvailable, isEnrolled } = await BiometricService.checkAvailability();
         if (!isAvailable || !isEnrolled) return;
 
-        const savedEmail = await SecureStore.getItemAsync('savedEmail');
-        const savedPassword = await SecureStore.getItemAsync('savedPassword');
+        const refreshToken = await TokenService.getRefreshToken();
 
-        if (savedEmail && savedPassword && active) {
+        if (refreshToken && active && !biometricsPrompted) {
           setBiometricsPrompted(true);
           const result = await BiometricService.authenticate('Sign in to TrustPay');
           if (result && active) {
-            loginMutation.mutate(
-              { email: savedEmail, password: savedPassword },
-              {
-                onSuccess: async (data: any) => {
-                  if (!active) return;
-                  await setUser(data.data.user, {
-                    accessToken: data.data.accessToken,
-                    refreshToken: data.data.refreshToken,
-                  });
-                  clearAuthCache();
-                  await hydrateAuthCache();
-                  router.replace('/(tabs)');
-                },
-                onError: (err) => {
-                  console.error('Biometric auto-login failed:', err);
-                  if (active) setBiometricsPrompted(false);
-                },
-              }
-            );
+            clearAuthCache();
+            await hydrateAuthCache();
+            router.replace('/(tabs)');
           } else {
             if (active) setBiometricsPrompted(false);
           }
         }
       } catch (err) {
-        console.warn('Biometric auto-challenge failed:', err);
+        console.warn('Biometric background routine interception error:', err);
         if (active) setBiometricsPrompted(false);
       }
     };
@@ -227,7 +149,7 @@ export default function Login() {
       active = false;
       clearTimeout(timer);
     };
-  }, []);
+  }, [biometricsPrompted]);
 
   /* =========================================================
      BIOMETRIC GATE
@@ -264,9 +186,6 @@ export default function Login() {
       {
         onSuccess: async (data: any) => {
           try {
-            await SecureStore.setItemAsync('savedEmail', email);
-            await SecureStore.setItemAsync('savedPassword', password);
-
             await setUser(data.data.user, {
               accessToken: data.data.accessToken,
               refreshToken: data.data.refreshToken,
@@ -289,7 +208,7 @@ export default function Login() {
               },
             });
           } catch (err) {
-            console.error('Login post-processing failed:', err);
+            console.error('Login cache loading mutation error:', err);
           }
         },
         onError: (error: any) => {
@@ -308,9 +227,6 @@ export default function Login() {
     );
   };
 
-  /* =========================================================
-     UI
-  ========================================================= */
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1">
@@ -358,8 +274,6 @@ export default function Login() {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
-                  onFocus={triggerBiometricsIfEnabled}
-                  onTouchStart={triggerBiometricsIfEnabled}
                 />
               </View>
             </View>
@@ -390,8 +304,6 @@ export default function Login() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  onFocus={triggerBiometricsIfEnabled}
-                  onTouchStart={triggerBiometricsIfEnabled}
                 />
 
                 <TouchableOpacity
@@ -450,8 +362,8 @@ export default function Login() {
                 </TouchableOpacity>
               </Link>
 
-              {/* Dynamic biometric container below "Create an Account" link */}
-              {hasSavedCredentials && (
+              {/* Dynamic biometric access panel relying on Refresh Tokens */}
+              {hasSavedTokens && (
                 <View className="w-full items-center mt-6 pt-4 border-t border-border/40">
                   <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-widest mb-4">
                     Or sign in with biometrics

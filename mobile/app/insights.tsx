@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { format, parseISO } from 'date-fns';
+import { Paths, File } from 'expo-file-system';
+import * as Print from 'expo-print';
 
 export default function Insights() {
   const { colorScheme } = useColorScheme();
@@ -15,31 +16,27 @@ export default function Insights() {
   const { data: historyRes, isLoading, refetch } = useVerificationHistory();
   const history = historyRes?.data || [];
 
+  const [isExporting, setIsExporting] = React.useState(false);
+
   // Analytical derivations
   const analytics = React.useMemo(() => {
-    // 1. Peak Hour calculation
     const hourCounts: Record<number, number> = {};
-    // 2. Risk analysis (frauds & duplicates count by provider)
     const providerRisks: Record<string, { total: number; bad: number }> = {};
-    // 3. Provider Share distribution
     const providerShares: Record<string, number> = {};
 
     let totalSuccess = 0;
     let totalSecIssues = 0;
 
     history.forEach((record) => {
-      // Hour extract
       try {
         const date = record.paymentDate ? new Date(record.paymentDate) : new Date(record.createdAt);
         const hour = date.getHours();
         hourCounts[hour] = (hourCounts[hour] || 0) + 1;
       } catch (e) {}
 
-      // Provider parsing
       const provider = (record.provider || 'unknown').toLowerCase();
       providerShares[provider] = (providerShares[provider] || 0) + 1;
 
-      // Risk profiling
       if (!providerRisks[provider]) {
         providerRisks[provider] = { total: 0, bad: 0 };
       }
@@ -61,7 +58,6 @@ export default function Insights() {
       }
     });
 
-    // Find peak hour
     let peakHour = -1;
     let peakCount = 0;
     Object.entries(hourCounts).forEach(([h, count]) => {
@@ -71,20 +67,17 @@ export default function Insights() {
       }
     });
 
-    // Peak hour string formatter
     let peakHourStr = 'No data';
     if (peakHour !== -1) {
       const start = peakHour;
-      const end = (peakHour + 1) % 24;
       const formatTime = (h: number) => {
         const ampm = h >= 12 ? 'PM' : 'AM';
         const displayH = h % 12 === 0 ? 12 : h % 12;
         return `${displayH} ${ampm}`;
       };
-      peakHourStr = `${formatTime(start)} - ${formatTime(end)}`;
+      peakHourStr = `${formatTime(start)} - ${formatTime((start + 1) % 24)}`;
     }
 
-    // Determine highest risk provider
     let worstProvider = 'None';
     let maxRiskRate = 0;
     Object.entries(providerRisks).forEach(([p, stats]) => {
@@ -95,7 +88,6 @@ export default function Insights() {
       }
     });
 
-    // Determine highest share provider
     let topProvider = 'None';
     let maxShare = 0;
     Object.entries(providerShares).forEach(([p, count]) => {
@@ -105,7 +97,6 @@ export default function Insights() {
       }
     });
 
-    // Compile dynamic smart suggestions list
     const suggestions: Array<{ title: string; desc: string; type: 'info' | 'warning' | 'security' }> = [];
 
     if (peakHour !== -1) {
@@ -130,36 +121,189 @@ export default function Insights() {
       });
     }
 
-    if (topProvider !== 'None') {
-      suggestions.push({
-        title: `Maximize ${topProvider.toUpperCase()} Channels`,
-        desc: `${topProvider.toUpperCase()} is your most dominant customer settlement provider. Perform weekly checkout reconciliations to maximize cache rates.`,
-        type: 'info',
-      });
-    }
-
-    if (history.length === 0) {
-      suggestions.push({
-        title: 'Awaiting Audit Data',
-        desc: 'Once transactional verification history accumulates, tailored business suggestions will automatically compile here.',
-        type: 'info',
-      });
-    }
-
-    return {
-      peakHourStr,
-      worstProvider,
-      topProvider,
-      maxRiskRate,
-      suggestions,
-      providerShares,
-    };
+    return { peakHourStr, worstProvider, topProvider, maxRiskRate, suggestions };
   }, [history]);
+
+  /* =========================================================
+     EXPORT UTILITIES (EXCEL / CSV MATRIX & NATIVE PDF PRINT)
+  ========================================================= */
+  
+  // Helper executing the physical CSV generation logic
+  const executeExcelExport = async (fileName: string) => {
+    setIsExporting(true);
+    try {
+      const headers = ['Reference ID', 'Provider/Bank', 'Amount', 'Currency', 'Verification Status', 'Flag Severity', 'Creation Date'];
+      const rows = history.map((rec) => [
+        rec.referenceNumber || rec._id || '',
+        (rec.provider || 'N/A').toUpperCase(),
+        rec.amount || '0',
+        rec.currency || 'ETB',
+        rec.status || 'unknown',
+        rec.verificationSummary?.severity || 'clear',
+        rec.createdAt ? new Date(rec.createdAt).toLocaleString() : ''
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      const BOM = '\uFEFF';
+      
+      // Clean up inputs to prevent invalid characters in paths
+      const safeName = fileName.replace(/[/\\?%*:|"<>\s]/g, '_');
+      const fileUri = `${Paths.document.uri}/${safeName}.csv`;
+      
+      const file = new File(fileUri);
+      file.create({ overwrite: true });
+      file.write(BOM + csvContent, { encoding: 'utf8' });
+      
+      await Share.share({ url: fileUri, title: 'Export Audit Ledger' });
+    } catch (err: any) {
+      Alert.alert('Export Failed', err.message || 'Unable to build dynamic sheet structure.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportToExcel = () => {
+    if (history.length === 0) {
+      Alert.alert('Empty Dataset', 'No active verification records found to export.');
+      return;
+    }
+
+    // Requests file naming schema interactively
+    Alert.prompt(
+      'Export Excel Statement',
+      'Enter a name for your CSV report:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Export', 
+          onPress: (name: any) => {
+            const finalName = name && name.trim().length > 0 ? name.trim() : `TrustPay_Business_Insights_${Date.now()}`;
+            executeExcelExport(finalName);
+          }
+        }
+      ],
+      'plain-text',
+      `TrustPay_Business_Insights_${Date.now()}`
+    );
+  };
+
+  // Helper executing physical PDF printing routines
+  const executePdfExport = async (fileName: string) => {
+    setIsExporting(true);
+    try {
+      const tableRowsHtml = history.map((rec) => `
+        <tr>
+          <td>${rec.referenceNumber || rec._id || 'N/A'}</td>
+          <td style="text-transform: uppercase;">${rec.provider || 'N/A'}</td>
+          <td>${rec.amount || '0'} ${rec.currency || 'ETB'}</td>
+          <td><span class="badge ${rec.status === 'completed' ? 'success' : 'failed'}">${rec.status || 'unknown'}</span></td>
+          <td>${rec.verificationSummary?.severity || 'clear'}</td>
+          <td>${rec.createdAt ? new Date(rec.createdAt).toLocaleDateString() : 'N/A'}</td>
+        </tr>
+      `).join('');
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 30px; color: #333; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #003ec7; padding-bottom: 15px; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: bold; color: #003ec7; }
+            .meta { font-size: 12px; color: #666; text-align: right; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #f8fafc; color: #475569; font-weight: 600; text-align: left; padding: 12px; font-size: 12px; border-bottom: 2px solid #e2e8f0; }
+            td { padding: 12px; font-size: 12px; border-bottom: 1px solid #edf2f7; color: #334155; }
+            tr:nth-child(even) { background-color: #fdfdfd; }
+            .badge { padding: 4px 8px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-radius: 4px; }
+            .success { background-color: #dcfce7; color: #15803d; }
+            .failed { background-color: #fee2e2; color: #b91c1c; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">TrustPay Business Settlement Report</div>
+              <div style="font-size: 14px; margin-top: 5px; color: #475569;">Verification History Audit Data Ledger</div>
+            </div>
+            <div class="meta">
+              <strong>Generated:</strong> ${new Date().toLocaleString()}<br>
+              <strong>Total Records:</strong> ${history.length}
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Reference ID</th>
+                <th>Channel/Bank</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Risk Profile</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHtml}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Generate the internal temporary print asset structure 
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      
+      // Relocate or match file location based on user custom file choice strings
+      const safeName = fileName.replace(/[/\\?%*:|"<>\s]/g, '_');
+      const targetUri = `${Paths.document.uri}/${safeName}.pdf`;
+      
+      const file = new File(targetUri);
+      const originFile = new File(uri);
+      
+      originFile.copy(file);
+      
+      await Share.share({ url: targetUri, title: 'Export Business PDF Summary' });
+    } catch (err: any) {
+      Alert.alert('PDF Construction Failed', err.message || 'System ran out of assets.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportToPdf = () => {
+    if (history.length === 0) {
+      Alert.alert('Empty Dataset', 'No active data ledger points available to generate PDF layout.');
+      return;
+    }
+
+    // Requests file naming schema interactively
+    Alert.prompt(
+      'Export PDF Statement',
+      'Enter a name for your PDF report:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Export', 
+          onPress: (name: any) => {
+            const finalName = name && name.trim().length > 0 ? name.trim() : `TrustPay_Business_Report_${Date.now()}`;
+            executePdfExport(finalName);
+          }
+        }
+      ],
+      'plain-text',
+      `TrustPay_Business_Report_${Date.now()}`
+    );
+  };
 
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top']}>
-        {/* Header */}
+        {/* Header Block */}
         <View className="px-6 py-4 flex-row items-center justify-between bg-card border-b border-border">
           <View className="flex-row items-center">
             <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
@@ -180,18 +324,37 @@ export default function Insights() {
           contentContainerStyle={{ paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={isLoading}
-              onRefresh={refetch}
-              tintColor={themePrimary}
-            />
+            <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={themePrimary} />
           }
         >
-          {/* Key Stat Items Cards */}
+          {/* Export Command Tools Panel */}
+          <View className="bg-card border border-border rounded-3xl p-5 mb-6 flex-row items-center justify-between shadow-xs">
+            <View className="flex-1 pr-4">
+              <Text className="text-foreground font-bold text-base">Export Statements</Text>
+              <Text className="text-muted-foreground text-xs mt-0.5">Save clean, organized sheets or printable documents.</Text>
+            </View>
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={exportToExcel}
+                disabled={isExporting}
+                className="w-12 h-12 bg-green-500/10 border border-green-500/20 rounded-2xl items-center justify-center active:scale-95"
+              >
+                <Ionicons name="document-text" size={22} color="#22c55e" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={exportToPdf}
+                disabled={isExporting}
+                className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl items-center justify-center active:scale-95"
+              >
+                <Ionicons name="download" size={22} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Key Metrics Dashboard Row */}
           <Text className="text-foreground font-bold text-lg mb-3">Key Metrics</Text>
-          
           <View className="flex-row flex-wrap justify-between mb-6">
-            {/* Peak Hour Card */}
             <View className="w-[48%] bg-card border border-border rounded-3xl p-5 mb-4 shadow-sm">
               <View className="bg-primary/10 w-10 h-10 rounded-xl items-center justify-center mb-3">
                 <Ionicons name="time" size={20} color={themePrimary} />
@@ -200,7 +363,6 @@ export default function Insights() {
               <Text className="text-foreground text-base font-bold flex-wrap">{analytics.peakHourStr}</Text>
             </View>
 
-            {/* Popular Bank Card */}
             <View className="w-[48%] bg-card border border-border rounded-3xl p-5 mb-4 shadow-sm">
               <View className="bg-green-500/10 w-10 h-10 rounded-xl items-center justify-center mb-3">
                 <Ionicons name="business" size={20} color="#22c55e" />
@@ -209,7 +371,6 @@ export default function Insights() {
               <Text className="text-foreground text-base font-bold uppercase">{analytics.topProvider}</Text>
             </View>
 
-            {/* Fraud/Warn Hotspot Card */}
             <View className="w-full bg-card border border-border rounded-3xl p-5 shadow-sm">
               <View className="flex-row items-center justify-between mb-3">
                 <View className="flex-row items-center">
@@ -230,9 +391,53 @@ export default function Insights() {
             </View>
           </View>
 
-          {/* Core Suggestions Section */}
-          <Text className="text-foreground font-bold text-lg mb-3">Recommendations & Suggestions</Text>
+          {/* Mobile Ledger Data Table Engine Container */}
+          <Text className="text-foreground font-bold text-lg mb-3">Live Verification Ledger</Text>
+          <View className="bg-card border border-border rounded-3xl mb-6 overflow-hidden shadow-sm">
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View>
+                {/* Table Header */}
+                <View className="bg-muted flex-row border-b border-border py-3 px-4">
+                  <Text className="text-muted-foreground font-bold text-xs w-28">Reference ID</Text>
+                  <Text className="text-muted-foreground font-bold text-xs w-20">Channel</Text>
+                  <Text className="text-muted-foreground font-bold text-xs w-24">Amount</Text>
+                  <Text className="text-muted-foreground font-bold text-xs w-20">Status</Text>
+                </View>
+                
+                {/* Table Rows */}
+                {history.length === 0 ? (
+                  <View className="py-8 items-center justify-center w-[360px]">
+                    <Text className="text-muted-foreground text-xs">No transactions compiled yet.</Text>
+                  </View>
+                ) : (
+                  history.slice(0, 10).map((item, idx) => (
+                    <View key={item._id || idx} className="flex-row border-b border-border/40 py-3.5 px-4 items-center">
+                      <Text className="text-foreground text-xs font-medium w-28" numberOfLines={1} ellipsizeMode="middle">
+                        {item.referenceNumber || item._id}
+                      </Text>
+                      <Text className="text-foreground text-xs uppercase font-semibold w-20">{item.provider || 'N/A'}</Text>
+                      <Text className="text-foreground text-xs font-bold w-24">{item.amount || '0'} {item.currency || 'ETB'}</Text>
+                      <View className="w-20">
+                        <View className={`px-2 py-0.5 rounded-md self-start ${item.status === 'completed' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                          <Text className={`text-[10px] font-bold uppercase ${item.status === 'completed' ? 'text-green-500' : 'text-red-500'}`}>
+                            {item.status || 'unknown'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            </ScrollView>
+            {history.length > 10 && (
+              <View className="bg-muted/40 py-2 items-center border-t border-border">
+                <Text className="text-muted-foreground text-[11px]">Showing latest 10 items. Use exports for complete history.</Text>
+              </View>
+            )}
+          </View>
 
+          {/* Recommendations Block */}
+          <Text className="text-foreground font-bold text-lg mb-3">Recommendations & Suggestions</Text>
           <View className="space-y-4 gap-4">
             {analytics.suggestions.map((sug, i) => (
               <View
@@ -241,11 +446,7 @@ export default function Insights() {
                   sug.type === 'security' ? 'border-red-500/20 bg-red-500/[0.02]' : 'border-border'
                 }`}
               >
-                <View className={`p-2.5 rounded-xl mr-4 ${
-                  sug.type === 'security'
-                    ? 'bg-red-500/10'
-                    : 'bg-primary/10'
-                }`}>
+                <View className={`p-2.5 rounded-xl mr-4 ${sug.type === 'security' ? 'bg-red-500/10' : 'bg-primary/10'}`}>
                   <Ionicons
                     name={sug.type === 'security' ? 'shield-outline' : 'bulb-outline'}
                     size={22}
@@ -261,6 +462,16 @@ export default function Insights() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Global Activity Loading Blocker Overlay */}
+      {isExporting && (
+        <View className="absolute inset-0 bg-black/40 items-center justify-center z-50">
+          <View className="bg-card p-6 rounded-3xl border border-border items-center shadow-lg">
+            <ActivityIndicator size="large" color={themePrimary} />
+            <Text className="text-foreground font-bold mt-3 text-sm">Generating Statement...</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
