@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../store/authStore';
 import { useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
 
 export const useLogin = () => {
   const setUser = useAuthStore((state) => state.setUser);
@@ -61,4 +60,71 @@ export const useMe = () => {
   }, [query.data, setUser]);
 
   return query;
+};
+
+// ─── Profile ───────────────────────────────────────
+
+export const useUpdateProfile = () => {
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+
+  return useMutation({
+    mutationFn: authApi.updateProfile,
+    onSuccess: () => {
+      refreshUser();
+    },
+  });
+};
+
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: authApi.changePassword,
+  });
+};
+
+// ─── Accounts ──────────────────────────────────────
+
+export const useAccounts = () => {
+  return useQuery({
+    queryKey: ['accounts'],
+    queryFn: authApi.getAccounts,
+  });
+};
+
+export const useAddAccount = () => {
+  const queryClient = useQueryClient();
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+
+  return useMutation({
+    mutationFn: authApi.addAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      refreshUser();
+    },
+  });
+};
+
+export const useUpdateAccount = () => {
+  const queryClient = useQueryClient();
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+
+  return useMutation({
+    mutationFn: authApi.updateAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      refreshUser();
+    },
+  });
+};
+
+export const useRemoveAccount = () => {
+  const queryClient = useQueryClient();
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+
+  return useMutation({
+    mutationFn: authApi.removeAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      refreshUser();
+    },
+  });
 };

@@ -41,4 +41,41 @@ export const authApi = {
 
     return response.data;
   },
+
+  // ─── Profile ───────────────────────────────────────
+  updateProfile: async (data: { name?: string; email?: string }) => {
+    const response = await apiClient.patch<ApiResponse<User>>('/auth/profile', data);
+    return response.data;
+  },
+
+  changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    const response = await apiClient.post<ApiResponse>('/auth/change-password', data);
+    return response.data;
+  },
+
+  // ─── Accounts ──────────────────────────────────────
+  getAccounts: async () => {
+    const response = await apiClient.get<ApiResponse<{ accountNumber: string; accountProvider: string }[]>>('/auth/accounts');
+    return response.data;
+  },
+
+  addAccount: async (data: { accountNumber: string; accountProvider: string }) => {
+    const response = await apiClient.post<ApiResponse<{ accountNumber: string; accountProvider: string }[]>>('/auth/account', data);
+    return response.data;
+  },
+
+  updateAccount: async (data: {
+    accountNumber: string;
+    accountProvider: string;
+    newAccountNumber?: string;
+    newAccountProvider?: string;
+  }) => {
+    const response = await apiClient.patch<ApiResponse<{ accountNumber: string; accountProvider: string }[]>>('/auth/account', data);
+    return response.data;
+  },
+
+  removeAccount: async (data: { accountNumber: string; accountProvider: string }) => {
+    const response = await apiClient.delete<ApiResponse<{ accountNumber: string; accountProvider: string }[]>>('/auth/account', { data });
+    return response.data;
+  },
 };

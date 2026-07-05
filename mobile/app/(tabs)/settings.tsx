@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/src/store/authStore';
 import { useLogout } from '@/src/hooks/useAuth';
@@ -7,8 +7,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
-import { useVerifySubscription, useSubscriptionStatus } from '@/src/hooks/useSubscription';
-import SubscriptionModal from '@/src/components/SubscriptionModal'; // <-- 1. Import your SubscriptionModal component
+import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
+import SubscriptionModal from '@/src/components/SubscriptionModal';
 
 export default function Settings() {
   const { colorScheme } = useColorScheme();
@@ -17,8 +17,8 @@ export default function Settings() {
   const logoutMutation = useLogout();
   const [notifications, setNotifications] = React.useState(true);
   
-  // 2. Local state to control the visibility of the modal
   const [isModalVisible, setIsModalVisible] = React.useState(false); 
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   
   const { data: statusResponse, isLoading } = useSubscriptionStatus();
   
@@ -26,12 +26,15 @@ export default function Settings() {
   const subscriptionDetails = statusResponse?.data?.subscription;
 
   const handleLogout = () => {
+    setShowLogoutConfirm(false);
     logoutMutation.mutate(void 0);
-    // redirect to login.
     router.replace('/(auth)/login');
   };
 
   const settingsItems = [
+    { section: 'Account', items: [
+      { id: 'accounts', title: 'Manage Accounts', icon: 'wallet-outline', type: 'chevron', route: '/manage-accounts' },
+    ]},
     { section: 'Security', items: [
       { id: 'biometrics', title: 'Biometric Login', icon: 'finger-print', type: 'switch', value: biometricsEnabled, onValueChange: setBiometricsEnabled },
       { id: 'password', title: 'Change Password', icon: 'lock-closed', type: 'chevron', route: '/(auth)/forgot-password' },
@@ -41,7 +44,6 @@ export default function Settings() {
     ]},
     { section: 'Support & Feedback', items: [
       { id: 'contact', title: 'Contact Support', icon: 'chatbubbles-outline', type: 'chevron', route: '/contact' },
-      // { id: 'help', title: 'Help Center', icon: 'help-circle-outline', type: 'chevron' },
       { id: 'privacy', title: 'Privacy Policy', icon: 'document-text-outline', type: 'chevron', route: '/privacy-policy' },
     ]},
   ];
@@ -70,7 +72,10 @@ export default function Settings() {
               <Text className="text-foreground text-xl font-bold">{user?.name}</Text>
               <Text className="text-muted-foreground">{user?.role} • {user?.email}</Text>
             </View>
-            <TouchableOpacity className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border">
+            <TouchableOpacity 
+              onPress={() => router.push('/edit-profile' as any)}
+              className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border"
+            >
               <Ionicons name="create-outline" size={20} color={isDark ? 'white' : 'black'} />
             </TouchableOpacity>
           </View>
@@ -115,7 +120,6 @@ export default function Settings() {
                   <Text className="text-muted-foreground text-sm flex-1 mr-4">
                     Unlock premium settlement and automatic verification tools.
                   </Text>
-                  {/* 3. Changed from router.push to set local state variable */}
                   <TouchableOpacity 
                     onPress={() => setIsModalVisible(true)} 
                     className="bg-primary px-4 py-2 rounded-xl active:opacity-80"
@@ -167,7 +171,7 @@ export default function Settings() {
           ))}
 
           <TouchableOpacity 
-            onPress={handleLogout}
+            onPress={() => setShowLogoutConfirm(true)}
             disabled={logoutMutation.isPending}
             className="bg-destructive/10 border border-destructive/20 h-16 rounded-2xl items-center justify-center flex-row mb-10 active:bg-destructive/20"
           >
@@ -191,12 +195,48 @@ export default function Settings() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* 4. Render the modal directly inside settings layout */}
+      {/* Subscription Modal */}
       <SubscriptionModal 
         visible={isModalVisible} 
         canClose={true} 
         onClose={() => setIsModalVisible(false)} 
       />
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={showLogoutConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLogoutConfirm(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-8">
+          <View className="bg-card border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <View className="items-center mb-5">
+              <View className="bg-destructive/10 p-4 rounded-full mb-4">
+                <Ionicons name="log-out-outline" size={32} color={isDark ? '#ef4444' : '#dc2626'} />
+              </View>
+              <Text className="text-foreground text-xl font-bold text-center">Sign Out?</Text>
+              <Text className="text-muted-foreground text-sm text-center mt-2 leading-5">
+                You will need to log in again to access your account and verification data.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="bg-destructive h-14 rounded-2xl items-center justify-center mb-3 active:opacity-80"
+            >
+              <Text className="text-white font-bold text-base">Yes, Sign Out</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowLogoutConfirm(false)}
+              className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-80"
+            >
+              <Text className="text-foreground font-bold text-base">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

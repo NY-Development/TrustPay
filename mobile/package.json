@@ -10,6 +10,8 @@
     "clean": "rm -rf .expo node_modules"
   },
   "dependencies": {
+    "@dr.pogodin/react-native-fs": "^2.39.2",
+    "@dr.pogodin/react-native-static-server": "^0.27.0",
     "@hookform/resolvers": "^5.4.0",
     "@infinitered/react-native-mlkit-text-recognition": "^5.0.1",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -28,6 +30,7 @@
     "expo-constants": "~55.0.15",
     "expo-dev-client": "~55.0.36",
     "expo-device": "~55.0.18",
+    "expo-file-system": "~55.0.23",
     "expo-font": "~55.0.8",
     "expo-image": "~55.0.11",
     "expo-image-loader": "~55.0.1",

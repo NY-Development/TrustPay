@@ -9,6 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -24,12 +25,29 @@ import { runOCR } from '@/src/ocr/ocr-processor';
 import { runHeuristics } from '@/src/ocr/ai-organizer';
 import { normalizeVerificationResponse } from '@/src/mappers/verification.mapper';
 import { detectProvider } from '@/src/utils/provider-detector';
-import { AIOrganizer, AIOrganizerHandle } from '@/src/ocr/AIOrganizer';
+import { AIOrganizer, AIOrganizerHandle, AI_MODELS } from '@/src/ocr/AIOrganizer';
+import {
+  AIModelId,
+  isModelDownloaded,
+  downloadModel,
+  getModelLocalPath,
+  DownloadProgress,
+} from '@/src/ocr/model-download-manager';
+import { startModelServer, stopModelServer } from '@/src/ocr/local-model-server';
+
+const MODEL_STORAGE_KEY = 'trustpay_selected_ai_model';
+
+type AppPhase =
+  | 'checking'      // checking AsyncStorage for saved model
+  | 'selecting'     // user picks a model
+  | 'downloading'   // downloading weight shards natively
+  | 'starting_server' // spinning up local HTTP server
+  | 'compiling'     // WebLLM compiling in WebView
+  | 'ready';        // model ready for inference
 
 export default function OcrVerification() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const aiRef = React.useRef<AIOrganizerHandle>(null);
@@ -40,10 +58,18 @@ export default function OcrVerification() {
   const [referenceId, setReferenceId] = React.useState<string | null>(null);
   const [verifiedId, setVerifiedId] = React.useState<string | null>(null);
 
-  const [modelReady, setModelReady] = React.useState(false);
-  const [modelProgress, setModelProgress] = React.useState(0);
-  const [statusText, setStatusText] = React.useState('Initializing local WebGPU engine...');
+  // Model lifecycle
+  const [phase, setPhase] = React.useState<AppPhase>('checking');
+  const [selectedModel, setSelectedModel] = React.useState<AIModelId | null>(null);
+  const [localBaseUrl, setLocalBaseUrl] = React.useState<string | null>(null);
   const [useWebViewAi, setUseWebViewAi] = React.useState(true);
+
+  // Download progress
+  const [dlProgress, setDlProgress] = React.useState<DownloadProgress | null>(null);
+
+  // WebLLM compile progress
+  const [compileProgress, setCompileProgress] = React.useState(0);
+  const [compileStatus, setCompileStatus] = React.useState('');
 
   const [copied, setCopied] = React.useState(false);
 
@@ -56,21 +82,78 @@ export default function OcrVerification() {
 
   const verifyManualMutation = useVerifyManual();
 
-  const handleProgress = (progress: number, text: string) => {
-    setModelProgress(progress);
-    setStatusText(text);
+  // ─── On mount: check saved model ────────────────────────
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(MODEL_STORAGE_KEY);
+        if (saved) {
+          setSelectedModel(saved as AIModelId);
+          await initializeModel(saved as AIModelId);
+        } else {
+          setPhase('selecting');
+        }
+      } catch {
+        setPhase('selecting');
+      }
+    };
+    load();
+
+    return () => {
+      stopModelServer().catch(() => {});
+    };
+  }, []);
+
+  // ─── Full initialization pipeline ──────────────────────
+  const initializeModel = async (modelId: AIModelId) => {
+    try {
+      // Step 1: Check if already downloaded
+      const alreadyDownloaded = await isModelDownloaded(modelId);
+
+      if (!alreadyDownloaded) {
+        // Step 2: Download model shards
+        setPhase('downloading');
+        await downloadModel(modelId, (progress) => {
+          setDlProgress(progress);
+        });
+      }
+
+      // Step 3: Start local HTTP server
+      setPhase('starting_server');
+      const modelPath = getModelLocalPath(modelId);
+      const serverUrl = await startModelServer(modelPath);
+      setLocalBaseUrl(serverUrl);
+
+      // Step 4: Hand off to WebLLM for GPU compilation
+      setPhase('compiling');
+    } catch (err: any) {
+      console.error('[OCR Init Error]', err);
+      // Fallback to heuristics
+      setUseWebViewAi(false);
+      setPhase('ready');
+    }
+  };
+
+  const handleSelectModel = async (modelId: AIModelId) => {
+    await AsyncStorage.setItem(MODEL_STORAGE_KEY, modelId);
+    setSelectedModel(modelId);
+    await initializeModel(modelId);
+  };
+
+  // ─── WebLLM callbacks ──────────────────────────────────
+  const handleCompileProgress = (progress: number, text: string) => {
+    setCompileProgress(progress);
+    setCompileStatus(text);
   };
 
   const handleReady = () => {
-    setModelReady(true);
-    setStatusText('Local AI model ready.');
+    setPhase('ready');
   };
 
   const handleError = (message: string) => {
-    console.warn("[Gemma WebView Error]", message);
-    // WebGL/GPU not supported or download crashed, fallback to heuristics immediately
+    console.warn("[AI WebView Error]", message);
     setUseWebViewAi(false);
-    setModelReady(true); // Heuristics require no loading, so we are ready
+    setPhase('ready');
   };
 
   const handleResult = (resultText: string) => {
@@ -93,8 +176,7 @@ export default function OcrVerification() {
         throw new Error("Invalid output format");
       }
     } catch (err) {
-      console.warn("[Gemma WebGPU Parse Error]", err);
-      // Fallback to heuristics if webview returned garbage
+      console.warn("[AI Parse Error]", err);
       const fallback = runHeuristics(ocrText || '');
       handleVerification(fallback);
     }
@@ -122,17 +204,13 @@ export default function OcrVerification() {
     const detected = ai?.bank || detectProvider(extractedRef);
 
     verifyManualMutation.mutate(
-      {
-        reference: extractedRef,
-        provider: detected,
-      },
+      { reference: extractedRef, provider: detected },
       {
         onSuccess: (res: any) => {
           if (res.success && res.data) {
             setVerifiedId(res.data._id || res.data.id);
           }
           const normalized = normalizeVerificationResponse(res);
-
           setScanning(false);
           setModal({
             visible: true,
@@ -178,11 +256,9 @@ export default function OcrVerification() {
 
   const processImage = async (uri: string) => {
     setScanning(true);
-
     try {
       const ocr = await runOCR(uri);
       const rawText = ocr.text || '';
-
       setOcrText(rawText);
 
       if (useWebViewAi) {
@@ -193,16 +269,142 @@ export default function OcrVerification() {
       }
     } catch (err: any) {
       setScanning(false);
-      setModal({
-        visible: true,
-        type: 'error',
-        title: 'OCR Failed',
-        message: err.message,
-      });
+      setModal({ visible: true, type: 'error', title: 'OCR Failed', message: err.message });
     }
   };
 
-  if (!modelReady) {
+  const formatBytes = (bytes: number): string => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  // ──────────── MODEL SELECTION ────────────
+  if (phase === 'checking' || phase === 'selecting') {
+    return (
+      <View className="flex-1 bg-background">
+        <SafeAreaView className="flex-1 justify-center px-6">
+          <View className="pt-8 flex-row items-center mb-8 absolute top-8 left-6">
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
+            </TouchableOpacity>
+            <Text className="text-foreground text-2xl font-bold ml-4">OCR Scan</Text>
+          </View>
+
+          {phase === 'checking' ? (
+            <ActivityIndicator color={themePrimary} size="large" />
+          ) : (
+            <View className="bg-card border border-border rounded-[32px] p-6 shadow-xl">
+              <View className="items-center mb-6">
+                <View className="bg-primary/10 p-4 rounded-full mb-4">
+                  <Ionicons name="sparkles" size={36} color={themePrimary} />
+                </View>
+                <Text className="text-foreground text-xl font-bold text-center">Choose Your AI Model</Text>
+                <Text className="text-muted-foreground text-center text-sm mt-2 leading-5">
+                  The model will be downloaded permanently to your device for 100% offline operation.
+                </Text>
+              </View>
+
+              {AI_MODELS.map((model) => (
+                <TouchableOpacity
+                  key={model.id}
+                  onPress={() => handleSelectModel(model.id)}
+                  className="border border-border bg-muted/30 rounded-2xl p-4 mb-3"
+                >
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-foreground text-base font-bold">{model.label}</Text>
+                    <View className="bg-muted px-2 py-0.5 rounded-full">
+                      <Text className="text-muted-foreground text-xs font-semibold">{model.size}</Text>
+                    </View>
+                  </View>
+                  <Text className="text-muted-foreground text-xs leading-4">{model.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ──────────── DOWNLOADING WEIGHTS ────────────
+  if (phase === 'downloading') {
+    const activeModel = AI_MODELS.find(m => m.id === selectedModel);
+    const pct = dlProgress ? (dlProgress.percent * 100).toFixed(0) : '0';
+    const dlInfo = dlProgress
+      ? `${formatBytes(dlProgress.downloaded)} / ${formatBytes(dlProgress.total)}`
+      : 'Preparing...';
+
+    return (
+      <View className="flex-1 bg-background">
+        <SafeAreaView className="flex-1 justify-center px-6">
+          <View className="pt-8 flex-row items-center mb-8 absolute top-8 left-6">
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
+            </TouchableOpacity>
+            <Text className="text-foreground text-2xl font-bold ml-4">OCR Scan</Text>
+          </View>
+
+          <View className="bg-card border border-border rounded-[32px] p-8 items-center shadow-xl">
+            <View className="bg-primary/10 p-5 rounded-full mb-6">
+              <Ionicons name="cloud-download-outline" size={48} color={themePrimary} />
+            </View>
+            <Text className="text-foreground text-2xl font-bold text-center mb-2">
+              Downloading {activeModel?.label}
+            </Text>
+            <Text className="text-muted-foreground text-center text-sm leading-6 mb-6">
+              Saving model weights permanently to your device. This only happens once per model.
+            </Text>
+
+            <View className="w-full">
+              <Text className="text-muted-foreground text-center text-xs mb-2">
+                {dlProgress?.phase === 'config' ? 'Downloading config files...' : dlProgress?.file || 'Preparing...'}
+              </Text>
+              <View className="w-full bg-muted rounded-full h-3 overflow-hidden mb-2">
+                <View className="bg-primary h-full rounded-full" style={{ width: `${pct}%` as any }} />
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-muted-foreground text-xs">{dlInfo}</Text>
+                <Text className="text-primary font-bold text-sm">{pct}%</Text>
+              </View>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ──────────── STARTING SERVER ────────────
+  if (phase === 'starting_server') {
+    return (
+      <View className="flex-1 bg-background">
+        <SafeAreaView className="flex-1 justify-center px-6">
+          <View className="pt-8 flex-row items-center mb-8 absolute top-8 left-6">
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
+            </TouchableOpacity>
+            <Text className="text-foreground text-2xl font-bold ml-4">OCR Scan</Text>
+          </View>
+
+          <View className="bg-card border border-border rounded-[32px] p-8 items-center shadow-xl">
+            <View className="bg-primary/10 p-5 rounded-full mb-6">
+              <Ionicons name="server-outline" size={48} color={themePrimary} />
+            </View>
+            <Text className="text-foreground text-xl font-bold text-center mb-3">Starting Local Server</Text>
+            <Text className="text-muted-foreground text-center text-sm leading-6">
+              Setting up a secure local HTTP server to serve the model to the WebGPU engine...
+            </Text>
+            <ActivityIndicator color={themePrimary} size="large" className="mt-6" />
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ──────────── COMPILING (WebLLM) ────────────
+  if (phase === 'compiling' && selectedModel) {
+    const activeModel = AI_MODELS.find(m => m.id === selectedModel);
+
     return (
       <View className="flex-1 bg-background justify-between">
         <SafeAreaView className="flex-1 justify-center px-6">
@@ -212,29 +414,45 @@ export default function OcrVerification() {
             </TouchableOpacity>
             <Text className="text-foreground text-2xl font-bold ml-4">OCR Scan</Text>
           </View>
-          
+
           <View className="bg-card border border-border rounded-[32px] p-8 items-center shadow-xl">
             <View className="bg-primary/10 p-5 rounded-full mb-6">
               <Ionicons name="hardware-chip-outline" size={48} color={themePrimary} />
             </View>
-            <Text className="text-foreground text-2xl font-bold text-center mb-3">Initializing Local AI</Text>
-            <Text className="text-muted-foreground text-center text-sm leading-6 mb-8">
-              TrustPay is spinning up a secure browser sandboxed Gemma 2B model using WebGPU graphics acceleration layers.
+            <Text className="text-foreground text-2xl font-bold text-center mb-2">
+              Compiling {activeModel?.label}
+            </Text>
+            <Text className="text-muted-foreground text-center text-sm leading-6 mb-6">
+              Loading cached weights from local storage into the WebGPU graphics pipeline...
             </Text>
 
             <View className="w-full">
-              <Text className="text-muted-foreground text-center text-xs mb-2">{statusText}</Text>
+              <Text className="text-muted-foreground text-center text-xs mb-2">{compileStatus || 'Initializing WebGPU...'}</Text>
               <View className="w-full bg-muted rounded-full h-3 overflow-hidden mb-2">
-                <View className="bg-primary h-full rounded-full" style={{ width: `${modelProgress * 100}%` }} />
+                <View className="bg-primary h-full rounded-full" style={{ width: `${compileProgress * 100}%` as any }} />
               </View>
-              <Text className="text-primary text-center font-bold">{(modelProgress * 100).toFixed(0)}%</Text>
+              <Text className="text-primary text-center font-bold">{(compileProgress * 100).toFixed(0)}%</Text>
             </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                setPhase('selecting');
+                setCompileProgress(0);
+                setCompileStatus('');
+                stopModelServer().catch(() => {});
+              }}
+              className="mt-6 px-4 py-2"
+            >
+              <Text className="text-muted-foreground text-xs underline">Change Model</Text>
+            </TouchableOpacity>
           </View>
         </SafeAreaView>
 
         <AIOrganizer
           ref={aiRef}
-          onProgress={handleProgress}
+          modelId={selectedModel}
+          localBaseUrl={localBaseUrl || undefined}
+          onProgress={handleCompileProgress}
           onReady={handleReady}
           onResult={handleResult}
           onError={handleError}
@@ -248,96 +466,79 @@ export default function OcrVerification() {
     );
   }
 
- return (
-  <View className="flex-1 bg-background">
-    <SafeAreaView className="flex-1">
-      
-      {/* HEADER (fixed, NOT scrollable) */}
-      <View className="pt-8 px-6 flex-row items-center mb-4">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color={isDark ? 'white' : 'black'}
-          />
-        </TouchableOpacity>
-
-        <Text className="text-foreground text-2xl font-bold ml-4">
-          OCR Scan
-        </Text>
-      </View>
-
-      {/* SCROLLABLE CONTENT ONLY */}
-      <ScrollView
-        className="flex-1 px-6"
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {!image ? (
-          <TouchableOpacity
-            onPress={pickImage}
-            className="h-96 bg-card border border-border rounded-3xl items-center justify-center"
-          >
-            <Ionicons name="cloud-upload-outline" size={48} color={themePrimary} />
-            <Text className="text-foreground mt-4 font-bold">
-              Upload Receipt
-            </Text>
+  // ──────────── MAIN SCANNER VIEW (ready) ────────────
+  return (
+    <View className="flex-1 bg-background">
+      <SafeAreaView className="flex-1">
+        
+        {/* HEADER */}
+        <View className="pt-8 px-6 flex-row items-center mb-4">
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
           </TouchableOpacity>
-        ) : (
-          <>
-            <Image source={{ uri: image }} className="h-96 rounded-3xl mb-4" />
+          <Text className="text-foreground text-2xl font-bold ml-4">OCR Scan</Text>
+        </View>
 
-            {scanning && <ActivityIndicator color={themePrimary} />}
+        {/* SCROLLABLE CONTENT */}
+        <ScrollView
+          className="flex-1 px-6"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {!image ? (
+            <TouchableOpacity
+              onPress={pickImage}
+              className="h-96 bg-card border border-border rounded-3xl items-center justify-center"
+            >
+              <Ionicons name="cloud-upload-outline" size={48} color={themePrimary} />
+              <Text className="text-foreground mt-4 font-bold">Upload Receipt</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <Image source={{ uri: image }} className="h-96 rounded-3xl mb-4" />
+              {scanning && <ActivityIndicator color={themePrimary} />}
 
-            {ocrText && (
-              <View className="bg-card p-4 rounded-2xl mt-4">
-                <Text className="text-foreground font-bold mb-2">
-                  Extracted Text
-                </Text>
+              {ocrText && (
+                <View className="bg-card p-4 rounded-2xl mt-4">
+                  <Text className="text-foreground font-bold mb-2">Extracted Text</Text>
+                  <TextInput value={ocrText} multiline editable={false} className="text-muted-foreground" />
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await Clipboard.setStringAsync(ocrText);
+                      setCopied(true);
+                    }}
+                  >
+                    <Text className="text-primary mt-2">{copied ? 'Copied' : 'Copy'}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
 
-                <TextInput
-                  value={ocrText}
-                  multiline
-                  editable={false}
-                  className="text-muted-foreground"
-                />
+        {/* MODAL */}
+        <StatusModal
+          {...modal}
+          onClose={() => {
+            setModal((p) => ({ ...p, visible: false }));
+            if (modal.type === 'success' && verifiedId) {
+              router.push(`/verification/${verifiedId}` as any);
+            }
+          }}
+        />
+      </SafeAreaView>
 
-                <TouchableOpacity
-                  onPress={async () => {
-                    await Clipboard.setStringAsync(ocrText);
-                    setCopied(true);
-                  }}
-                >
-                  <Text className="text-primary mt-2">
-                    {copied ? 'Copied' : 'Copy'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
-        )}
-      </ScrollView>
-
-      {/* MODAL OUTSIDE SCROLL */}
-      <StatusModal
-        {...modal}
-        onClose={() => {
-          setModal((p) => ({ ...p, visible: false }));
-          if (modal.type === 'success' && verifiedId) {
-            router.push(`/verification/${verifiedId}` as any);
-          }
-        }}
-      />
-
-    </SafeAreaView>
-
-    <AIOrganizer
-      ref={aiRef}
-      onProgress={handleProgress}
-      onReady={handleReady}
-      onResult={handleResult}
-      onError={handleError}
-    />
-  </View>
-);
+      {selectedModel && (
+        <AIOrganizer
+          ref={aiRef}
+          modelId={selectedModel}
+          localBaseUrl={localBaseUrl || undefined}
+          onProgress={handleCompileProgress}
+          onReady={handleReady}
+          onResult={handleResult}
+          onError={handleError}
+        />
+      )}
+    </View>
+  );
 }
