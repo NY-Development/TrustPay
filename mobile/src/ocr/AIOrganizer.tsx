@@ -30,7 +30,7 @@ export const AIOrganizer = forwardRef<AIOrganizerHandle, AIOrganizerProps>(
       },
     }));
 
-    // Build the engine options JS literal
+    // Build the engine options JS literal Safely
     const engineOptionsJs = localBaseUrl
       ? `{
            baseUrl: "${localBaseUrl}",
@@ -82,6 +82,11 @@ export const AIOrganizer = forwardRef<AIOrganizerHandle, AIOrganizerProps>(
 
           window.addEventListener("message", async (event) => {
             try {
+              // FIX 1: Safe guard string check before parsing to avoid framework initialization noise
+              if (!event.data || typeof event.data !== 'string' || !event.data.trim().startsWith('{')) {
+                return; 
+              }
+
               const msg = JSON.parse(event.data);
               if (msg.type !== 'PROCESS') return;
               if (!engine) throw new Error("Engine not ready.");
@@ -122,7 +127,14 @@ export const AIOrganizer = forwardRef<AIOrganizerHandle, AIOrganizerProps>(
         mixedContentMode="always"
         onMessage={(event) => {
           try {
-            const data = JSON.parse(event.nativeEvent.data);
+            const rawData = event.nativeEvent.data;
+            
+            // FIX 2: Guard code verification for cross-platform event messages
+            if (!rawData || typeof rawData !== 'string' || !rawData.trim().startsWith('{')) {
+              return;
+            }
+
+            const data = JSON.parse(rawData);
             if (data.type === 'INIT_PROGRESS') onProgress(data.progress, data.text);
             else if (data.type === 'READY') onReady();
             else if (data.type === 'RESULT') onResult(data.text);

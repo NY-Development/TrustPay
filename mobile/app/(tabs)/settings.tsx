@@ -33,7 +33,7 @@ export default function Settings() {
 
   const settingsItems = [
     { section: 'Account', items: [
-      { id: 'accounts', title: 'Manage Accounts', icon: 'wallet-outline', type: 'chevron', route: '/manage-accounts' },
+      { id: 'accounts', title: 'Manage Accounts', icon: 'wallet-outline', type: 'chevron', route: '/manage-accounts', NoOfAcc: user?.accounts.length },
     ]},
     { section: 'Security', items: [
       { id: 'biometrics', title: 'Biometric Login', icon: 'finger-print', type: 'switch', value: biometricsEnabled, onValueChange: setBiometricsEnabled },
@@ -147,12 +147,20 @@ export default function Settings() {
                     disabled={item.type === 'switch'}
                     className={`px-6 h-16 flex-row items-center justify-between ${i !== section.items.length - 1 ? 'border-b border-border' : ''}`}
                   >
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-xl bg-muted items-center justify-center mr-4">
-                        <Ionicons name={item.icon as any} size={20} color={isDark ? '#3b82f6' : '#003ec7'} />
-                      </View>
-                      <Text className="text-foreground text-lg font-medium">{item.title}</Text>
+                  <View className="flex-row items-center">
+                    <View className="w-10 h-10 rounded-xl bg-muted items-center justify-center mr-4">
+                      <Ionicons name={item.icon as any} size={20} color={isDark ? '#3b82f6' : '#003ec7'} />
                     </View>
+                    <View>
+                      <Text className="text-foreground text-lg font-medium">{item.title}</Text>
+                      {/* Safely check if NoOfAcc is a valid number */}
+                      {typeof (item as any).NoOfAcc === 'number' && (
+                        <Text className="text-muted-foreground text-xs mt-0.5">
+                          {(item as any).NoOfAcc} {(item as any).NoOfAcc === 1 ? 'account linked' : 'accounts linked'}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
                     
                     {item.type === 'switch' ? (
                       <Switch 

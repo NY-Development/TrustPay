@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { useVerifyManual } from '@/src/hooks/useVerification';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { StatusModal } from '@/src/components/StatusModal';
@@ -57,6 +58,18 @@ export default function ManualEntry() {
     }
   }, [registeredProviders]);
 
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text) {
+        // Clean text (trim white spaces) and auto-uppercase for reference standard
+        setReference(text.trim().toUpperCase());
+      }
+    } catch (error) {
+      console.warn('Failed to read from clipboard', error);
+    }
+  };
+
   const handleVerify = () => {
     if (!reference) {
       setModal({ visible: true, type: 'error', title: 'Missing Info', message: 'Please enter the transaction reference ID.' });
@@ -96,7 +109,7 @@ export default function ManualEntry() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 px-6">
+        <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled">
           <View className="pt-8 flex-row items-center mb-8">
             <TouchableOpacity onPress={() => router.back()} className="w-12 h-12 rounded-full bg-muted items-center justify-center">
               <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
@@ -132,15 +145,25 @@ export default function ManualEntry() {
           <View className="space-y-6 pb-12">
             <View>
               <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1">Reference ID / Transaction ID</Text>
-              <View className="bg-muted border border-border rounded-xl px-4 h-14 flex-row items-center">
+              <View className="bg-muted border border-border rounded-xl px-4 h-14 flex-row items-center justify-between">
                 <TextInput
                   value={reference}
                   onChangeText={setReference}
                   placeholder={placeholderText}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                  className="flex-1 h-full text-foreground font-bold"
+                  className="flex-1 h-full text-foreground font-bold pr-2"
                   autoCapitalize="characters"
                 />
+                
+                {/* Clean inline paste dynamic feature button */}
+                <TouchableOpacity 
+                  onPress={handlePasteFromClipboard}
+                  activeOpacity={0.7}
+                  className="bg-primary/10 px-3 py-1.5 rounded-lg flex-row items-center border border-primary/20"
+                >
+                  <Ionicons name="clipboard-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                  <Text className="text-primary font-bold text-xs ml-1">Paste</Text>
+                </TouchableOpacity>
               </View>
             </View>
  

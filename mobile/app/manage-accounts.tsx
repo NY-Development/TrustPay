@@ -26,7 +26,7 @@ export default function ManageAccountsScreen() {
   const isDark = colorScheme === 'dark';
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
-  const { data: accountsResponse, isLoading } = useAccounts();
+  const { data: accountsResponse, isLoading, refetch } = useAccounts();
   const addAccountMutation = useAddAccount();
   const removeAccountMutation = useRemoveAccount();
   const updateAccountMutation = useUpdateAccount();
@@ -49,6 +49,14 @@ export default function ManageAccountsScreen() {
     message: '',
   });
 
+  const resetForm = () => {
+    setNewNumber('');
+    setNewProvider('');
+    setIsEditing(false);
+    setEditTarget(null);
+    setShowAddForm(false);
+  };
+
   const handleAdd = () => {
     if (!newNumber.trim() || !newProvider) return;
 
@@ -56,14 +64,13 @@ export default function ManageAccountsScreen() {
       { accountNumber: newNumber.trim(), accountProvider: newProvider },
       {
         onSuccess: () => {
-          setNewNumber('');
-          setNewProvider('');
-          setShowAddForm(false);
+          resetForm();
+          refetch?.();
           setModal({
             visible: true,
             type: 'success',
             title: 'Account Added',
-            message: 'Your bank account has been linked.',
+            message: 'Your bank account has been linked successfully.',
           });
         },
         onError: (err: any) => {
@@ -84,6 +91,7 @@ export default function ManageAccountsScreen() {
     removeAccountMutation.mutate(deleteTarget, {
       onSuccess: () => {
         setDeleteTarget(null);
+        refetch?.();
         setModal({
           visible: true,
           type: 'success',
@@ -104,34 +112,51 @@ export default function ManageAccountsScreen() {
   };
 
   const handleUpdate = () => {
-    if (!editTarget) return;
+    if (!editTarget || !newNumber.trim() || !newProvider) return;
 
-    updateAccountMutation.mutate(editTarget, {
-      onSuccess: () => {
-        setEditTarget(null);
-        setModal({
-          visible: true,
-          type: 'success',
-          title: 'Account Updated',
-          message: 'The bank account has been updated.',
-        });
-      },
-      onError: (err: any) => {
-        setEditTarget(null);
-        setModal({
-          visible: true,
-          type: 'error',
-          title: 'Failed',
-          message: err?.response?.data?.message || 'Could not update account.',
-        });
-      },
-    });
+    // Call update endpoint with original provider identification key pairing rules
+    updateAccountMutation.mutate(
+      { 
+        accountProvider: editTarget.accountProvider, 
+        accountNumber: newNumber.trim() 
+      }, 
+      {
+        onSuccess: () => {
+          resetForm();
+          refetch?.();
+          setModal({
+            visible: true,
+            type: 'success',
+            title: 'Account Updated',
+            message: 'The bank account configuration has been updated successfully.',
+          });
+        },
+        onError: (err: any) => {
+          setModal({
+            visible: true,
+            type: 'error',
+            title: 'Failed',
+            message: err?.response?.data?.message || 'Could not update account.',
+          });
+        },
+      }
+    );
   };
-  const hasChanged = editTarget?.accountNumber !== newNumber || editTarget?.accountProvider !== newProvider;
+
+  const handleStartEdit = (account: { accountNumber: string; accountProvider: string }) => {
+    setEditTarget(account);
+    setNewNumber(account.accountNumber);
+    setNewProvider(account.accountProvider);
+    setIsEditing(true);
+    setShowAddForm(true);
+  };
 
   const getProviderLabel = (value: string) => {
     return PROVIDERS.find(p => p.value === value)?.label || value;
   };
+
+  const isFormValid = newNumber.trim().length > 0 && newProvider.length > 0;
+  const isPendingState = addAccountMutation.isPending || updateAccountMutation.isPending;
 
   return (
     <View className="flex-1 bg-background">
@@ -149,7 +174,13 @@ export default function ManageAccountsScreen() {
           </View>
 
           <TouchableOpacity
-            onPress={() => setShowAddForm(!showAddForm)}
+            onPress={() => {
+              if (showAddForm) {
+                resetForm();
+              } else {
+                setShowAddForm(true);
+              }
+            }}
             className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center border border-primary/20"
           >
             <Ionicons name={showAddForm ? 'close' : 'add'} size={22} color={themePrimary} />
@@ -160,27 +191,35 @@ export default function ManageAccountsScreen() {
           className="flex-1"
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
-            {/* Add & Update Account Form with isEditing boolean control*/}
+          <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {/* Add & Update Account Form */}
             {showAddForm && (
               <View className="bg-card border border-border rounded-3xl p-5 mb-6">
-                <Text className="text-foreground font-bold text-base mb-4">{isEditing ? 'Update Account' : 'Link New Account'}</Text>
+                <View className="flex-row justify-between items-center mb-4">
+                  <Text className="text-foreground font-bold text-base">{isEditing ? 'Update Account' : 'Link New Account'}</Text>
+                  {isEditing && (
+                    <TouchableOpacity onPress={resetForm} className="bg-muted px-2.5 py-1 rounded-lg">
+                      <Text className="text-muted-foreground text-xs font-semibold">Cancel Edit</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
 
                 {/* Provider Picker */}
                 <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-2 ml-1">
                   Provider
                 </Text>
                 <TouchableOpacity
-                  onPress={() => setShowProviderPicker(true)}
-                  className="bg-muted border border-border rounded-2xl px-4 h-14 flex-row items-center justify-between mb-4"
+                  onPress={() => !isEditing && setShowProviderPicker(true)}
+                  disabled={isEditing}
+                  className={`border border-border rounded-2xl px-4 h-14 flex-row items-center justify-between mb-4 ${isEditing ? 'bg-muted/40 opacity-75' : 'bg-muted'}`}
                 >
                   <View className="flex-row items-center">
                     <Ionicons name="business-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
-                    <Text className={`ml-3 text-base ${newProvider ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {isEditing ? editTarget?.accountProvider : newProvider ? getProviderLabel(newProvider) : 'Select provider'}
+                    <Text className={`ml-3 text-base ${newProvider ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
+                      {newProvider ? getProviderLabel(newProvider) : 'Select provider'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+                  {!isEditing && <Ionicons name="chevron-down" size={18} color={isDark ? '#94a3b8' : '#64748b'} />}
                 </TouchableOpacity>
 
                 {/* Account Number */}
@@ -190,28 +229,36 @@ export default function ManageAccountsScreen() {
                 <View className="bg-muted border border-border rounded-2xl px-4 h-14 flex-row items-center mb-5">
                   <Ionicons name="keypad-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                   <TextInput
-                    value={isEditing ? editTarget?.accountNumber : newNumber}
+                    value={newNumber}
                     onChangeText={setNewNumber}
-                    placeholder={isEditing ? editTarget?.accountNumber : `e.g. 1000123456789`}
-                    placeholderTextColor={isDark ? '#475569' : '#94a3b8'}
+                    placeholder="e.g. 1000123456789"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                     keyboardType="number-pad"
-                    className="flex-1 text-foreground text-base ml-3"
+                    className="flex-1 text-foreground text-base ml-3 font-semibold"
                   />
                 </View>
 
                 <TouchableOpacity
-                  onPress={isEditing? handleUpdate : handleAdd}
-                  disabled={!newNumber.trim() || !newProvider || addAccountMutation.isPending || hasChanged || updateAccountMutation.isPending}
-                  className={`h-12 rounded-2xl items-center justify-center ${
-                    newNumber.trim() && newProvider ? 'bg-primary active:opacity-80' : 'bg-muted'
+                  onPress={isEditing ? handleUpdate : handleAdd}
+                  disabled={!isFormValid || isPendingState}
+                  className={`h-14 rounded-2xl items-center justify-center flex-row ${
+                    isFormValid && !isPendingState ? 'bg-primary active:opacity-90' : 'bg-muted opacity-60'
                   }`}
                 >
-                  {addAccountMutation.isPending || updateAccountMutation.isPending ? (
+                  {isPendingState ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text className={`font-bold text-sm ${newNumber.trim() && newProvider ? 'text-white' : 'text-muted-foreground'}`}>
-                      Add Account
-                    </Text>
+                    <>
+                      <Ionicons 
+                        name={isEditing ? 'save-outline' : 'link-outline'} 
+                        size={20} 
+                        color={isFormValid ? 'white' : '#64748b'} 
+                        className="mr-2" 
+                      />
+                      <Text className={`font-bold text-base ml-1 ${isFormValid ? 'text-white' : 'text-muted-foreground'}`}>
+                        {isEditing ? 'Save Changes' : 'Link Account'}
+                      </Text>
+                    </>
                   )}
                 </TouchableOpacity>
               </View>
@@ -233,15 +280,17 @@ export default function ManageAccountsScreen() {
                 </Text>
               </View>
             ) : (
-              <View className="space-y-3 gap-3">
+              <View className="space-y-3 gap-3 pb-12">
                 {accounts.map((acc: any, index: number) => (
                   <TouchableOpacity
                     key={`${acc.accountProvider}-${acc.accountNumber}-${index}`}
-                    className="bg-card border border-border rounded-2xl p-4 flex-row items-center justify-between"
-                    onPress={() => {
-                      setEditTarget(acc);
-                      setIsEditing(true);
-                    }}
+                    activeOpacity={0.7}
+                    onPress={() => handleStartEdit(acc)}
+                    className={`bg-card border rounded-2xl p-4 flex-row items-center justify-between ${
+                      isEditing && editTarget?.accountProvider === acc.accountProvider && editTarget?.accountNumber === acc.accountNumber
+                        ? 'border-primary'
+                        : 'border-border'
+                    }`}
                   >
                     <View className="flex-row items-center flex-1">
                       <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
@@ -257,12 +306,20 @@ export default function ManageAccountsScreen() {
                       </View>
                     </View>
 
-                    <TouchableOpacity
-                      onPress={() => setDeleteTarget(acc)}
-                      className="w-9 h-9 rounded-xl bg-destructive/10 items-center justify-center"
-                    >
-                      <Ionicons name="trash-outline" size={16} color={isDark ? '#ef4444' : '#dc2626'} />
-                    </TouchableOpacity>
+                    <View className="flex-row items-center gap-2">
+                      <TouchableOpacity
+                        onPress={() => handleStartEdit(acc)}
+                        className="w-9 h-9 rounded-xl bg-muted items-center justify-center mr-2"
+                      >
+                        <Ionicons name="create-outline" size={16} color={isDark ? 'white' : 'black'} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setDeleteTarget(acc)}
+                        className="w-9 h-9 rounded-xl bg-destructive/10 items-center justify-center"
+                      >
+                        <Ionicons name="trash-outline" size={16} color={isDark ? '#ef4444' : '#dc2626'} />
+                      </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -353,57 +410,6 @@ export default function ManageAccountsScreen() {
 
             <TouchableOpacity
               onPress={() => setDeleteTarget(null)}
-              className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-80"
-            >
-              <Text className="text-foreground font-bold text-base">Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Update Confirmation Modal */}
-      <Modal
-        visible={!!editTarget}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          setEditTarget(null);
-          setShowAddForm(true);
-        }}
-      >
-        <View className="flex-1 bg-black/50 justify-center items-center px-8">
-          <View className="bg-card border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <View className="items-center mb-5">
-              <View className="bg-primary/10 p-4 rounded-full mb-4">
-                <Ionicons name="create-outline" size={28} color={isDark ? '#3b82f6' : '#003ec7'} />
-              </View>
-              <Text className="text-foreground text-lg font-bold text-center">Update Account?</Text>
-              <Text className="text-muted-foreground text-sm text-center mt-2 leading-5">
-                This will update{' '}
-                <Text className="text-foreground font-semibold">
-                  {editTarget ? getProviderLabel(editTarget.accountProvider) : ''}
-                </Text>{' '} 
-                account ending in{' '}
-                <Text className="text-foreground font-semibold">
-                  {editTarget?.accountNumber.slice(-4)}
-                </Text>.
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleUpdate}
-              disabled={updateAccountMutation.isPending}
-              className="bg-primary h-14 rounded-2xl items-center justify-center mb-3 active:opacity-80"
-            >
-              {updateAccountMutation.isPending ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-bold text-base">Yes, Update</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setEditTarget(null)}
               className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-80"
             >
               <Text className="text-foreground font-bold text-base">Cancel</Text>

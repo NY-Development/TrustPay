@@ -195,5 +195,17 @@ export interface VerificationRecord {
 
   rawResponse?: Record<string, any>;
 
+  verificationSummary?: {
+    severity: 'success' | 'info' | 'warning' | 'duplicate' | 'fraud_risk' | 'error';
+    title: string;
+    description: string;
+  };
+
+  verificationResult?: {
+    bankSpecific: Record<string, any>;
+    settlementAccountMatch: Record<string, any>;
+    confirmationHistory: Record<string, any>;
+  };
+
   createdAt: string;
 };

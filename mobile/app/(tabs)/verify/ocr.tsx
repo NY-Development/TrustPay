@@ -81,6 +81,7 @@ export default function OcrVerification() {
     type: 'info' as 'success' | 'error' | 'info',
     title: '',
     message: '',
+    isVerificationFailure: false, // Flag tracking verification errors
   });
 
   const verifyManualMutation = useVerifyManual();
@@ -200,7 +201,8 @@ export default function OcrVerification() {
         visible: true,
         type: 'error',
         title: 'Reference Missing',
-        message: 'Local AI was unable to parse a valid reference number.'
+        message: 'Local AI was unable to parse a valid reference number.',
+        isVerificationFailure: false,
       });
       return;
     }
@@ -231,6 +233,7 @@ export default function OcrVerification() {
               normalized.ui.description ||
               normalized.message ||
               'Verification completed',
+            isVerificationFailure: false,
           });
         },
         onError: () => {
@@ -239,7 +242,8 @@ export default function OcrVerification() {
             visible: true,
             type: 'error',
             title: 'Verification Failed',
-            message: `Could not verify transaction: ${extractedRef}`,
+            message: `Could not verify transaction: ${extractedRef}.\n\nWould you like to copy this reference number and verify it manually?`,
+            isVerificationFailure: true,
           });
         },
       }
@@ -274,7 +278,7 @@ export default function OcrVerification() {
       }
     } catch (err: any) {
       setScanning(false);
-      setModal({ visible: true, type: 'error', title: 'OCR Failed', message: err.message });
+      setModal({ visible: true, type: 'error', title: 'OCR Failed', message: err.message, isVerificationFailure: false });
     }
   };
 
@@ -465,7 +469,13 @@ export default function OcrVerification() {
 
         <StatusModal
           {...modal}
-          onClose={() => setModal((p) => ({ ...p, visible: false }))}
+          onClose={async () => {
+            setModal((p) => ({ ...p, visible: false }));
+            if (modal.isVerificationFailure && referenceId) {
+              await Clipboard.setStringAsync(referenceId);
+              router.replace('/(tabs)/verify/manual');
+            }
+          }}
         />
       </View>
     );
@@ -524,10 +534,13 @@ export default function OcrVerification() {
         {/* MODAL */}
         <StatusModal
           {...modal}
-          onClose={() => {
+          onClose={async () => {
             setModal((p) => ({ ...p, visible: false }));
             if (modal.type === 'success' && verifiedId) {
               router.push(`/verification/${verifiedId}` as any);
+            } else if (modal.isVerificationFailure && referenceId) {
+              await Clipboard.setStringAsync(referenceId);
+              router.replace('/(tabs)/verify/manual');
             }
           }}
         />

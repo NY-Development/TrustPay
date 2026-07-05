@@ -11,8 +11,8 @@ import { useColorScheme } from 'nativewind';
 import { Sun, Moon } from 'lucide-react-native';
 import { Storage, STORAGE_KEYS } from '../utils/storage';
 
-const BUTTON_SIZE = 56;
-const EDGE_PADDING = 20;
+const BUTTON_SIZE = 45;
+const EDGE_PADDING = 10;
 
 export const FloatingThemeToggle = () => {
   const { width, height } = useWindowDimensions();
@@ -89,7 +89,7 @@ export const FloatingThemeToggle = () => {
         style={[styles.container, animatedStyle]}
         className="bg-primary dark:bg-white items-center justify-center shadow-xl"
       >
-        <Icon size={28} color={colorScheme === 'dark' ? '#000' : '#fff'} />
+        <Icon size={24} color={colorScheme === 'dark' ? '#000' : '#fff'} />
       </Animated.View>
     </GestureDetector>
   );
