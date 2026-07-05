@@ -15,6 +15,7 @@ import { NotificationProvider } from '@/src/providers/NotificationProvider';
 import { AppBootstrapProvider } from '@/src/providers/AppBootstrap';
 import { AuthProvider } from '@/src/providers/AuthProvider';
 import { OTAProvider } from '@/src/providers/OTAProvider';
+import { LanguageProvider } from '@/src/providers/LanguageProvider'; // 👈 IMPORTED
 
 import { FloatingThemeToggle } from '@/src/components/FloatingThemeToggle';
 
@@ -67,47 +68,37 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <OTAProvider>
-
-        <AppBootstrapProvider>
-
-          <AuthProvider>
-
-            <ThemeProvider
-              value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}
-            >
-              <SafeAreaProvider>
-
-                <QueryProvider>
-
-                  <NotificationProvider>
-
-                    {/* ROOT CLASS FOR NATIVEWIND COLOR THEME */}
-                    <View className={colorScheme === 'dark' ? 'dark' : ''} style={{ flex: 1 }}>
+      <LanguageProvider> {/* 👈 OUTER WRAPPER FOR SECURE I18N STRINGS HYDRATION */}
+        <OTAProvider>
+          <AppBootstrapProvider>
+            <AuthProvider>
+              <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
+                <SafeAreaProvider>
+                  <QueryProvider>
+                    <NotificationProvider>
                       
-                      {/* STATUS BAR */}
-                      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                      {/* ROOT CLASS FOR NATIVEWIND COLOR THEME */}
+                      <View className={colorScheme === 'dark' ? 'dark' : ''} style={{ flex: 1 }}>
+                        
+                        {/* STATUS BAR */}
+                        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-                      {/* NAVIGATION */}
-                      <RootNavigator />
+                        {/* NAVIGATION */}
+                        <RootNavigator />
 
-                      {/* GLOBAL OVERLAY UI (IMPORTANT) */}
-                      <FloatingThemeToggle />
+                        {/* GLOBAL OVERLAY UI (IMPORTANT) */}
+                        <FloatingThemeToggle />
 
-                    </View>
+                      </View>
 
-                  </NotificationProvider>
-
-                </QueryProvider>
-
-              </SafeAreaProvider>
-            </ThemeProvider>
-
-          </AuthProvider>
-
-        </AppBootstrapProvider>
-
-      </OTAProvider>
+                    </NotificationProvider>
+                  </QueryProvider>
+                </SafeAreaProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </AppBootstrapProvider>
+        </OTAProvider>
+      </LanguageProvider>
     </GestureHandlerRootView>
   );
 }

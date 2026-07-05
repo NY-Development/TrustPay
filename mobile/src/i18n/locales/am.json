@@ -1,0 +1,48 @@
+{
+  "common": {
+    "success": "ተሳክቷል",
+    "failed": "አልተሳካም",
+    "verified": "ተረጋግጧል",
+    "loadMore": "ተጨማሪ መረጃዎችን አሳይ"
+  },
+  "history": {
+    "title": "የሂሳብ መዝገብ ታሪክ",
+    "subtitle": "የማረጋገጫ ምዝግብ ማስታወሻዎች",
+    "searchPlaceholder": "በማጣቀሻ ቁጥር ወይም በስም ፈልግ...",
+    "emptyState": "ምንም መዝገብ አልተገኘም"
+  },
+  "settings": {
+    "title": "ቅንብሮች",
+    "business": "ድርጅት",
+    "branches": "ቅርንጫፎች",
+    "subscriptionStatus": "የደንበኝነት ምዝገባ ሁኔታ",
+    "checking": "በማረጋገጥ ላይ...",
+    "active": "አክቲቭ",
+    "inactive": "ያልነቃ",
+    "subActiveText": "አሁን የሚጠቀሙት የ <1>{{plan}}</1> እቅድ ነው።",
+    "subExpiryText": "የሚያበቃበት ቀን: ",
+    "subUpgradeText": "ፕሪሚየም ማስተያያዎችን እና አውቶማቲክ ማረጋገጫ መሳሪያዎችን ይክፈቱ።",
+    "upgradeBtn": "አሻሽል",
+    "signOutBtn": "ውጣ",
+    "account": "መለያ",
+    "manageAccounts": "መለያዎችን አስተዳድር",
+    "accountLinked": "መለያ ተገናኝቷል",
+    "accountsLinked": "መለያዎች ተገናኝተዋል",
+    "security": "ደህንነት",
+    "biometricLogin": "በባዮሜትሪክስ መግቢያ",
+    "changePassword": "የይለፍ ቃል ቀይር",
+    "notifications": "ማሳወቂያዎች",
+    "pushNotifications": "የፑሽ ማሳወቂያዎች",
+    "supportFeedback": "ድጋፍ እና ግብረመልስ",
+    "contactSupport": "ድጋፍ ሰጪ ያግኙ",
+    "privacyPolicy": "የግላዊነት ፖሊሲ",
+    "logoutModalTitle": "መውጣት ይፈልጋሉ?",
+    "logoutModalDesc": "መለያዎን እና የማረጋገጫ ውሂብዎን ለማግኘት እንደገና መግባት ይኖርብዎታል።",
+    "logoutConfirmBtn": "አዎ፣ ውጣ",
+    "cancelBtn": "ሰርዝ",
+    "languageSection": "ምርጫዎች",
+    "languageTitle": "የመተግበሪያ ቋንቋ",
+    "languageSubTextEng": "English",
+    "languageSubTextAmh": "አማርኛ"
+  }
+}

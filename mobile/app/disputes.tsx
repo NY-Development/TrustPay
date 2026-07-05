@@ -12,7 +12,9 @@ export default function Disputes() {
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const { data: historyRes, refetch } = useVerificationHistory();
-  const history = historyRes?.data || [];
+  
+  // Safely flatten multi-page infinite dataset chunks instead of reading historyRes.data directly
+  const history = historyRes?.pages?.flatMap(page => page.data) || [];
 
   // Filter for items requiring attention (frauds or duplicates)
   const flaggedItems = React.useMemo(() => {

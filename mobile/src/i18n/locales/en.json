@@ -1,0 +1,48 @@
+{
+  "common": {
+    "success": "Success",
+    "failed": "Failed",
+    "verified": "VERIFIED",
+    "loadMore": "Load More Ledger Activities"
+  },
+  "history": {
+    "title": "Ledger History",
+    "subtitle": "Audit Logs & Settlement Feeds",
+    "searchPlaceholder": "Filter by reference number or name...",
+    "emptyState": "No Records Resolved"
+  },
+  "settings": {
+    "title": "Settings",
+    "business": "Business",
+    "branches": "Branches",
+    "subscriptionStatus": "Subscription Status",
+    "checking": "Checking...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "subActiveText": "You are currently on the <1>{{plan}}</1> plan.",
+    "subExpiryText": "Expires on: ",
+    "subUpgradeText": "Unlock premium settlement and automatic verification tools.",
+    "upgradeBtn": "Upgrade",
+    "signOutBtn": "Sign Out",
+    "account": "Account",
+    "manageAccounts": "Manage Accounts",
+    "accountLinked": "account linked",
+    "accountsLinked": "accounts linked",
+    "security": "Security",
+    "biometricLogin": "Biometric Login",
+    "changePassword": "Change Password",
+    "notifications": "Notifications",
+    "pushNotifications": "Push Notifications",
+    "supportFeedback": "Support & Feedback",
+    "contactSupport": "Contact Support",
+    "privacyPolicy": "Privacy Policy",
+    "logoutModalTitle": "Sign Out?",
+    "logoutModalDesc": "You will need to log in again to access your account and verification data.",
+    "logoutConfirmBtn": "Yes, Sign Out",
+    "cancelBtn": "Cancel",
+    "languageSection": "Preferences",
+    "languageTitle": "App Language",
+    "languageSubTextEng": "English",
+    "languageSubTextAmh": "አማርኛ"
+  }
+}

@@ -10,6 +10,7 @@ import { useColorScheme } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { useAuthStore } from '@/src/store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -17,14 +18,12 @@ import { useRouter } from 'expo-router';
 export default function Dashboard() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { user } = useAuthStore();
 
   useNotifications();
-  const { data: history, isLoading, refetch } = useVerificationHistory();
+  // Call the updated infinite query hook
+  const { data: infiniteHistory, isLoading, refetch } = useVerificationHistory();
   const router = useRouter();
-
-  // ─────────────────────────────────────────────
-  // SAFE DATE NORMALIZATION (fixes "Today" bug)
-  // ─────────────────────────────────────────────
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -35,17 +34,34 @@ export default function Dashboard() {
     return d.getTime() === today.getTime();
   };
 
-  const todayCount =
-    history?.data?.filter((v: any) => isSameDay(v.paymentDate)).length || 0;
+  // Safely flatten multi-page tracking logs from the infinite query structure
+  const historyItems = infiniteHistory?.pages?.flatMap(page => page.data) || [];
 
-  const totalCount = history?.data?.length || 0;
+  const todayCount =
+    historyItems.filter((v: any) => isSameDay(v.paymentDate)).length || 0;
+
+  const totalCount = historyItems.length || 0;
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
+    <View className="flex-1 bg-background relative">
+      {/* Background Watermark Layer */}
+      <View 
+        pointerEvents="none" 
+        className="absolute inset-0 flex items-center justify-center overflow-hidden z-0"
+      >
+        <Text 
+          style={{ transform: [{ rotate: '-35deg' }] }} 
+          className="text-foreground font-black text-[96px] tracking-widest uppercase opacity-[0.03] dark:opacity-[0.02] text-center select-none"
+        >
+          Trust Pay
+        </Text>
+      </View>
+
+      <SafeAreaView className="flex-1 z-10" edges={['top']}>
         <ScrollView
           className="flex-1 px-6"
           contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
@@ -54,24 +70,34 @@ export default function Dashboard() {
             />
           }
         >
-          {/* Header */}
-          <View className="flex-row justify-between items-center py-8">
-            <View>
-              <Text className="text-muted-foreground text-lg font-medium">
-                Verified Merchant
-              </Text>
-              <Text className="text-foreground text-3xl font-bold">
-                TrustPay Dashboard
-              </Text>
+          {/* Header Section */}
+          <View className="flex-row justify-between items-center pt-6 pb-8">
+            <View className="flex-row items-center flex-1 pr-4">
+              <View className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 items-center justify-center relative">
+                <Text className="text-primary font-bold text-lg uppercase">
+                  {user?.name ? user.name.slice(0, 2) : 'ME'}
+                </Text>
+                <View className="absolute bottom-[-1] right-[-1] w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-background" />
+              </View>
+
+              <View className="ml-4 flex-1">
+                <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
+                  {user?.role || 'Verified Merchant'}
+                </Text>
+                <Text className="text-foreground text-2xl font-black tracking-tight truncate">
+                  {user?.name || 'TrustPay Hub'}
+                </Text>
+              </View>
             </View>
 
             <TouchableOpacity 
-            onPress={() => router.push('/notification-center')}
-            className="w-12 h-12 bg-muted rounded-2xl items-center justify-center border border-border">
+              onPress={() => router.push('/notification-center')}
+              className="w-12 h-12 bg-card rounded-2xl items-center justify-center border border-border shadow-sm active:opacity-80"
+            >
               <Ionicons
-                name="notifications-outline"
-                size={24}
-                color={isDark ? 'white' : 'black'}
+                name="notifications"
+                size={22}
+                color={isDark ? '#3b82f6' : '#003ec7'}
               />
             </TouchableOpacity>
           </View>
@@ -79,121 +105,139 @@ export default function Dashboard() {
           {/* Main Action Card */}
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/verify' as any)}
-            className="bg-primary rounded-[32px] p-8 mb-8 relative overflow-hidden shadow-2xl shadow-primary/40"
+            activeOpacity={0.9}
+            className="bg-primary rounded-[36px] p-6 mb-8 overflow-hidden shadow-2xl shadow-primary/30 min-h-[220px] justify-between"
           >
             <LinearGradient
-              colors={['transparent', 'rgba(255,255,255,0.1)']}
+              colors={isDark ? ['#1e40af', '#003ec7'] : ['#2563eb', '#003ec7']}
               className="absolute inset-0"
             />
+            <View className="absolute top-[-30] right-[-30] w-48 h-48 rounded-full bg-white/5" />
+            <View className="absolute bottom-[-50] left-[-20] w-36 h-36 rounded-full bg-white/10 opacity-60" />
 
-            <View className="flex-row justify-between items-start mb-6">
-              <View className="bg-white/20 p-4 rounded-3xl">
-                <Ionicons name="shield-checkmark" size={32} color="white" />
+            <View className="flex-row justify-between items-center mb-6">
+              <View className="bg-white/15 p-3 rounded-2xl border border-white/10">
+                <Ionicons name="scan-sharp" size={26} color="white" />
               </View>
 
-              <View className="bg-white/10 px-4 py-2 rounded-full border border-white/20">
-                <Text className="text-white font-bold text-xs">
-                  SECURE NODE
+              <View className="bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
+                <Text className="text-white font-black text-[10px] uppercase tracking-widest">
+                  ACTIVE NODE
                 </Text>
               </View>
             </View>
 
-            <Text className="text-white text-3xl font-bold mb-2">
-              Verify Payment
-            </Text>
-
-            <Text className="text-white/70 text-lg mb-8 leading-6">
-              Start a new verification for Telebirr, CBE, or M-Pesa payments.
-            </Text>
-
-            <View className="bg-primary-foreground/20 h-16 rounded-2xl flex-row items-center justify-center">
-              <Text className="text-white font-bold text-xl mr-2">
-                New Verification
+            <View className="mb-6">
+              <Text className="text-white text-3xl font-black tracking-tight">
+                Verify Payment
               </Text>
-              <Ionicons name="arrow-forward" size={20} color="white" />
+              <Text className="text-white/80 text-sm mt-1.5 font-medium leading-5">
+                Scan or ingest transactions across Telebirr, CBE, or M-Pesa channels instantly.
+              </Text>
             </View>
+
+            <TouchableOpacity onPress={() => router.push('/(tabs)/verify' as any)} className="bg-white rounded-2xl h-14 flex-row items-center justify-center shadow-md active:bg-white/90">
+              <Text className="text-primary font-bold text-base mr-2">
+                Launch Instant Verification
+              </Text>
+              <Ionicons name="chevron-forward-circle" size={20} color={isDark ? '#276cff' : '#003ec7'} />
+            </TouchableOpacity >
           </TouchableOpacity>
 
-          {/* Stats */}
+          {/* Counter Stats Panels */}
           <View className="flex-row gap-4 mb-8">
-            <View className="flex-1 bg-card border border-border rounded-3xl p-6">
-              <Text className="text-muted-foreground font-medium mb-1">
-                Today
-              </Text>
-              <Text className="text-foreground text-2xl font-bold">
+            <View className="flex-1 bg-card border border-border rounded-3xl p-5 shadow-sm">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="today-outline" size={16} color="#94a3b8" />
+                <Text className="text-muted-foreground font-bold text-xs uppercase tracking-wider ml-1.5">Today</Text>
+              </View>
+              <Text className="text-foreground text-3xl font-black tracking-tight">
                 {todayCount}
               </Text>
             </View>
 
-            <View className="flex-1 bg-card border border-border rounded-3xl p-6">
-              <Text className="text-primary font-medium mb-1">Total</Text>
-              <Text className="text-foreground text-2xl font-bold">
+            <View className="flex-1 bg-card border border-border rounded-3xl p-5 shadow-sm">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="pie-chart-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                <Text className="text-primary font-bold text-xs uppercase tracking-wider ml-1.5">Total Pool</Text>
+              </View>
+              <Text className="text-foreground text-3xl font-black tracking-tight">
                 {totalCount}
               </Text>
             </View>
           </View>
 
-          {/* Recent */}
-          <View className="mb-12">
-            <View className="flex-row justify-between items-center mb-6 px-2">
-              <Text className="text-foreground text-xl font-bold">
-                Recent Checks
+          {/* Recent Audits List Block */}
+          <View className="mb-6">
+            <View className="flex-row justify-between items-center mb-5 px-1">
+              <Text className="text-foreground text-lg font-black tracking-tight">
+                Recent Ledger Activities
               </Text>
 
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/history')}
+                className="px-3 py-1.5 bg-muted rounded-xl border border-border"
               >
-                <Text className="text-primary font-medium">View All</Text>
+                <Text className="text-primary font-bold text-xs">View All</Text>
               </TouchableOpacity>
             </View>
 
-            {history?.data && history.data.length > 0 ? (
-              history.data.slice(0, 5).map((item: any, i: number) => (
+            {historyItems && historyItems.length > 0 ? (
+              historyItems.slice(0, 5).map((item: any, i: number) => (
                 <TouchableOpacity
                   key={i}
                   onPress={() =>
                     router.push(`/verification/${item._id || item.id}` as any)
                   }
-                  className="bg-card border border-border rounded-3xl p-6 mb-4 flex-row items-center active:opacity-80"
+                  className="bg-card border border-border rounded-3xl p-4 mb-3 flex-row items-center active:opacity-90 shadow-sm"
                 >
-                  <View className="w-12 h-12 bg-muted rounded-2xl items-center justify-center">
+                  <View className="w-12 h-12 bg-muted rounded-xl items-center justify-center border border-border">
                     <Ionicons
-                      name="document-text-outline"
-                      size={24}
+                      name="receipt-outline"
+                      size={20}
                       color={isDark ? '#3b82f6' : '#003ec7'}
                     />
                   </View>
 
-                  <View className="ml-4 flex-1">
-                    <Text className="text-foreground font-bold text-lg uppercase">
+                  <View className="ml-4 flex-1 pr-2">
+                    <Text className="text-foreground font-bold text-base uppercase tracking-tight truncate">
                       {item.transactionId}
                     </Text>
 
-                    <Text className="text-muted-foreground text-sm">
+                    <Text className="text-muted-foreground text-xs mt-0.5 font-medium">
                       {item.provider} •{' '}
-                      {new Date(item.paymentDate).toLocaleDateString()}
+                      {new Date(item.paymentDate).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
                     </Text>
                   </View>
 
-                  <View className="bg-primary/10 px-3 py-1 rounded-full">
-                    <Text className="text-primary font-bold text-xs">
-                      {item.verified ? 'VERIFIED' : 'PENDING'}
+                  <View className={`px-2.5 py-1 rounded-full border ${
+                    item.verified 
+                      ? 'bg-emerald-500/10 border-emerald-500/20' 
+                      : 'bg-amber-500/10 border-amber-500/20'
+                  }`}>
+                    <Text className={`font-black text-[10px] tracking-wider ${
+                      item.verified ? 'text-emerald-500' : 'text-amber-500'
+                    }`}>
+                      {item.verified ? 'SUCCESS' : 'PENDING'}
                     </Text>
                   </View>
                 </TouchableOpacity>
               ))
             ) : (
-              <View className="bg-card border border-border rounded-3xl p-10 items-center justify-center">
-                <View className="w-16 h-16 bg-muted rounded-full items-center justify-center mb-4">
+              <View className="bg-card border border-border rounded-3xl p-10 items-center justify-center shadow-sm">
+                <View className="w-14 h-14 bg-muted rounded-2xl items-center justify-center mb-3 border border-border">
                   <Ionicons
-                    name="document-text-outline"
-                    size={28}
-                    color={isDark ? '#475569' : '#94a3b8'}
+                    name="folder-open-outline"
+                    size={24}
+                    color="#64748b"
                   />
                 </View>
 
-                <Text className="text-muted-foreground text-lg font-medium">
-                  No recent verifications
+                <Text className="text-muted-foreground text-sm font-semibold">
+                  No records logged today
                 </Text>
               </View>
             )}

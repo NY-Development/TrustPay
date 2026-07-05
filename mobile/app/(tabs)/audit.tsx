@@ -19,7 +19,9 @@ export default function Audit() {
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const { data: historyRes, isLoading, refetch } = useVerificationHistory();
-  const history = historyRes?.data || [];
+  
+  // Safely flatten multi-page infinite dataset chunks instead of reading historyRes.data directly
+  const history = historyRes?.pages?.flatMap(page => page.data) || [];
 
   // Active filter state
   const [activeFilter, setActiveFilter] = React.useState<FilterPeriod>('all');

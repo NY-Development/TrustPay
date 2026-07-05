@@ -14,7 +14,9 @@ export default function Insights() {
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const { data: historyRes, isLoading, refetch } = useVerificationHistory();
-  const history = historyRes?.data || [];
+  
+  // Safely flatten multi-page infinite dataset chunks instead of reading historyRes.data directly
+  const history = historyRes?.pages?.flatMap(page => page.data) || [];
 
   const [isExporting, setIsExporting] = React.useState(false);
 
@@ -121,7 +123,7 @@ export default function Insights() {
       });
     }
 
-    return { peakHourStr, worstProvider, topProvider, maxRiskRate, suggestions };
+    return { peakHourStr, worstProvider, topProvider, maxRiskRate, suggestions, totalSecIssues };
   }, [history]);
 
   /* =========================================================
@@ -353,7 +355,19 @@ export default function Insights() {
           </View>
 
           {/* Key Metrics Dashboard Row */}
-          <Text className="text-foreground font-bold text-lg mb-3">Key Metrics</Text>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-foreground font-bold text-lg">Key Metrics</Text>
+            
+            {/* Added Navigation Link straight to Flagged Disputes screen */}
+            <TouchableOpacity 
+              onPress={() => router.push('/disputes')} 
+              className="flex-row items-center bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl active:opacity-80"
+            >
+              <Ionicons name="alert-circle-outline" size={14} color="#ef4444" className="mr-1" />
+              <Text className="text-red-500 font-bold text-xs ml-1">View Disputes ({analytics.totalSecIssues})</Text>
+            </TouchableOpacity>
+          </View>
+
           <View className="flex-row flex-wrap justify-between mb-6">
             <View className="w-[48%] bg-card border border-border rounded-3xl p-5 mb-4 shadow-sm">
               <View className="bg-primary/10 w-10 h-10 rounded-xl items-center justify-center mb-3">
@@ -438,7 +452,7 @@ export default function Insights() {
 
           {/* Recommendations Block */}
           <Text className="text-foreground font-bold text-lg mb-3">Recommendations & Suggestions</Text>
-          <View className="space-y-4 gap-4">
+          <View className="space-y-4 gap-4 mb-10">
             {analytics.suggestions.map((sug, i) => (
               <View
                 key={i}

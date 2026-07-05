@@ -298,17 +298,42 @@ export const getBusinessVerifications = asyncHandler(async (req: Request, res: R
 });
 
 /**
- * @desc    Get verification history for the authenticated user only
+ * @desc    Get verification history for the authenticated user only (with server pagination and filters)
  * @route   GET /api/v1/verifications/my-history
  */
 export const getMyVerifications = asyncHandler(async (req: Request, res: Response) => {
-  const verifications = await Verification.find({
+  // Parse parameters from query parameters securely with runtime fallbacks
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 15;
+  const provider = req.query.provider as string;
+  const skipIndex = (page - 1) * limit;
+
+  // Build filtering configuration payload bound strictly to the authenticated user ID[cite: 18]
+  const filterQuery: any = {
     verifiedBy: req.user?.userId
-  }).sort({ createdAt: -1 });
+  };
+
+  // Dynamically append channel provider filtering constraints when applicable
+  if (provider && provider !== 'all') {
+    filterQuery.provider = provider.toLowerCase();
+  }
+
+  // Execute isolated pagination calculations efficiently inside your database model layer[cite: 18]
+  const totalCount = await Verification.countDocuments(filterQuery);
+  const verifications = await Verification.find(filterQuery)
+    .sort({ createdAt: -1 }) // Keep chronological descent[cite: 18]
+    .skip(skipIndex)
+    .limit(limit);
 
   res.status(200).json({
     success: true,
-    data: verifications
+    data: verifications,
+    pagination: {
+      totalItems: totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      hasMore: skipIndex + verifications.length < totalCount
+    }
   });
 });
 

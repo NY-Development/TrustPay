@@ -63,7 +63,8 @@ export default {
       ],
       "expo-font",
       "expo-local-authentication",
-      "expo-file-system"
+      "expo-file-system",
+      "expo-localization"
     ],
     experiments: {
       "typedRoutes": true

@@ -57,7 +57,7 @@ export default function VerifyEntry() {
   return (
     <>
       <View className="flex-1 bg-background">
-        <SafeAreaView className="flex-1 px-6">
+        <SafeAreaView className="flex-1 px-6 pb-12">
           <Text className="text-foreground text-4xl font-bold mt-8 mb-2">
             Verify Payment
           </Text>
@@ -107,7 +107,7 @@ export default function VerifyEntry() {
             ))}
           </View>
 
-          <View className="mt-8 rounded-3xl border border-primary/20 bg-primary/10 overflow-hidden p-6">
+          <View className="mb-8 mt-4 rounded-3xl border border-primary/20 bg-primary/10 overflow-hidden p-6">
             <LinearGradient
               colors={[
                 'transparent',
@@ -128,7 +128,7 @@ export default function VerifyEntry() {
               </Text>
             </View>
 
-            <Text className="mt-3 text-sm leading-6 text-muted-foreground">
+            <Text className="my-3 text-sm leading-6 text-muted-foreground">
               Manual verification is available in this preview build. AI
               Screenshot Verification and QR Verification will be released in
               the production version.

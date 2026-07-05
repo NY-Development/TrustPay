@@ -1,8 +1,25 @@
 import { apiClient } from './client';
 import { ApiResponse } from '../types';
-import {
-    VerificationRecord
-} from "../types/verification";
+import { VerificationRecord } from "../types/verification";
+
+// Define a structured interface for our query parameters
+export interface GetHistoryParams {
+  page?: number;
+  limit?: number;
+  provider?: string;
+}
+
+// Custom return interface matching our new backend pagination response
+export interface PaginatedVerificationResponse {
+  success: boolean;
+  data: VerificationRecord[];
+  pagination: {
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
 
 export const verificationApi = {
   verifyManual: async (data: any) => {
@@ -15,11 +32,19 @@ export const verificationApi = {
   },
   verifyOcr: async (data: any) => {
     const response = await apiClient.post<ApiResponse<VerificationRecord & { extracted?: any }>>('/verifications/verify-ocr', data);
-    console.log('Response of verifications : ',response.data);
+    console.log('Response of verifications : ', response.data);
     return response.data;
   },
-  getHistory: async () => {
-    const response = await apiClient.get<ApiResponse<VerificationRecord[]>>('/verifications/my-history');
+  // Updated with query parameters to interact cleanly with getMyVerifications
+  getHistory: async ({ page = 1, limit = 15, provider }: GetHistoryParams = {}) => {
+    const response = await apiClient.get<PaginatedVerificationResponse>('/verifications/my-history', {
+      params: {
+        page,
+        limit,
+        // Only pass the parameter to the backend if a specific provider is chosen
+        ...(provider && provider !== 'all' ? { provider } : {})
+      }
+    });
     return response.data;
   },
   getById: async (id: string) => {

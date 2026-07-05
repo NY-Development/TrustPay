@@ -9,8 +9,12 @@ import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
 import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 import SubscriptionModal from '@/src/components/SubscriptionModal';
+import { useTranslation } from 'react-i18next'; // 👈 Import Translation
+import { useLanguage } from '@/src/providers/LanguageProvider'; // 👈 Import Custom Language Hook
 
 export default function Settings() {
+  const { t } = useTranslation();
+  const { currentLanguage, changeLanguage } = useLanguage();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { user, biometricsEnabled, setBiometricsEnabled } = useAuthStore();  
@@ -19,6 +23,7 @@ export default function Settings() {
   
   const [isModalVisible, setIsModalVisible] = React.useState(false); 
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+  const [showLangSelection, setShowLangSelection] = React.useState(false);
   
   const { data: statusResponse, isLoading } = useSubscriptionStatus();
   
@@ -31,26 +36,37 @@ export default function Settings() {
     router.replace('/(auth)/login');
   };
 
+  // Structured Items dynamically fetching Translation tokens at compute layout step
   const settingsItems = [
-    { section: 'Account', items: [
-      { id: 'accounts', title: 'Manage Accounts', icon: 'wallet-outline', type: 'chevron', route: '/manage-accounts', NoOfAcc: user?.accounts.length },
+    { section: t('settings.account'), items: [
+      { id: 'accounts', title: t('settings.manageAccounts'), icon: 'wallet-outline', type: 'chevron', route: '/manage-accounts', NoOfAcc: user?.accounts?.length },
     ]},
-    { section: 'Security', items: [
-      { id: 'biometrics', title: 'Biometric Login', icon: 'finger-print', type: 'switch', value: biometricsEnabled, onValueChange: setBiometricsEnabled },
-      { id: 'password', title: 'Change Password', icon: 'lock-closed', type: 'chevron', route: '/(auth)/forgot-password' },
+    { section: t('settings.languageSection'), items: [
+      { 
+        id: 'language', 
+        title: t('settings.languageTitle'), 
+        icon: 'globe-outline', 
+        type: 'chevron', 
+        action: () => setShowLangSelection(true),
+        subtext: currentLanguage === 'am' ? t('settings.languageSubTextAmh') : t('settings.languageSubTextEng') 
+      },
     ]},
-    { section: 'Notifications', items: [
-      { id: 'push', title: 'Push Notifications', icon: 'notifications', type: 'switch', value: notifications, onValueChange: setNotifications },
+    { section: t('settings.security'), items: [
+      { id: 'biometrics', title: t('settings.biometricLogin'), icon: 'finger-print', type: 'switch', value: biometricsEnabled, onValueChange: setBiometricsEnabled },
+      { id: 'password', title: t('settings.changePassword'), icon: 'lock-closed', type: 'chevron', route: '/(auth)/forgot-password' },
     ]},
-    { section: 'Support & Feedback', items: [
-      { id: 'contact', title: 'Contact Support', icon: 'chatbubbles-outline', type: 'chevron', route: '/contact' },
-      { id: 'privacy', title: 'Privacy Policy', icon: 'document-text-outline', type: 'chevron', route: '/privacy-policy' },
+    { section: t('settings.notifications'), items: [
+      { id: 'push', title: t('settings.pushNotifications'), icon: 'notifications', type: 'switch', value: notifications, onValueChange: setNotifications },
+    ]},
+    { section: t('settings.supportFeedback'), items: [
+      { id: 'contact', title: t('settings.contactSupport'), icon: 'chatbubbles-outline', type: 'chevron', route: '/contact' },
+      { id: 'privacy', title: t('settings.privacyPolicy'), icon: 'document-text-outline', type: 'chevron', route: '/privacy-policy' },
     ]},
   ];
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(currentLanguage === 'am' ? 'am-ET' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -61,23 +77,44 @@ export default function Settings() {
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1">
         <ScrollView className="flex-1 px-6">
-          <Text className="text-foreground text-3xl font-bold mb-8 mt-8">Settings</Text>
+          <Text className="text-foreground text-3xl font-bold mb-8 mt-8">{t('settings.title')}</Text>
 
           {/* Profile Card */}
-          <View className="bg-card border border-border rounded-3xl p-6 mb-4 flex-row items-center">
-            <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center">
-              <Text className="text-primary-foreground text-2xl font-bold">{user?.name ? user.name[0] : 'U'}</Text>
+          <View className="bg-card border border-border rounded-3xl p-6 mb-4">
+            <View className="flex-row items-center">
+              <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center">
+                <Text className="text-primary-foreground text-2xl font-bold">{user?.name ? user.name[0] : 'U'}</Text>
+              </View>
+              <View className="ml-5 flex-1">
+                <Text className="text-foreground text-xl font-bold">{user?.name}</Text>
+                <Text className="text-muted-foreground">{user?.role} • {user?.email}</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => router.push('/edit-profile' as any)}
+                className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border"
+              >
+                <Ionicons name="create-outline" size={20} color={isDark ? 'white' : 'black'} />
+              </TouchableOpacity>
             </View>
-            <View className="ml-5 flex-1">
-              <Text className="text-foreground text-xl font-bold">{user?.name}</Text>
-              <Text className="text-muted-foreground">{user?.role} • {user?.email}</Text>
+
+            {/* Corporate Profile & Branch Quick Navigation Section */}
+            <View className="flex-row items-center justify-between border-t border-border mt-5 pt-4 gap-3">
+              <TouchableOpacity
+                onPress={() => router.push('/business' as any)}
+                className="flex-1 flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
+              >
+                <Ionicons name="business-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                <Text className="text-foreground font-semibold text-sm ml-2">{t('settings.business')}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => router.push('/branch' as any)}
+                className="flex-1 flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
+              >
+                <Ionicons name="git-branch-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                <Text className="text-foreground font-semibold text-sm ml-2">{t('settings.branches')}</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity 
-              onPress={() => router.push('/edit-profile' as any)}
-              className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border"
-            >
-              <Ionicons name="create-outline" size={20} color={isDark ? 'white' : 'black'} />
-            </TouchableOpacity>
           </View>
 
           {/* Subscription Status Card */}
@@ -87,20 +124,20 @@ export default function Settings() {
                 <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center mr-3">
                   <Ionicons name="card-outline" size={18} color={isDark ? '#3b82f6' : '#003ec7'} />
                 </View>
-                <Text className="text-foreground text-lg font-bold">Subscription Status</Text>
+                <Text className="text-foreground text-lg font-bold">{t('settings.subscriptionStatus')}</Text>
               </View>
               
               {isLoading ? (
                 <View className="bg-muted px-3 py-1 rounded-full">
-                  <Text className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Checking...</Text>
+                  <Text className="text-muted-foreground text-xs font-bold uppercase tracking-wider">{t('settings.checking')}</Text>
                 </View>
               ) : isSubscriptionActive ? (
                 <View className="bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                  <Text className="text-emerald-500 text-xs font-bold uppercase tracking-wider">Active</Text>
+                  <Text className="text-emerald-500 text-xs font-bold uppercase tracking-wider">{t('settings.active')}</Text>
                 </View>
               ) : (
                 <View className="bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                  <Text className="text-amber-500 text-xs font-bold uppercase tracking-wider">Inactive</Text>
+                  <Text className="text-amber-500 text-xs font-bold uppercase tracking-wider">{t('settings.inactive')}</Text>
                 </View>
               )}
             </View>
@@ -109,29 +146,29 @@ export default function Settings() {
               isSubscriptionActive && subscriptionDetails ? (
                 <View>
                   <Text className="text-muted-foreground text-sm">
-                    You are currently on the <Text className="text-foreground font-semibold capitalize">{subscriptionDetails.plan}</Text> plan.
+                    {t('settings.subActiveText', { plan: subscriptionDetails.plan })}
                   </Text>
                   <Text className="text-muted-foreground text-xs mt-2">
-                    Expires on: <Text className="text-foreground font-medium">{formatDate(subscriptionDetails.endDate)}</Text>
+                    {t('settings.subExpiryText')} <Text className="text-foreground font-medium">{formatDate(subscriptionDetails.endDate)}</Text>
                   </Text>
                 </View>
               ) : (
                 <View className="flex-row items-center justify-between mt-1">
                   <Text className="text-muted-foreground text-sm flex-1 mr-4">
-                    Unlock premium settlement and automatic verification tools.
+                    {t('settings.subUpgradeText')}
                   </Text>
                   <TouchableOpacity 
                     onPress={() => setIsModalVisible(true)} 
                     className="bg-primary px-4 py-2 rounded-xl active:opacity-80"
                   >
-                    <Text className="text-primary-foreground font-bold text-sm">Upgrade</Text>
+                    <Text className="text-primary-foreground font-bold text-sm">{t('settings.upgradeBtn')}</Text>
                   </TouchableOpacity>
                 </View>
               )
             )}
           </View>
 
-          {/* Sections */}
+          {/* Render Sections */}
           {settingsItems.map((section, idx) => (
             <View key={idx} className="mb-10">
               <Text className="text-muted-foreground font-bold text-xs uppercase tracking-widest mb-4 ml-2">{section.section}</Text>
@@ -140,27 +177,33 @@ export default function Settings() {
                   <TouchableOpacity 
                     key={item.id} 
                     onPress={() => {
-                      if (item.type !== 'switch' && 'route' in item && item.route) {
-                        router.push(item.route as any);
+                      if (item.type !== 'switch') {
+                        if ('action' in item && item.action) {
+                          item.action();
+                        } else if ('route' in item && item.route) {
+                          router.push(item.route as any);
+                        }
                       }
                     }}
                     disabled={item.type === 'switch'}
                     className={`px-6 h-16 flex-row items-center justify-between ${i !== section.items.length - 1 ? 'border-b border-border' : ''}`}
                   >
-                  <View className="flex-row items-center">
-                    <View className="w-10 h-10 rounded-xl bg-muted items-center justify-center mr-4">
-                      <Ionicons name={item.icon as any} size={20} color={isDark ? '#3b82f6' : '#003ec7'} />
+                    <View className="flex-row items-center flex-1 pr-4">
+                      <View className="w-10 h-10 rounded-xl bg-muted items-center justify-center mr-4">
+                        <Ionicons name={item.icon as any} size={20} color={isDark ? '#3b82f6' : '#003ec7'} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-foreground text-lg font-medium">{item.title}</Text>
+                        {typeof (item as any).NoOfAcc === 'number' && (
+                          <Text className="text-muted-foreground text-xs mt-0.5">
+                            {(item as any).NoOfAcc} {(item as any).NoOfAcc === 1 ? t('settings.accountLinked') : t('settings.accountsLinked')}
+                          </Text>
+                        )}
+                        {'subtext' in item && item.subtext && (
+                          <Text className="text-primary font-semibold text-xs mt-0.5">{item.subtext}</Text>
+                        )}
+                      </View>
                     </View>
-                    <View>
-                      <Text className="text-foreground text-lg font-medium">{item.title}</Text>
-                      {/* Safely check if NoOfAcc is a valid number */}
-                      {typeof (item as any).NoOfAcc === 'number' && (
-                        <Text className="text-muted-foreground text-xs mt-0.5">
-                          {(item as any).NoOfAcc} {(item as any).NoOfAcc === 1 ? 'account linked' : 'accounts linked'}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
                     
                     {item.type === 'switch' ? (
                       <Switch 
@@ -184,7 +227,7 @@ export default function Settings() {
             className="bg-destructive/10 border border-destructive/20 h-16 rounded-2xl items-center justify-center flex-row mb-10 active:bg-destructive/20"
           >
             <Ionicons name="log-out-outline" size={24} color={isDark ? '#ef4444' : '#dc2626'} />
-            <Text className="text-destructive font-bold text-lg ml-2">Sign Out</Text>
+            <Text className="text-destructive font-bold text-lg ml-2">{t('settings.signOutBtn')}</Text>
           </TouchableOpacity>
 
           {/* Version Info */}
@@ -210,6 +253,55 @@ export default function Settings() {
         onClose={() => setIsModalVisible(false)} 
       />
 
+      {/* Language Selection Modal Sheet */}
+      <Modal
+        visible={showLangSelection}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLangSelection(false)}
+      >
+        <View className="flex-1 bg-black/60 justify-end">
+          <View className="bg-card border-t border-border rounded-t-[36px] p-6 pb-12 w-full shadow-2xl">
+            <View className="w-12 h-1 bg-border rounded-full self-center mb-6" />
+            
+            <Text className="text-foreground text-xl font-black mb-5 px-2">{t('settings.languageTitle')}</Text>
+
+            <TouchableOpacity
+              onPress={async () => {
+                await changeLanguage('en');
+                setShowLangSelection(false);
+              }}
+              className={`h-16 rounded-2xl px-5 flex-row items-center justify-between mb-3 border ${
+                currentLanguage === 'en' ? 'bg-primary/10 border-primary' : 'bg-muted/50 border-transparent'
+              }`}
+            >
+              <Text className={`text-base font-bold ${currentLanguage === 'en' ? 'text-primary' : 'text-foreground'}`}>English</Text>
+              {currentLanguage === 'en' && <Ionicons name="checkmark-circle" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={async () => {
+                await changeLanguage('am');
+                setShowLangSelection(false);
+              }}
+              className={`h-16 rounded-2xl px-5 flex-row items-center justify-between mb-6 border ${
+                currentLanguage === 'am' ? 'bg-primary/10 border-primary' : 'bg-muted/50 border-transparent'
+              }`}
+            >
+              <Text className={`text-base font-bold ${currentLanguage === 'am' ? 'text-primary' : 'text-foreground'}`}>አማርኛ (Amharic)</Text>
+              {currentLanguage === 'am' && <Ionicons name="checkmark-circle" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowLangSelection(false)}
+              className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-90"
+            >
+              <Text className="text-foreground font-bold text-base">{t('settings.cancelBtn')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Logout Confirmation Modal */}
       <Modal
         visible={showLogoutConfirm}
@@ -223,9 +315,9 @@ export default function Settings() {
               <View className="bg-destructive/10 p-4 rounded-full mb-4">
                 <Ionicons name="log-out-outline" size={32} color={isDark ? '#ef4444' : '#dc2626'} />
               </View>
-              <Text className="text-foreground text-xl font-bold text-center">Sign Out?</Text>
+              <Text className="text-foreground text-xl font-bold text-center">{t('settings.logoutModalTitle')}</Text>
               <Text className="text-muted-foreground text-sm text-center mt-2 leading-5">
-                You will need to log in again to access your account and verification data.
+                {t('settings.logoutModalDesc')}
               </Text>
             </View>
 
@@ -233,14 +325,14 @@ export default function Settings() {
               onPress={handleLogout}
               className="bg-destructive h-14 rounded-2xl items-center justify-center mb-3 active:opacity-80"
             >
-              <Text className="text-white font-bold text-base">Yes, Sign Out</Text>
+              <Text className="text-white font-bold text-base">{t('settings.logoutConfirmBtn')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setShowLogoutConfirm(false)}
               className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-80"
             >
-              <Text className="text-foreground font-bold text-base">Cancel</Text>
+              <Text className="text-foreground font-bold text-base">{t('settings.cancelBtn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
