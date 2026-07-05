@@ -65,7 +65,9 @@ export default function Dashboard() {
               </Text>
             </View>
 
-            <TouchableOpacity className="w-12 h-12 bg-muted rounded-2xl items-center justify-center border border-border">
+            <TouchableOpacity 
+            onPress={() => router.push('/notification-center')}
+            className="w-12 h-12 bg-muted rounded-2xl items-center justify-center border border-border">
               <Ionicons
                 name="notifications-outline"
                 size={24}
