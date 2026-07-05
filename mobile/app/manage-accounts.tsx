@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
-import { useAccounts, useAddAccount, useRemoveAccount } from '@/src/hooks/useAuth';
+import { useAccounts, useAddAccount, useRemoveAccount, useUpdateAccount } from '@/src/hooks/useAuth';
 import { StatusModal } from '@/src/components/StatusModal';
 
 const PROVIDERS = [
@@ -29,6 +29,7 @@ export default function ManageAccountsScreen() {
   const { data: accountsResponse, isLoading } = useAccounts();
   const addAccountMutation = useAddAccount();
   const removeAccountMutation = useRemoveAccount();
+  const updateAccountMutation = useUpdateAccount();
 
   const accounts = accountsResponse?.data || [];
 
@@ -38,6 +39,8 @@ export default function ManageAccountsScreen() {
   const [showProviderPicker, setShowProviderPicker] = React.useState(false);
 
   const [deleteTarget, setDeleteTarget] = React.useState<{ accountNumber: string; accountProvider: string } | null>(null);
+  const [editTarget, setEditTarget] = React.useState<{ accountNumber: string; accountProvider: string } | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
 
   const [modal, setModal] = React.useState({
     visible: false,
@@ -95,6 +98,31 @@ export default function ManageAccountsScreen() {
           type: 'error',
           title: 'Failed',
           message: err?.response?.data?.message || 'Could not remove account.',
+        });
+      },
+    });
+  };
+
+  const handleUpdate = () => {
+    if (!editTarget) return;
+
+    updateAccountMutation.mutate(editTarget, {
+      onSuccess: () => {
+        setEditTarget(null);
+        setModal({
+          visible: true,
+          type: 'success',
+          title: 'Account Updated',
+          message: 'The bank account has been updated.',
+        });
+      },
+      onError: (err: any) => {
+        setEditTarget(null);
+        setModal({
+          visible: true,
+          type: 'error',
+          title: 'Failed',
+          message: err?.response?.data?.message || 'Could not update account.',
         });
       },
     });
@@ -206,9 +234,13 @@ export default function ManageAccountsScreen() {
             ) : (
               <View className="space-y-3 gap-3">
                 {accounts.map((acc: any, index: number) => (
-                  <View
+                  <TouchableOpacity
                     key={`${acc.accountProvider}-${acc.accountNumber}-${index}`}
                     className="bg-card border border-border rounded-2xl p-4 flex-row items-center justify-between"
+                    onPress={() => {
+                      setEditTarget(acc);
+                      setIsEditing(true);
+                    }}
                   >
                     <View className="flex-row items-center flex-1">
                       <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
@@ -230,7 +262,7 @@ export default function ManageAccountsScreen() {
                     >
                       <Ionicons name="trash-outline" size={16} color={isDark ? '#ef4444' : '#dc2626'} />
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -320,6 +352,54 @@ export default function ManageAccountsScreen() {
 
             <TouchableOpacity
               onPress={() => setDeleteTarget(null)}
+              className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-80"
+            >
+              <Text className="text-foreground font-bold text-base">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Update Confirmation Modal */}
+      <Modal
+        visible={!!editTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditTarget(null)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-8">
+          <View className="bg-card border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <View className="items-center mb-5">
+              <View className="bg-primary/10 p-4 rounded-full mb-4">
+                <Ionicons name="create-outline" size={28} color={isDark ? '#3b82f6' : '#003ec7'} />
+              </View>
+              <Text className="text-foreground text-lg font-bold text-center">Update Account?</Text>
+              <Text className="text-muted-foreground text-sm text-center mt-2 leading-5">
+                This will update{' '}
+                <Text className="text-foreground font-semibold">
+                  {editTarget ? getProviderLabel(editTarget.accountProvider) : ''}
+                </Text>{' '} 
+                account ending in{' '}
+                <Text className="text-foreground font-semibold">
+                  {editTarget?.accountNumber.slice(-4)}
+                </Text>.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleUpdate}
+              disabled={updateAccountMutation.isPending}
+              className="bg-primary h-14 rounded-2xl items-center justify-center mb-3 active:opacity-80"
+            >
+              {updateAccountMutation.isPending ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-bold text-base">Yes, Update</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setEditTarget(null)}
               className="bg-muted h-14 rounded-2xl items-center justify-center active:opacity-80"
             >
               <Text className="text-foreground font-bold text-base">Cancel</Text>
