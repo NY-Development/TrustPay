@@ -9,7 +9,7 @@ import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
 import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 import SubscriptionModal from '@/src/components/SubscriptionModal';
-import { useTranslation } from 'react-i18next'; // 👈 Import Translation
+import { useTranslation, Trans } from 'react-i18next'; // 👈 Import Translation
 import { useLanguage } from '@/src/providers/LanguageProvider'; // 👈 Import Custom Language Hook
 
 export default function Settings() {
@@ -146,7 +146,11 @@ export default function Settings() {
               isSubscriptionActive && subscriptionDetails ? (
                 <View>
                   <Text className="text-muted-foreground text-sm">
-                    {t('settings.subActiveText', { plan: subscriptionDetails.plan })}
+                    <Trans
+                      i18nKey="settings.subActiveText"
+                      values={{ plan: subscriptionDetails.plan }}
+                      components={{ h1: <Text className="font-bold text-foreground" /> }}
+                    />
                   </Text>
                   <Text className="text-muted-foreground text-xs mt-2">
                     {t('settings.subExpiryText')} <Text className="text-foreground font-medium">{formatDate(subscriptionDetails.endDate)}</Text>
@@ -290,6 +294,19 @@ export default function Settings() {
             >
               <Text className={`text-base font-bold ${currentLanguage === 'am' ? 'text-primary' : 'text-foreground'}`}>አማርኛ (Amharic)</Text>
               {currentLanguage === 'am' && <Ionicons name="checkmark-circle" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={async () => {
+                await changeLanguage('oro');
+                setShowLangSelection(false);
+              }}
+              className={`h-16 rounded-2xl px-5 flex-row items-center justify-between mb-6 border ${
+                currentLanguage === 'oro' ? 'bg-primary/10 border-primary' : 'bg-muted/50 border-transparent'
+              }`}
+            >
+              <Text className={`text-base font-bold ${currentLanguage === 'oro' ? 'text-primary' : 'text-foreground'}`}>Oromic (Afaan Oromoo)</Text>
+              {currentLanguage === 'oro' && <Ionicons name="checkmark-circle" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />}
             </TouchableOpacity>
 
             <TouchableOpacity

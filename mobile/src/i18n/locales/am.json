@@ -11,6 +11,19 @@
     "searchPlaceholder": "በማጣቀሻ ቁጥር ወይም በስም ፈልግ...",
     "emptyState": "ምንም መዝገብ አልተገኘም"
   },
+"dashboard": {
+    "nodeStatus": "ንቁ መስመር",
+    "verifyTitle": "ክፍያ አረጋግጥ",
+    "verifyDesc": "የቴሌብር፣ ሲቢኢ (CBE) ወይም ኤም-ፔሳ ክፍያዎችን በፍጥነት ይፈትሹ ወይም ያንብቡ።",
+    "verifyBtn": "ፈጣን ማረጋገጫ ይጀምሩ",
+    "statToday": "ዛሬ",
+    "statTotalPool": "አጠቃላይ መዝገብ",
+    "recentActivities": "የቅርብ ጊዜ እንቅስቃሴዎች",
+    "viewAllBtn": "ሁሉንም አሳይ",
+    "statusSuccess": "ተሳክቷል",
+    "statusPending": "በሂደት ላይ",
+    "emptyLogs": "ዛሬ የተመዘገበ መረጃ የለም"
+  },
   "settings": {
     "title": "ቅንብሮች",
     "business": "ድርጅት",
@@ -19,7 +32,7 @@
     "checking": "በማረጋገጥ ላይ...",
     "active": "አክቲቭ",
     "inactive": "ያልነቃ",
-    "subActiveText": "አሁን የሚጠቀሙት የ <1>{{plan}}</1> እቅድ ነው።",
+    "subActiveText": "አሁን የሚጠቀሙት የ <h1>{{plan}}</h1> እቅድ ነው።",
     "subExpiryText": "የሚያበቃበት ቀን: ",
     "subUpgradeText": "ፕሪሚየም ማስተያያዎችን እና አውቶማቲክ ማረጋገጫ መሳሪያዎችን ይክፈቱ።",
     "upgradeBtn": "አሻሽል",

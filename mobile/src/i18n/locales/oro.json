@@ -1,0 +1,61 @@
+{
+  "common": {
+    "success": "Milkaa'eera",
+    "failed": "Hin milkoofne",
+    "verified": "MIRKANAA'EERA",
+    "loadMore": "Gochaalee Dabalataa Agarsiisi"
+  },
+  "history": {
+    "title": "Seenaa Kuusaa",
+    "subtitle": "Galmee Sakatta'iinsaa & Marsariitiiwwan Kaffaltii",
+    "searchPlaceholder": "Lakkoofsa eerumsaa ykn maqaan calali...",
+    "emptyState": "Galmeen argame hin jiru"
+  },
+  "dashboard": {
+    "nodeStatus": "HARRCA KALLATTI",
+    "verifyTitle": "Kaffaltii Mirkaneessi",
+    "verifyDesc": "Kaffaltiiwwan Telebirr, CBE, ykn M-Pesa daqiiqaa tokkotti skani ykn galchi.",
+    "verifyBtn": "Mirkaneessaa Battalaa Jalqabi",
+    "statToday": "Har'a",
+    "statTotalPool": "Waliigala Kuusaa",
+    "recentActivities": "Gochaalee Kuusaa Dhiyoo",
+    "viewAllBtn": "Hunda Agarsiisi",
+    "statusSuccess": "MILKAA'EERA",
+    "statusPending": "Eeggamaa Jira",
+    "emptyLogs": "Galmeen har'a galmaaye hin jiru"
+  },
+  "settings": {
+    "title": "Kallattiiwwan",
+    "business": "Dhaabbata",
+    "branches": "Dammeewwan",
+    "subscriptionStatus": "Haala Maamulni kee Irra Jiru",
+    "checking": "Mirkaneessaa jira...",
+    "active": "Hojirra jira",
+    "inactive": " Hojirra hin jiru",
+    "subActiveText": "Amma karoora <1>{{plan}}</1> fayyadamaa jirtu.",
+    "subExpiryText": "Kan dhumatu: ",
+    "subUpgradeText": "Meeshaalee kaffaltii fi mirkaneessaa otomaatikaa banadhu.",
+    "upgradeBtn": "Fooyyessi",
+    "signOutBtn": "Ba'i",
+    "account": "Herrega",
+    "manageAccounts": "Herrega Bulchi",
+    "accountLinked": "herrega walitti hidhame",
+    "accountsLinked": "herregoota walitti hidhaman",
+    "security": "Nageenya",
+    "biometricLogin": "Baniinsa Biyaameetrikisii",
+    "changePassword": "Jecha Icchitii Jijjiiri",
+    "notifications": "Beeksisoota",
+    "pushNotifications": "Beeksisoota Push",
+    "supportFeedback": "Deeggarsa & Yaada",
+    "contactSupport": "Deeggarsa Argadhu",
+    "privacyPolicy": "Imaammata Mateenyaa",
+    "logoutModalTitle": "Ba'uu Barbaaddaa?",
+    "logoutModalDesc": "Herrega keetii fi daataa mirkaneessaa kee argachuuf deebitee galuu qabda.",
+    "logoutConfirmBtn": "Eeyyee, Ba'i",
+    "cancelBtn": "Haqi",
+    "languageSection": "Filannoowwan",
+    "languageTitle": "Afaan Appilikeeshinii",
+    "languageSubTextEng": "English",
+    "languageSubTextAmh": "አማርኛ"
+  }
+}

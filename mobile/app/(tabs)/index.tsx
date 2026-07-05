@@ -14,14 +14,17 @@ import { useAuthStore } from '@/src/store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next'; // 👈 Import Translation Context
+import { useLanguage } from '@/src/providers/LanguageProvider'; // 👈 Import Language Context
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+  const { currentLanguage } = useLanguage();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { user } = useAuthStore();
 
   useNotifications();
-  // Call the updated infinite query hook
   const { data: infiniteHistory, isLoading, refetch } = useVerificationHistory();
   const router = useRouter();
 
@@ -34,13 +37,19 @@ export default function Dashboard() {
     return d.getTime() === today.getTime();
   };
 
-  // Safely flatten multi-page tracking logs from the infinite query structure
   const historyItems = infiniteHistory?.pages?.flatMap(page => page.data) || [];
 
   const todayCount =
     historyItems.filter((v: any) => isSameDay(v.paymentDate)).length || 0;
 
   const totalCount = historyItems.length || 0;
+
+  // Handles dynamic locale strings inside list item render loops cleanly
+  const getLocaleTag = () => {
+    if (currentLanguage === 'am') return 'am-ET';
+    if (currentLanguage === 'oro') return 'om-ET';
+    return 'en-US';
+  };
 
   return (
     <View className="flex-1 bg-background relative">
@@ -82,7 +91,7 @@ export default function Dashboard() {
 
               <View className="ml-4 flex-1">
                 <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
-                  {user?.role || 'Verified Merchant'}
+                  {user?.role || t('common.verified')}
                 </Text>
                 <Text className="text-foreground text-2xl font-black tracking-tight truncate">
                   {user?.name || 'TrustPay Hub'}
@@ -122,23 +131,23 @@ export default function Dashboard() {
 
               <View className="bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
                 <Text className="text-white font-black text-[10px] uppercase tracking-widest">
-                  ACTIVE NODE
+                  {t('dashboard.nodeStatus')}
                 </Text>
               </View>
             </View>
 
             <View className="mb-6">
               <Text className="text-white text-3xl font-black tracking-tight">
-                Verify Payment
+                {t('dashboard.verifyTitle')}
               </Text>
               <Text className="text-white/80 text-sm mt-1.5 font-medium leading-5">
-                Scan or ingest transactions across Telebirr, CBE, or M-Pesa channels instantly.
+                {t('dashboard.verifyDesc')}
               </Text>
             </View>
 
             <TouchableOpacity onPress={() => router.push('/(tabs)/verify' as any)} className="bg-white rounded-2xl h-14 flex-row items-center justify-center shadow-md active:bg-white/90">
               <Text className="text-primary font-bold text-base mr-2">
-                Launch Instant Verification
+                {t('dashboard.verifyBtn')}
               </Text>
               <Ionicons name="chevron-forward-circle" size={20} color={isDark ? '#276cff' : '#003ec7'} />
             </TouchableOpacity >
@@ -149,7 +158,7 @@ export default function Dashboard() {
             <View className="flex-1 bg-card border border-border rounded-3xl p-5 shadow-sm">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="today-outline" size={16} color="#94a3b8" />
-                <Text className="text-muted-foreground font-bold text-xs uppercase tracking-wider ml-1.5">Today</Text>
+                <Text className="text-muted-foreground font-bold text-xs uppercase tracking-wider ml-1.5">{t('dashboard.statToday')}</Text>
               </View>
               <Text className="text-foreground text-3xl font-black tracking-tight">
                 {todayCount}
@@ -159,7 +168,7 @@ export default function Dashboard() {
             <View className="flex-1 bg-card border border-border rounded-3xl p-5 shadow-sm">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="pie-chart-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
-                <Text className="text-primary font-bold text-xs uppercase tracking-wider ml-1.5">Total Pool</Text>
+                <Text className="text-primary font-bold text-xs uppercase tracking-wider ml-1.5">{t('dashboard.statTotalPool')}</Text>
               </View>
               <Text className="text-foreground text-3xl font-black tracking-tight">
                 {totalCount}
@@ -171,14 +180,14 @@ export default function Dashboard() {
           <View className="mb-6">
             <View className="flex-row justify-between items-center mb-5 px-1">
               <Text className="text-foreground text-lg font-black tracking-tight">
-                Recent Ledger Activities
+                {t('dashboard.recentActivities')}
               </Text>
 
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/history')}
                 className="px-3 py-1.5 bg-muted rounded-xl border border-border"
               >
-                <Text className="text-primary font-bold text-xs">View All</Text>
+                <Text className="text-primary font-bold text-xs">{t('dashboard.viewAllBtn')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -206,7 +215,7 @@ export default function Dashboard() {
 
                     <Text className="text-muted-foreground text-xs mt-0.5 font-medium">
                       {item.provider} •{' '}
-                      {new Date(item.paymentDate).toLocaleDateString(undefined, {
+                      {new Date(item.paymentDate).toLocaleDateString(getLocaleTag(), {
                         month: 'short',
                         day: 'numeric'
                       })}
@@ -221,7 +230,7 @@ export default function Dashboard() {
                     <Text className={`font-black text-[10px] tracking-wider ${
                       item.verified ? 'text-emerald-500' : 'text-amber-500'
                     }`}>
-                      {item.verified ? 'SUCCESS' : 'PENDING'}
+                      {item.verified ? t('dashboard.statusSuccess') : t('dashboard.statusPending')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -237,7 +246,7 @@ export default function Dashboard() {
                 </View>
 
                 <Text className="text-muted-foreground text-sm font-semibold">
-                  No records logged today
+                  {t('dashboard.emptyLogs')}
                 </Text>
               </View>
             )}

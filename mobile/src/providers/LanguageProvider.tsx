@@ -7,18 +7,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import en from '../i18n/locales/en.json';
 import am from '../i18n/locales/am.json';
+import oro from '../i18n/locales/oro.json';
 
 const LANGUAGE_KEY = 'trustpay-user-language';
 
 const resources = {
   en: { translation: en },
   am: { translation: am },
+  oro: { translation: oro }
 };
 
 interface LanguageContextType {
   isReady: boolean;
   currentLanguage: string;
-  changeLanguage: (lang: 'en' | 'am') => Promise<void>;
+  changeLanguage: (lang: 'en' | 'am' | 'oro') => Promise<void>;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -62,7 +64,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setupLocalization();
   }, []);
 
-  const changeLanguage = async (lang: 'en' | 'am') => {
+  const changeLanguage = async (lang: 'en' | 'am' | 'oro') => {
     try {
       await i18n.changeLanguage(lang);
       await AsyncStorage.setItem(LANGUAGE_KEY, lang);

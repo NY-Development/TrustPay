@@ -5,12 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import en from './locales/en.json';
 import am from './locales/am.json';
+import oro from './locales/oro.json';
 
 const LANGUAGE_KEY = 'user-language';
 
 const resources = {
   en: { translation: en },
   am: { translation: am },
+  oro: { translation: oro }
 };
 
 const initI18n = async () => {

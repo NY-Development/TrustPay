@@ -11,6 +11,19 @@
     "searchPlaceholder": "Filter by reference number or name...",
     "emptyState": "No Records Resolved"
   },
+"dashboard": {
+    "nodeStatus": "ACTIVE NODE",
+    "verifyTitle": "Verify Payment",
+    "verifyDesc": "Scan or ingest transactions across Telebirr, CBE, or M-Pesa channels instantly.",
+    "verifyBtn": "Launch Instant Verification",
+    "statToday": "Today",
+    "statTotalPool": "Total Pool",
+    "recentActivities": "Recent Ledger Activities",
+    "viewAllBtn": "View All",
+    "statusSuccess": "SUCCESS",
+    "statusPending": "PENDING",
+    "emptyLogs": "No records logged today"
+  },
   "settings": {
     "title": "Settings",
     "business": "Business",
@@ -19,7 +32,7 @@
     "checking": "Checking...",
     "active": "Active",
     "inactive": "Inactive",
-    "subActiveText": "You are currently on the <1>{{plan}}</1> plan.",
+    "subActiveText": "You are currently on the <h1>{{plan}}</h1> plan.",
     "subExpiryText": "Expires on: ",
     "subUpgradeText": "Unlock premium settlement and automatic verification tools.",
     "upgradeBtn": "Upgrade",
