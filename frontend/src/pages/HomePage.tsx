@@ -113,6 +113,7 @@ function HeroInteractivePhysics() {
 }
 
 // --- TRUSTED BY COMPONENT ---
+// --- ANIMATED TRUSTED BY COMPONENT ---
 function TrustedBy() {
   const organizations = [
     { id: 1, name: "AYU HOTEL" },
@@ -125,16 +126,32 @@ function TrustedBy() {
   return (
     <section className="py-12 border-b border-border bg-background">
       <div className="max-w-[1280px] mx-auto px-6 text-center">
-        <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-widest mb-8">
+        <motion.p 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-[13px] font-bold text-muted-foreground uppercase tracking-widest mb-8"
+        >
           Trusted by leading establishments
-        </p>
-        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-60">
+        </motion.p>
+        
+        <motion.div 
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-60"
+        >
           {organizations.map((org) => (
-            <span key={org.id} className="font-heading text-lg font-bold text-foreground">
+            <motion.span 
+              key={org.id} 
+              variants={fadeUpItem}
+              className="font-heading text-lg font-bold text-foreground"
+            >
               {org.name}
-            </span>
+            </motion.span>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

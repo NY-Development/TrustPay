@@ -7,7 +7,9 @@ export default function PricingPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
+  // Added Starter plan to match the UI and handlePricingAction requirements[cite: 18]
   const prices = [
+    { name: 'Starter', price: 0, trialDays: 5, id: 'starter' },
     { name: 'Business', price: 1499.99, trialDays: 0, id: 'business' },
     { name: 'Enterprise', price: null, trialDays: 0, id: 'enterprise' }
   ];
@@ -19,7 +21,6 @@ export default function PricingPage() {
     }
 
     if (!isAuthenticated) {
-      // Redirect to registration
       window.location.href = '/register';
     } else {
       setSelectedPlan(plan);
@@ -65,7 +66,6 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Expanded Content for Unauthenticated Users */}
         {!isAuthenticated && (
           <section className="bg-white p-8 rounded-2xl border border-[#c2c6d9]/30 shadow-sm text-center">
             <h2 className="text-2xl font-bold mb-4">Why verify with our platform?</h2>
@@ -80,7 +80,7 @@ export default function PricingPage() {
         )}
       </main>
 
-      {/* Authenticated Subscription Modal */}
+      {/* Subscription Modal - Updated to pass partial data[cite: 18] */}
       {modalVisible && isAuthenticated && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white w-full max-w-lg rounded-2xl p-6">
