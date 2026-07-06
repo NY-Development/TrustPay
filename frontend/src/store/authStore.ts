@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
 
   /* =========================================================
-     SET USER (LOGIN)
+     SET USER (LOGIN/REGISTER)
   ========================================================= */
   setUser: async (user, tokens) => {
     if (tokens?.accessToken) {
@@ -62,6 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await TokenService.saveRefreshToken(tokens.refreshToken);
     }
 
+    // User object now contains the trial data structure[cite: 11]
     set({
       user,
       isAuthenticated: !!user,
@@ -109,6 +110,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
           const response = await authApi.getMe();
 
+          // User object populated via API includes trial information[cite: 11]
           if (response?.data?.user) {
             user = response.data.user;
           }
@@ -133,19 +135,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-refreshUser: async () => {
-  try {
-    const response = await authApi.getMe();
+  /* =========================================================
+     REFRESH USER
+  ========================================================= */
+  refreshUser: async () => {
+    try {
+      const response = await authApi.getMe();
 
-    if (response?.data?.user) {
-      set({
-        user: response.data.user,
-      });
+      if (response?.data?.user) {
+        set({
+          user: response.data.user,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to refresh user', error);
     }
-  } catch (error) {
-    console.error('Failed to refresh user', error);
-  }
-},
+  },
 
   /* =========================================================
      ONBOARDING

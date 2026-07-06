@@ -30,7 +30,7 @@ export default function AboutPage() {
               <span className="material-symbols-outlined text-[20px]">shield</span>
             </div>
             <div>
-              <h1 className="text-md font-bold text-[#131b2e] dark:text-white leading-tight">VeriPay</h1>
+              <h1 className="text-md font-bold text-[#131b2e] dark:text-white leading-tight">Trust Pay</h1>
               <p className="text-[11px] text-[#54647a] dark:text-[#c2c6d9]/70">Verification Network</p>
             </div>
           </Link>

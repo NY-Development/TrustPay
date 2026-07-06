@@ -1,19 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 import { Link } from 'react-router-dom';
+import SubscriptionModal from '@/src/components/SubscriptionModal';
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
   XAxis,
   YAxis,
+  Cell,
 } from "recharts";
 
 import {
@@ -24,6 +22,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { useAuthStore } from '@/src/store/authStore';
+import { useSubscriptionStatus } from '@/src/hooks/useSubscription'; // Import hook[cite: 19]
 
 const COLORS = ["#004bca", "#7c3aed", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
@@ -32,11 +32,47 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function DashboardPage() {
-  const { data: subStatus } = useSubscriptionStatus();
   const { data, isLoading } = useVerificationHistory({ limit: 50 });
+  const { user } = useAuthStore();
+  const { data: subData } = useSubscriptionStatus(); // Fetch status[cite: 19, 20]
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [timeLeft, setTimeLeft] = useState('');
   
   const allVerifications = data?.pages?.flatMap(page => page.data) || [];
   const verifications = allVerifications.slice(0, 5);
+
+  // Enforce modal visibility based on trial and subscription status[cite: 20, 21]
+  useEffect(() => {
+    const isTrialExpired = user?.trial?.trialEndDate && new Date(user.trial.trialEndDate) < new Date();
+    const isNotFullyPaid = subData?.data?.active !== true;
+
+    if (isTrialExpired && isNotFullyPaid) {
+      setModalVisible(true);
+    }
+  }, [user?.trial?.trialEndDate, subData]);
+
+  // Countdown Logic
+  useEffect(() => {
+    if (!user?.trial?.trialEndDate) return;
+    
+    const interval = setInterval(() => {
+      const end = new Date(user.trial!.trialEndDate!).getTime();
+      const now = new Date().getTime();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        clearInterval(interval);
+      } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / 1000 / 60) % 60);
+        setTimeLeft(`${days}d ${hours}h ${minutes}m`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [user?.trial?.trialEndDate]);
 
   const computed = useMemo(() => {
     if (allVerifications.length === 0) return null;
@@ -80,24 +116,39 @@ export default function DashboardPage() {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { label: "Terminal Plan", value: subStatus?.data?.subscription?.status === 'active' ? 'Premium active' : 'Trial package', icon: "card_membership" },
-          { label: "Remaining Trial", value: subStatus?.data?.subsAccessTrialExpiresAt ? '5 Days' : 'Unlimited', icon: "hourglass_empty" },
-          { label: "Success Rate", value: computed ? `${computed.successRate}%` : '—', icon: "trending_up" }
-        ].map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
-            <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider block">{stat.label}</span>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-2xl font-bold text-[#131b2e] dark:text-white">{stat.value}</span>
-              <span className="material-symbols-outlined text-[#004bca]">{stat.icon}</span>
-            </div>
+        {/* Terminal Plan */}
+        <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
+          <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider block">Terminal Plan</span>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-2xl font-bold text-[#131b2e] dark:text-white">{subData?.data?.active ? 'Premium' : (user?.trial?.hasUsedTrial ? 'Trial Expired' : 'Trial Active')}</span>
+            <span className="material-symbols-outlined text-[#004bca]">card_membership</span>
           </div>
-        ))}
+        </div>
+
+        {/* Remaining Trial & Clock */}
+        <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider">Remaining Trial</span>
+            <button onClick={() => setModalVisible(true)} className="text-[10px] bg-[#004bca] text-white px-2 py-1 rounded font-bold hover:bg-[#003da1]">Upgrade</button>
+          </div>
+          <div className="mt-1">
+            <span className="text-2xl font-bold text-[#004bca]">{subData?.data?.active ? 'Active' : timeLeft}</span>
+            <p className="text-[10px] text-[#54647a]">Ends: {user?.trial?.trialEndDate ? new Date(user.trial.trialEndDate).toLocaleDateString() : 'N/A'}</p>
+          </div>
+        </div>
+
+        {/* Success Rate */}
+        <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
+          <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider block">Success Rate</span>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-2xl font-bold text-[#131b2e] dark:text-white">{computed ? `${computed.successRate}%` : '—'}</span>
+            <span className="material-symbols-outlined text-[#004bca]">trending_up</span>
+          </div>
+        </div>
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Area Chart: Volume */}
         <div className="bg-white dark:bg-[#131b2e] border border-border/60 rounded-2xl p-6 shadow-xs">
           <h3 className="font-bold text-lg mb-1">Check volume history</h3>
           <p className="text-xs text-muted-foreground mb-6">Daily reference verification requests</p>
@@ -114,7 +165,6 @@ export default function DashboardPage() {
           </ChartContainer>
         </div>
 
-        {/* Pie Chart: Distribution */}
         <div className="bg-white dark:bg-[#131b2e] border border-border/60 rounded-2xl p-6 shadow-xs">
           <h3 className="font-bold text-lg mb-1">Provider Distribution</h3>
           <p className="text-xs text-muted-foreground mb-6">Requests by gateway</p>
@@ -165,6 +215,14 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Subscription Modal Enforced Visibility[cite: 17, 21] */}
+      <SubscriptionModal 
+        visible={modalVisible} 
+        canClose={subData?.data?.active === true} 
+        onClose={() => setModalVisible(false)} 
+        partialSubscription={subData?.data?.isPartialPayment ? subData.data.subscription : undefined}
+      />
     </div>
   );
 }

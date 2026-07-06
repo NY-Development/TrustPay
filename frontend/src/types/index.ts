@@ -1,18 +1,26 @@
+// Add this interface
+export interface TrialInfo {
+  hasUsedTrial: boolean;
+  trialStartDate?: string;
+  trialEndDate?: string;
+  daysLeft?: number;
+}
+
 export interface User {
   _id: string;
   name: string;
   email: string;
-
   role: string;
-
   accounts: {
     accountNumber: string;
     accountProvider: string;
   }[];
-
   pushToken?: string;
+  
+  // Updated to include trial object
+  trial?: TrialInfo;
 
-  // Trial
+  // Keep existing fields for backward compatibility if needed
   trialStartDate?: string;
   trialEndDate?: string;
   hasUsedTrial?: boolean;
@@ -21,6 +29,7 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
 }
+// ... rest of the file
 
 export interface Verification {
   id: string;

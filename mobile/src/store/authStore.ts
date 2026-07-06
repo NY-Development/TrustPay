@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
 import { Storage, STORAGE_KEYS } from '../utils/storage';
-import { BiometricService } from '../utils/biometrics';
 import { authApi } from '../api/auth.api';
 
 import { TokenService } from '@/src/services/token.service';
@@ -14,13 +13,10 @@ import { onUnauthorized } from '@/src/api/auth-events';
 
 interface AuthState {
   user: User | null;
-
   isAuthenticated: boolean;
   isHydrated: boolean;
-
   hasSeenOnboarding: boolean;
   biometricsEnabled: boolean;
-
   isLoggingOut: boolean;
 
   setUser: (
@@ -32,15 +28,10 @@ interface AuthState {
   ) => Promise<void>;
 
   logout: (reason?: 'manual' | 'expired') => Promise<void>;
-
   hydrate: () => Promise<void>;
-
   refreshUser: () => Promise<void>;
-
   setHasSeenOnboarding: (value: boolean) => Promise<void>;
-
   setBiometricsEnabled: (value: boolean) => Promise<void>;
-
   updatePushToken: (token: string) => Promise<void>;
 }
 
@@ -55,7 +46,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hasSeenOnboarding: false,
   biometricsEnabled: false,
   isLoggingOut: false,
-      
 
   /* =========================================================
      SET USER (LOGIN)
@@ -64,11 +54,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (tokens?.accessToken) {
       await TokenService.saveAccessToken(tokens.accessToken);
     }
-
     if (tokens?.refreshToken) {
       await TokenService.saveRefreshToken(tokens.refreshToken);
     }
-
     set({
       user,
       isAuthenticated: !!user,
@@ -80,15 +68,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   ========================================================= */
   logout: async (reason = 'manual') => {
     const state = get();
-
     if (state.isLoggingOut) return;
-
     set({ isLoggingOut: true });
-
     try {
       await TokenService.clearTokens();
       clearAuthCache();
-
       set({
         user: null,
         isAuthenticated: false,
@@ -104,21 +88,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrate: async () => {
     try {
       const accessToken = await TokenService.getAccessToken();
-
-      const onboarded = await Storage.getItem<boolean>(
-        STORAGE_KEYS.HAS_SEEN_ONBOARDING
-      );
-
-      const bioEnabled = await Storage.getItem<boolean>(
-        STORAGE_KEYS.BIOMETRICS_ENABLED
-      );
-
+      const onboarded = await Storage.getItem<boolean>(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
+      const bioEnabled = await Storage.getItem<boolean>(STORAGE_KEYS.BIOMETRICS_ENABLED);
       let user: User | null = null;
 
       if (accessToken) {
         try {
           const response = await authApi.getMe();
-
           if (response?.data?.user) {
             user = response.data.user;
           }
@@ -126,7 +102,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           await TokenService.clearTokens();
         }
       }
-
       set({
         user,
         isAuthenticated: !!user,
@@ -136,7 +111,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (err) {
       console.error('Hydration error:', err);
-
       set({
         isAuthenticated: false,
         isHydrated: true,
@@ -144,31 +118,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-refreshUser: async () => {
-  try {
-    const response = await authApi.getMe();
-
-    if (response?.data?.user) {
-      set({
-        user: response.data.user,
-      });
+  refreshUser: async () => {
+    try {
+      const response = await authApi.getMe();
+      if (response?.data?.user) {
+        set({ user: response.data.user });
+      }
+    } catch (error) {
+      console.error('Failed to refresh user', error);
     }
-  } catch (error) {
-    console.error('Failed to refresh user', error);
-  }
-},
+  },
 
-  /* =========================================================
-     ONBOARDING
-  ========================================================= */
   setHasSeenOnboarding: async (value) => {
     await Storage.setItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING, value);
     set({ hasSeenOnboarding: value });
   },
 
-  /* =========================================================
-     BIOMETRICS
-  ========================================================= */
   setBiometricsEnabled: async (value) => {
     await Storage.setItem(STORAGE_KEYS.BIOMETRICS_ENABLED, value);
     set({ biometricsEnabled: value });
@@ -180,18 +145,18 @@ refreshUser: async () => {
   updatePushToken: async (token) => {
     try {
       const { user } = get();
-
       if (user) {
         await authApi.updatePushToken(token);
-
         set({
           user: {
-              ...user,
-              pushToken: token,
-              daysLeft: user.daysLeft,
-              trialEndDate: user.trialEndDate,
-              trialStartDate: user.trialStartDate,
-              hasUsedTrial: user.hasUsedTrial,
+            ...user,
+            pushToken: token,
+            // Preserve nested trial structure
+            trial: user.trial,
+            daysLeft: user.daysLeft,
+            trialEndDate: user.trialEndDate,
+            trialStartDate: user.trialStartDate,
+            hasUsedTrial: user.hasUsedTrial,
           },
         });
       }
@@ -201,14 +166,8 @@ refreshUser: async () => {
   },
 }));
 
-/* =========================================================
-   GLOBAL 401 HANDLER
-========================================================= */
-
 onUnauthorized(() => {
   const store = useAuthStore.getState();
-
   if (store.isLoggingOut) return;
-
   store.logout('expired');
 });

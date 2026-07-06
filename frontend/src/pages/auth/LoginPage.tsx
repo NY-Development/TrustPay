@@ -45,7 +45,7 @@ export default function LoginPage() {
             <span className="material-symbols-outlined text-[20px]">shield</span>
           </div>
           <div>
-            <h1 className="text-md font-bold text-[#131b2e] dark:text-white leading-tight">VeriPay Admin</h1>
+            <h1 className="text-md font-bold text-[#131b2e] dark:text-white leading-tight">Trust Pay Admin</h1>
             <p className="text-[11px] text-[#54647a] dark:text-[#c2c6d9]/70">Access verification terminal</p>
           </div>
         </Link>

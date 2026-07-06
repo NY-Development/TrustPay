@@ -44,7 +44,7 @@ export const DashboardLayout: React.FC = () => {
             <span className="material-symbols-outlined text-[32px] text-white shrink-0">shield</span>
             {!collapsed && (
               <div className="transition-opacity duration-300">
-                <h1 className="text-lg font-bold text-white leading-tight whitespace-nowrap">VeriPay Admin</h1>
+                <h1 className="text-lg font-bold text-white leading-tight whitespace-nowrap">Trust Pay Admin</h1>
                 <p className="text-xs text-[#b7c8e1]/80 max-w-[150px] truncate">{user?.role || 'Enterprise Tier'}</p>
               </div>
             )}
