@@ -38,7 +38,7 @@ export const AdminLayout: React.FC = () => {
     { to: '/admin/users', label: 'User Registry', icon: 'group' },
     { to: '/admin/verifications', label: 'Verifications Pool', icon: 'verified' },
     { to: '/admin/subscriptions', label: 'Subscriptions Management', icon: 'monetization_on' },
-    { to: '/admin/audit', label: 'System Audit Logs', icon: 'shield_heart' },
+    { to: '/admin/audit', label: 'System Audit Logs', icon: 'shield' },
   ];
 
   return (

@@ -132,3 +132,7 @@
     @apply font-sans;
   }
 }
+
+html {
+  overflow-y: scroll;
+}

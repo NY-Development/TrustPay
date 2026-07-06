@@ -19,8 +19,14 @@ export default function LoginPage() {
     loginMutation.mutate(
       { email, password },
       {
-        onSuccess: () => {
-          navigate('/dashboard');
+        onSuccess: (response: any) => {
+          const userRole = response?.data?.user?.role; 
+
+          if (userRole === 'SUPER_ADMIN') {
+            navigate('/admin/dashboard'); // Redirect to admin dashboard
+          } else {
+            navigate('/dashboard'); // Standard user dashboard
+          }
         },
         onError: (err: any) => {
           setErrorMsg(err.response?.data?.message || err.message || 'Login failed. Please verify credentials.');
