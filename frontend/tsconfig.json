@@ -8,6 +8,8 @@
     "strict": true,
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@/*": ["./src/*"]
     }

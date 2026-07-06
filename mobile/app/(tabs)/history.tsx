@@ -5,20 +5,19 @@ import { useColorScheme } from 'nativewind';
 import { useVerificationHistory } from '@/src/hooks/useVerification'; 
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router'; // 💡 FIXED: Import direct global router object to prevent context drops
 
 const PROVIDERS = [
   { id: 'all', label: 'All Channels' },
   { id: 'cbe', label: 'CBE' },
   { id: 'telebirr', label: 'Telebirr' },
   { id: 'mpesa', label: 'M-Pesa' },
-  { id: 'boa', label: 'Awash' },
+  { id: 'awash', label: 'Awash' },
 ];
 
 export default function History() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const router = useRouter();
 
   const [search, setSearch] = React.useState('');
   const [selectedProvider, setSelectedProvider] = React.useState('all');
@@ -35,44 +34,76 @@ export default function History() {
     limit,
   });
 
-  // Flatten nested pagination chunks safely from pages arrays[cite: 16]
-  const historyItems = infiniteHistory?.pages?.flatMap(page => page.data) || [];
-
-  // Multi-tier client-side filtering execution block (Search + Channel Provider matching)[cite: 16]
-  const filteredHistory = historyItems.filter((item: any) => {
-    const targetSearch = search.toLowerCase();
+  // 💡 FIXED: Adaptive data flattening layer to safely parse both unpaginated flat arrays and paginated object feeds
+  const historyItems = React.useMemo(() => {
+    if (!infiniteHistory?.pages) return [];
     
-    // Safely check reference numbers or fallback values to ensure proper matching
-    const matchesSearch = 
-      (item.transactionId && item.transactionId.toLowerCase().includes(targetSearch)) || 
-      (item.referenceNumber && item.referenceNumber.toLowerCase().includes(targetSearch)) ||
-      (item.payerName && item.payerName.toLowerCase().includes(targetSearch));
+    return infiniteHistory.pages.flatMap((page: any) => {
+      if (!page) return [];
+      // If the backend returned a direct array wrapper inside data (business-history)
+      if (Array.isArray(page.data)) return page.data;
+      // If the page itself is the direct array response
+      if (Array.isArray(page)) return page;
+      return [];
+    });
+  }, [infiniteHistory]);
+
+  // Multi-tier client-side filtering execution block (Search + Channel Provider matching)[cite: 44]
+  const filteredHistory = React.useMemo(() => {
+    return historyItems.filter((item: any) => {
+      if (!item) return false;
+      const targetSearch = search.toLowerCase();
       
-    const matchesProvider = 
-      selectedProvider === 'all' || 
-      (item.provider && item.provider.toLowerCase() === selectedProvider.toLowerCase());
+      const itemTxId = item.transactionId ? String(item.transactionId).toLowerCase() : '';
+      const itemRefNo = item.referenceNumber ? String(item.referenceNumber).toLowerCase() : '';
+      const itemPayer = item.payerName ? String(item.payerName).toLowerCase() : '';
+      
+      // Supporting both 'bank' and 'provider' variants returned from schemas safely
+      const rawProvider = item.provider || item.bank || '';
+      const itemProvider = String(rawProvider).toLowerCase();
 
-    return matchesSearch && matchesProvider;
-  });
+      const matchesSearch = 
+        itemTxId.includes(targetSearch) || 
+        itemRefNo.includes(targetSearch) ||
+        itemPayer.includes(targetSearch);
+        
+      const matchesProvider = 
+        selectedProvider === 'all' || 
+        itemProvider === selectedProvider.toLowerCase();
 
-  // Live analytics aggregated on top of currently fetched cluster pools[cite: 16]
-  const successfulCount = historyItems.filter((v: any) => v.verified).length;
-  const totalVolume = historyItems.reduce((acc: number, cur: any) => acc + (cur.amount || 0), 0);
+      return matchesSearch && matchesProvider;
+    });
+  }, [historyItems, search, selectedProvider]);
+
+  // Safe Date Formatter formatting barrier to intercept date-fns crashes
+  const formatPaymentDate = (dateString: any) => {
+    if (!dateString) return '...';
+    try {
+      const parsedDate = new Date(dateString);
+      if (isNaN(parsedDate.getTime())) return '...';
+      return format(parsedDate, 'MMM dd, yyyy');
+    } catch {
+      return '...';
+    }
+  };
+
+  // Live analytics aggregated on top of currently fetched cluster pools[cite: 44]
+  const successfulCount = filteredHistory.filter((v: any) => v?.verified).length;
+  const totalVolume = filteredHistory.reduce((acc: number, cur: any) => acc + (Number(cur?.amount) || 0), 0);
 
   const handleProviderChange = (providerId: string) => {
     setSelectedProvider(providerId);
   };
 
-  // Safe router navigation wrapper that protects the context path
+  // Safe router navigation wrapper that protects the context path[cite: 44]
   const handleNavigateToDetails = (item: any) => {
-    const targetId = item._id || item.id || item.referenceNumber;
+    const targetId = item?._id || item?.id || item?.referenceNumber;
     
     if (!targetId) {
       Alert.alert('Navigation Error', 'Could not locate a valid reference index for this item.');
       return;
     }
 
-    // Wrap in frame tick to prevent layout transitions from severing routing tree context
     requestAnimationFrame(() => {
       router.push(`/verification/${targetId}`);
     });
@@ -181,7 +212,7 @@ export default function History() {
                       {item.transactionId || item.referenceNumber || 'UNKNOWN REF'}
                     </Text>
                     <View className="flex-row items-center mt-0.5 gap-1.5">
-                      <Text className="text-muted-foreground text-xs font-semibold uppercase">{item.provider || 'N/A'}</Text>
+                      <Text className="text-muted-foreground text-xs font-semibold uppercase">{item.provider || item.bank || 'N/A'}</Text>
                       <View className="w-1 h-1 bg-muted-foreground rounded-full opacity-40" />
                       <Text className="text-muted-foreground text-xs font-medium capitalize">{item.source || 'manual'}</Text>
                     </View>
@@ -190,10 +221,10 @@ export default function History() {
 
                 <View className="items-end">
                   <Text className="text-foreground font-black text-base tracking-tight">
-                    {item.amount?.toLocaleString()} <Text className="text-xs font-bold text-muted-foreground">{item.currency || 'ETB'}</Text>
+                    {Number(item.amount || 0).toLocaleString()} <Text className="text-xs font-bold text-muted-foreground">{item.currency || 'ETB'}</Text>
                   </Text>
                   <Text className="text-muted-foreground text-xs mt-0.5 font-medium">
-                    {item.paymentDate ? format(new Date(item.paymentDate), 'MMM dd, yyyy') : '...'}
+                    {formatPaymentDate(item.paymentDate)}
                   </Text>
                 </View>
               </View>

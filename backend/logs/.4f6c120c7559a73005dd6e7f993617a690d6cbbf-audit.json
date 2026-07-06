@@ -109,6 +109,41 @@
             "date": 1783239585445,
             "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-11.log",
             "hash": "a203ecb87c7a1bf11ffa4daab12f2db70a84be86199ddc54ad3d446521182e46"
+        },
+        {
+            "date": 1783242048592,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-12.log",
+            "hash": "634702600d9c87627bc6f37b8444541108d7ddfd045a97987b305381436a0005"
+        },
+        {
+            "date": 1783267603969,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-19.log",
+            "hash": "a72726638fc0d72a218fc1e77ffd904b19ea60744d3ad2f7f84d0f7b872675f6"
+        },
+        {
+            "date": 1783271171219,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-20.log",
+            "hash": "678b3e40b567bfb4cca8b203f38ac8f7b8dd83169cf3af3fa369f27dd9a20199"
+        },
+        {
+            "date": 1783295492299,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-02.log",
+            "hash": "2b32025486c4b14594e0b4e9ec5de16fd006e4b304e8051ee601d827da9431ad"
+        },
+        {
+            "date": 1783297102125,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-03.log",
+            "hash": "298f430b1fba229944b032a24a9e69686bb9dfc92c03e80cfc7e39d74228b22c"
+        },
+        {
+            "date": 1783299705656,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-04.log",
+            "hash": "984b0f4450064db15fe77821dbb58902ed34d734ed73f6403b9f2311f8ecedac"
+        },
+        {
+            "date": 1783303696783,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-05.log",
+            "hash": "27d0fe8c553706a46412fba2666b57b5717337c14239a46648a60a5988c56eaf"
         }
     ],
     "hashType": "sha256"

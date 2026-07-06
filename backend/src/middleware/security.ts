@@ -40,10 +40,15 @@ export const setupSecurityMiddleware = (app: any) => {
   // Set security HTTP headers
   app.use(helmet());
 
+  // Parse comma-separated origins into an array, removing any accidental whitespace
+  const allowedOrigins = env.CORS_ORIGIN 
+    ? env.CORS_ORIGIN.split(',').map(origin => origin.trim()) 
+    : [];
+
   // Enable CORS
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -55,8 +60,7 @@ export const setupSecurityMiddleware = (app: any) => {
     if (req.body) mongoSanitize.sanitize(req.body, {});
     if (req.params) mongoSanitize.sanitize(req.params, {});
     if (req.headers) mongoSanitize.sanitize(req.headers, {});
-    // For query, we try to sanitize in place if possible, but mongoSanitize.sanitize 
-    // actually modifies the object in place if it's an object.
+    
     if (req.query) {
       try {
         mongoSanitize.sanitize(req.query, {});

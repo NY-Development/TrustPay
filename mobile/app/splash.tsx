@@ -12,8 +12,10 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
+import { useTranslation } from 'react-i18next'; // 👈 Import Translation
 
 export default function SplashScreen() {
+  const { t } = useTranslation(); // 👈 Initialize Translation
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -78,7 +80,7 @@ export default function SplashScreen() {
           </View>
 
           <Text className="text-white text-4xl font-bold">
-            TrustPay
+            {t('splash.appName')}
           </Text>
 
           <View className="mt-8 w-12 h-1 bg-white/20 rounded-full overflow-hidden">

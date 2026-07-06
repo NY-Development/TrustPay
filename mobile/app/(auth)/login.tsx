@@ -87,7 +87,6 @@ export default function Login() {
 
       const result = await BiometricService.authenticate('Quick sign in to TrustPay');
       if (result) {
-        // Hydrate navigation and move inside using token state engine
         clearAuthCache();
         await hydrateAuthCache();
         router.replace('/(tabs)');
@@ -107,7 +106,7 @@ export default function Login() {
   });
 
   /* =========================================================
-     BIOMETRIC AUTO TRIGGER
+     BIOMETRIC AUTO TRIGGER (For returning users)
   ========================================================= */
   React.useEffect(() => {
     let active = true;
@@ -152,21 +151,7 @@ export default function Login() {
   }, [biometricsPrompted]);
 
   /* =========================================================
-     BIOMETRIC GATE
-  ========================================================= */
-  const handleBiometricGate = async () => {
-    const { isAvailable, isEnrolled } =
-      await BiometricService.checkAvailability();
-
-    if (isAvailable && isEnrolled) {
-      await setBiometricsEnabled(true);
-    }
-
-    router.replace('/(tabs)');
-  };
-
-  /* =========================================================
-     LOGIN HANDLER
+     LOGIN HANDLER (Fixed Race Condition for First-Time Users)
   ========================================================= */
   const handleLogin = async () => {
     if (!email || !password) {
@@ -194,21 +179,38 @@ export default function Login() {
             clearAuthCache();
             await hydrateAuthCache();
 
+            const { isAvailable, isEnrolled } = await BiometricService.checkAvailability();
+
             setModalState({
               visible: true,
               type: 'success',
               title: 'Login Successful',
-              message: 'Welcome back to TrustPay!',
+              message: isAvailable && isEnrolled 
+                ? "Welcome! Let's activate biometrics for quicker access next time." 
+                : 'Welcome back to TrustPay!',
               onClose: async () => {
-                setModalState((prev) => ({
-                  ...prev,
-                  visible: false,
-                }));
-                await handleBiometricGate();
+                setModalState((prev) => ({ ...prev, visible: false }));
+
+                // Intercept navigation to configure hardware keys sequentially
+                if (isAvailable && isEnrolled) {
+                  try {
+                    const confirmed = await BiometricService.authenticate('Enable biometric access for TrustPay');
+                    if (confirmed) {
+                      await setBiometricsEnabled(true);
+                      await Storage.setItem(STORAGE_KEYS.BIOMETRICS_ENABLED, true);
+                    }
+                  } catch (bioErr) {
+                    console.warn('First-time biometric setup skipped or failed:', bioErr);
+                  }
+                }
+                
+                // Route safely into workspace after storage resolves
+                router.replace('/(tabs)');
               },
             });
           } catch (err) {
             console.error('Login cache loading mutation error:', err);
+            router.replace('/(tabs)');
           }
         },
         onError: (error: any) => {

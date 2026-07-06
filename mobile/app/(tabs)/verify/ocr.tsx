@@ -29,21 +29,21 @@ import { AIOrganizer, AIOrganizerHandle, AI_MODELS } from '@/src/ocr/AIOrganizer
 import {
   AIModelId,
   isModelDownloaded,
-  downloadModel,
   getModelLocalPath,
-  DownloadProgress,
+  deleteModel,
 } from '@/src/ocr/model-download-manager';
 import { startModelServer, stopModelServer } from '@/src/ocr/local-model-server';
+import { useGlobalDownload } from '@/src/context/DownloadContext'; // 👈 IMPORTED
 
 const MODEL_STORAGE_KEY = 'trustpay_selected_ai_model';
 
 type AppPhase =
-  | 'checking'      // checking AsyncStorage for saved model
-  | 'selecting'     // user picks a model
-  | 'downloading'   // downloading weight shards natively
-  | 'starting_server' // spinning up local HTTP server
-  | 'compiling'     // WebLLM compiling in WebView
-  | 'ready';        // model ready for inference
+  | 'checking'      
+  | 'selecting'     
+  | 'downloading'   
+  | 'starting_server' 
+  | 'compiling'     
+  | 'ready';        
 
 export default function OcrVerification() {
   const { colorScheme } = useColorScheme();
@@ -51,6 +51,7 @@ export default function OcrVerification() {
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const aiRef = React.useRef<AIOrganizerHandle>(null);
+  const { downloadingModelId, progress: dlProgress, startGlobalDownload } = useGlobalDownload(); // 👈 GLOBAL HOOK CONSUMED
 
   const [image, setImage] = React.useState<string | null>(null);
   const [scanning, setScanning] = React.useState(false);
@@ -64,11 +65,8 @@ export default function OcrVerification() {
   const [localBaseUrl, setLocalBaseUrl] = React.useState<string | null>(null);
   const [useWebViewAi, setUseWebViewAi] = React.useState(true);
 
-  // refrence no. from AI
+  // reference no. from AI
   const [refNo, setRefNo] = React.useState<string | null>(null);
-
-  // Download progress
-  const [dlProgress, setDlProgress] = React.useState<DownloadProgress | null>(null);
 
   // WebLLM compile progress
   const [compileProgress, setCompileProgress] = React.useState(0);
@@ -81,15 +79,25 @@ export default function OcrVerification() {
     type: 'info' as 'success' | 'error' | 'info',
     title: '',
     message: '',
-    isVerificationFailure: false, // Flag tracking verification errors
+    isVerificationFailure: false, 
   });
 
   const verifyManualMutation = useVerifyManual();
 
-  // ─── On mount: check saved model ────────────────────────
+  // ─── Direct Background Download Interception Loop ────────────────────────────
+  React.useEffect(() => {
+    if (downloadingModelId) {
+      setSelectedModel(downloadingModelId);
+      setPhase('downloading');
+    }
+  }, [downloadingModelId]);
+
+  // ─── On mount: check saved model with crash protection ────────────────────────
   React.useEffect(() => {
     const load = async () => {
       try {
+        if (downloadingModelId) return; // Background provider has higher priority
+
         const saved = await AsyncStorage.getItem(MODEL_STORAGE_KEY);
         if (saved) {
           setSelectedModel(saved as AIModelId);
@@ -97,7 +105,8 @@ export default function OcrVerification() {
         } else {
           setPhase('selecting');
         }
-      } catch {
+      } catch (err) {
+        console.warn('[OCR Storage Load Error Handled]', err);
         setPhase('selecting');
       }
     };
@@ -108,33 +117,51 @@ export default function OcrVerification() {
     };
   }, []);
 
-  // ─── Full initialization pipeline ──────────────────────
-  const initializeModel = async (modelId: AIModelId) => {
+  // ─── Keep checking background state updates to fire up engine upon download complete ────
+  React.useEffect(() => {
+    if (phase === 'downloading' && !downloadingModelId && selectedModel) {
+      // Background operation finished successfully
+      verifyAndBootServer(selectedModel);
+    }
+  }, [downloadingModelId, phase, selectedModel]);
+
+  const verifyAndBootServer = async (modelId: AIModelId) => {
     try {
-      // Step 1: Check if already downloaded
-      const alreadyDownloaded = await isModelDownloaded(modelId);
-
-      if (!alreadyDownloaded) {
-        // Step 2: Download model shards
-        setPhase('downloading');
-        await downloadModel(modelId, (progress) => {
-          setDlProgress(progress);
-        });
-      }
-
-      // Step 3: Start local HTTP server
       setPhase('starting_server');
       const modelPath = getModelLocalPath(modelId);
       const serverUrl = await startModelServer(modelPath);
       setLocalBaseUrl(serverUrl);
-
-      // Step 4: Hand off to WebLLM for GPU compilation
       setPhase('compiling');
+    } catch (err) {
+      handleGracefulFailure(modelId, err);
+    }
+  };
+
+  const handleGracefulFailure = async (modelId: AIModelId, err: any) => {
+    console.error('[OCR Init Error Processed Gracefully]', err);
+    try {
+      await AsyncStorage.removeItem(MODEL_STORAGE_KEY);
+      await deleteModel(modelId);
+    } catch (cleanupErr) {
+      console.warn('Failed clearing model files during fallback sequence', cleanupErr);
+    }
+    setSelectedModel(null);
+    setPhase('selecting');
+  };
+
+  const initializeModel = async (modelId: AIModelId) => {
+    try {
+      const alreadyDownloaded = await isModelDownloaded(modelId);
+
+      if (!alreadyDownloaded) {
+        setPhase('downloading');
+        await startGlobalDownload(modelId); // 👈 GLOBAL TASK LAUNCHER
+        return; // UI now monitors context updates instead
+      }
+
+      await verifyAndBootServer(modelId);
     } catch (err: any) {
-      console.error('[OCR Init Error]', err);
-      // Fallback to heuristics
-      setUseWebViewAi(false);
-      setPhase('ready');
+      await handleGracefulFailure(modelId, err);
     }
   };
 
@@ -144,7 +171,6 @@ export default function OcrVerification() {
     await initializeModel(modelId);
   };
 
-  // ─── WebLLM callbacks ──────────────────────────────────
   const handleCompileProgress = (progress: number, text: string) => {
     setCompileProgress(progress);
     setCompileStatus(text);
@@ -288,7 +314,7 @@ export default function OcrVerification() {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
-  // ──────────── MODEL SELECTION ────────────
+  // ──────────── MODEL SELECTION UI ────────────
   if (phase === 'checking' || phase === 'selecting') {
     return (
       <View className="flex-1 bg-background">
@@ -303,14 +329,14 @@ export default function OcrVerification() {
           {phase === 'checking' ? (
             <ActivityIndicator color={themePrimary} size="large" />
           ) : (
-            <View className="bg-card border border-border rounded-[32px] p-6 shadow-xl">
+            <View className="bg-card border border-border rounded-[32px] p-6 shadow-xl mt-12">
               <View className="items-center mb-6">
                 <View className="bg-primary/10 p-4 rounded-full mb-4">
                   <Ionicons name="sparkles" size={36} color={themePrimary} />
                 </View>
                 <Text className="text-foreground text-xl font-bold text-center">Choose Your AI Model</Text>
                 <Text className="text-muted-foreground text-center text-sm mt-2 leading-5">
-                  The model will be downloaded permanently to your device for 100% offline operation.
+                  The chosen core will download locally to your device storage layout for complete 100% offline parsing.
                 </Text>
               </View>
 
@@ -318,12 +344,12 @@ export default function OcrVerification() {
                 <TouchableOpacity
                   key={model.id}
                   onPress={() => handleSelectModel(model.id)}
-                  className="border border-border bg-muted/30 rounded-2xl p-4 mb-3"
+                  className="border border-border bg-muted/30 rounded-2xl p-4 mb-3 active:bg-muted/60"
                 >
                   <View className="flex-row items-center justify-between mb-1">
                     <Text className="text-foreground text-base font-bold">{model.label}</Text>
-                    <View className="bg-muted px-2 py-0.5 rounded-full">
-                      <Text className="text-muted-foreground text-xs font-semibold">{model.size}</Text>
+                    <View className="bg-primary/20 px-2 py-0.5 rounded-full">
+                      <Text className="text-primary text-xs font-semibold">{model.size}</Text>
                     </View>
                   </View>
                   <Text className="text-muted-foreground text-xs leading-4">{model.description}</Text>
@@ -336,13 +362,13 @@ export default function OcrVerification() {
     );
   }
 
-  // ──────────── DOWNLOADING WEIGHTS ────────────
+  // ──────────── DOWNLOADING WEIGHTS UI ────────────
   if (phase === 'downloading') {
     const activeModel = AI_MODELS.find(m => m.id === selectedModel);
     const pct = dlProgress ? (dlProgress.percent * 100).toFixed(0) : '0';
     const dlInfo = dlProgress
       ? `${formatBytes(dlProgress.downloaded)} / ${formatBytes(dlProgress.total)}`
-      : 'Preparing...';
+      : 'Preparing download pipeline...';
 
     return (
       <View className="flex-1 bg-background">
@@ -362,12 +388,12 @@ export default function OcrVerification() {
               Downloading {activeModel?.label}
             </Text>
             <Text className="text-muted-foreground text-center text-sm leading-6 mb-6">
-              Saving model weights permanently to your device. This only happens once per model.
+              Fetching and writing localized configuration layers. This continues safely in the background if you exit.
             </Text>
 
             <View className="w-full">
-              <Text className="text-muted-foreground text-center text-xs mb-2">
-                {dlProgress?.phase === 'config' ? 'Downloading config files...' : dlProgress?.file || 'Preparing...'}
+              <Text className="text-muted-foreground text-center text-xs mb-2 truncate">
+                {dlProgress?.phase === 'config' ? 'Fetching essential config headers...' : dlProgress?.file || 'Connecting...'}
               </Text>
               <View className="w-full bg-muted rounded-full h-3 overflow-hidden mb-2">
                 <View className="bg-primary h-full rounded-full" style={{ width: `${pct}%` as any }} />
@@ -383,7 +409,7 @@ export default function OcrVerification() {
     );
   }
 
-  // ──────────── STARTING SERVER ────────────
+  // ──────────── STARTING SERVER UI ────────────
   if (phase === 'starting_server') {
     return (
       <View className="flex-1 bg-background">
@@ -401,7 +427,7 @@ export default function OcrVerification() {
             </View>
             <Text className="text-foreground text-xl font-bold text-center mb-3">Starting Local Server</Text>
             <Text className="text-muted-foreground text-center text-sm leading-6">
-              Setting up a secure local HTTP server to serve the model to the WebGPU engine...
+              Spawning micro HTTP node context to dispatch structural files inside WebGPU architecture safely...
             </Text>
             <ActivityIndicator color={themePrimary} size="large" className="mt-6" />
           </View>
@@ -410,7 +436,7 @@ export default function OcrVerification() {
     );
   }
 
-  // ──────────── COMPILING (WebLLM) ────────────
+  // ──────────── COMPILING UI ────────────
   if (phase === 'compiling' && selectedModel) {
     const activeModel = AI_MODELS.find(m => m.id === selectedModel);
 
@@ -432,11 +458,11 @@ export default function OcrVerification() {
               Compiling {activeModel?.label}
             </Text>
             <Text className="text-muted-foreground text-center text-sm leading-6 mb-6">
-              Loading cached weights from local storage into the WebGPU graphics pipeline...
+              Assembling structural logic graphs directly onto device hardware accelerators...
             </Text>
 
             <View className="w-full">
-              <Text className="text-muted-foreground text-center text-xs mb-2">{compileStatus || 'Initializing WebGPU...'}</Text>
+              <Text className="text-muted-foreground text-center text-xs mb-2">{compileStatus || 'Linking WebGPU...'}</Text>
               <View className="w-full bg-muted rounded-full h-3 overflow-hidden mb-2">
                 <View className="bg-primary h-full rounded-full" style={{ width: `${compileProgress * 100}%` as any }} />
               </View>
@@ -452,7 +478,7 @@ export default function OcrVerification() {
               }}
               className="mt-6 px-4 py-2"
             >
-              <Text className="text-muted-foreground text-xs underline">Change Model</Text>
+              <Text className="text-muted-foreground text-xs underline">Change Chosen Engine</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -516,7 +542,7 @@ export default function OcrVerification() {
               {ocrText && (
                 <View className="bg-card p-4 rounded-2xl mt-4">
                   <Text className="text-foreground font-bold mb-2">Extracted Text</Text>
-                  <TextInput value={ocrText} multiline editable={false} className="text-muted-foreground" />
+                  <TextInput value={ocrText} multiline editable={false} className="text-muted-foreground text-sm" />
                   <TouchableOpacity
                     onPress={async () => {
                       await Clipboard.setStringAsync(refNo ?? '');

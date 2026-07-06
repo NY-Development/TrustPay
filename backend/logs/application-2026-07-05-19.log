@@ -1,0 +1,5 @@
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-05T16:06:50.368Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-05T16:06:50.393Z"}
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-05T16:39:41.017Z"}
+{"level":"warn","message":"MongoDB disconnected. Attempting reconnection...","timestamp":"2026-07-05T16:39:52.121Z"}
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-05T16:39:53.408Z"}

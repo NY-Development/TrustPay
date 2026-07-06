@@ -231,7 +231,7 @@ export default function Audit() {
               <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-muted-foreground text-xs font-semibold">Frauds</Text>
                 <View className="bg-red-500/10 p-1.5 rounded-lg">
-                  <Ionicons name="alert-triangle-outline" size={18} color="#ef4444" />
+                  <Ionicons name="warning-outline" size={18} color="#ef4444" />
                 </View>
               </View>
               <Text className="text-foreground text-2xl font-bold">{metrics.fraudCount}</Text>

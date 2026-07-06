@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import { useTranslation } from 'react-i18next'; // 👈 Import Translation Hook
 
 export default function PrivacyPolicyScreen() {
+  const { t } = useTranslation(); // 👈 Initialize Translation
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
@@ -16,48 +18,48 @@ export default function PrivacyPolicyScreen() {
     {
       id: 'collection',
       icon: 'document-text-outline',
-      title: 'Information We Collect',
+      title: t('privacy.collectionTitle'),
       content: [
-        'We collect information to provide better, more secure services to all our users. This includes basic details necessary for account creation, such as your name, email address, and contact number.',
-        'Additionally, to facilitate secure transactions, we collect necessary financial and payment verification data in compliance with strict regulatory standards. We do not store sensitive biometric data directly on our servers without explicit, revokable consent.'
+        t('privacy.collectionContent1'),
+        t('privacy.collectionContent2')
       ]
     },
     {
       id: 'usage',
       icon: 'stats-chart-outline',
-      title: 'How We Use Data',
+      title: t('privacy.usageTitle'),
       content: [
-        'Your data is strictly utilized to process transactions, verify identity to prevent fraud, and maintain the operational security of your TrustPay account.'
+        t('privacy.usageContent')
       ],
       points: [
-        'To verify your identity and protect against malicious activities.',
-        'To communicate critical account alerts and security updates.',
-        'To comply with international financial regulations and compliance frameworks.'
+        t('privacy.usagePoint1'),
+        t('privacy.usagePoint2'),
+        t('privacy.usagePoint3')
       ]
     },
     {
       id: 'sharing',
       icon: 'people-outline',
-      title: 'Third-Party Sharing',
+      title: t('privacy.sharingTitle'),
       content: [
-        'TrustPay does not sell your personal data to third parties. We only share specific verification tokens with authorized merchants when you explicitly initiate a payment request. We may also share data with verified banking partners strictly for the purpose of clearing transactions or complying with legal subpoenas.'
+        t('privacy.sharingContent')
       ]
     },
     {
       id: 'security',
       icon: 'lock-closed-outline',
-      title: 'Security Measures',
+      title: t('privacy.securityTitle'),
       content: [
-        'We employ enterprise-grade encryption (AES-256) for data at rest and TLS 1.3 for data in transit. Our infrastructure undergoes continuous automated security scanning and annual third-party penetration testing to ensure adherence to our "safety-first" operational protocol.'
+        t('privacy.securityContent')
       ]
     },
   ];
 
   const rights = [
-    'Request access to your stored data',
-    'Request correction of inaccurate information',
-    'Request deletion of your account and data',
-    'Opt-out of non-essential communications'
+    t('privacy.right1'),
+    t('privacy.right2'),
+    t('privacy.right3'),
+    t('privacy.right4')
   ];
 
   return (
@@ -72,7 +74,7 @@ export default function PrivacyPolicyScreen() {
             >
               <Ionicons name="arrow-back" size={20} color={isDark ? 'white' : 'black'} />
             </TouchableOpacity>
-            <Text className="text-foreground text-xl font-bold ml-4">Privacy Policy</Text>
+            <Text className="text-foreground text-xl font-bold ml-4">{t('privacy.screenTitle')}</Text>
           </View>
           <View className="flex-row items-center space-x-1.5">
             <Ionicons name="shield-checkmark" size={20} color={themePrimary} />
@@ -87,7 +89,7 @@ export default function PrivacyPolicyScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-6">
-            <Text className="text-muted-foreground text-xs font-semibold">Last Updated: October 26, 2023</Text>
+            <Text className="text-muted-foreground text-xs font-semibold">{t('privacy.lastUpdated')}</Text>
           </View>
 
           <View className="space-y-6 gap-6">
@@ -125,11 +127,11 @@ export default function PrivacyPolicyScreen() {
                 <View className="w-9 h-9 rounded-xl bg-primary/10 items-center justify-center mr-3">
                   <Ionicons name="scale-outline" size={18} color={themePrimary} />
                 </View>
-                <Text className="text-foreground text-lg font-bold">Your Rights</Text>
+                <Text className="text-foreground text-lg font-bold">{t('privacy.rightsTitle')}</Text>
               </View>
               
               <Text className="text-muted-foreground text-sm leading-5 mb-4">
-                You maintain complete control over your personal data. Depending on your jurisdiction (e.g., GDPR, CCPA), you have the right to:
+                {t('privacy.rightsDesc')}
               </Text>
 
               <View className="grid grid-cols-1 gap-2.5">
@@ -144,16 +146,16 @@ export default function PrivacyPolicyScreen() {
 
             {/* Support section */}
             <View className="border-t border-border pt-6 flex-col items-center">
-              <Text className="text-foreground text-lg font-bold mb-1">Questions or Concerns?</Text>
+              <Text className="text-foreground text-lg font-bold mb-1">{t('privacy.questionsTitle')}</Text>
               <Text className="text-muted-foreground text-xs text-center mb-5 leading-4">
-                Our specialized privacy team is available 24/7 to assist you.
+                {t('privacy.questionsDesc')}
               </Text>
               <TouchableOpacity 
-                onPress={() => router.push({ pathname: '/contact', params: { category: 'support', subject: 'Privacy Policy Inquiry' } })}
+                onPress={() => router.push({ pathname: '/contact', params: { category: 'support', subject: t('privacy.inquirySubject') } })}
                 className="bg-primary/10 border border-primary/20 h-14 px-6 rounded-2xl items-center justify-center flex-row active:bg-primary/20 w-full"
               >
                 <Ionicons name="mail" size={18} color={themePrimary} />
-                <Text className="text-primary font-bold text-sm ml-2">Contact Privacy Team</Text>
+                <Text className="text-primary font-bold text-sm ml-2">{t('privacy.contactBtn')}</Text>
               </TouchableOpacity>
             </View>
           </View>

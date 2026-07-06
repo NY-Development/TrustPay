@@ -6,8 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { useSubmitContact } from '@/src/hooks/useContact';
 import { StatusModal } from '@/src/components/StatusModal';
+import { useTranslation } from 'react-i18next'; // 👈 Import Translation Hook
 
 export default function ContactScreen() {
+  const { t } = useTranslation(); // 👈 Initialize Translation
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   
@@ -29,10 +31,10 @@ export default function ContactScreen() {
   }>({ visible: false, type: 'info', title: '', message: '' });
 
   const categories = [
-    { id: 'refund', label: 'Refund Request', icon: 'cash-outline' },
-    { id: 'support', label: 'Technical Help', icon: 'help-circle-outline' },
-    { id: 'feedback', label: 'Feedback', icon: 'chatbox-ellipses-outline' },
-    { id: 'other', label: 'Other Inquiry', icon: 'ellipsis-horizontal-circle-outline' },
+    { id: 'refund', label: t('contact.catRefund'), icon: 'cash-outline' },
+    { id: 'support', label: t('contact.catSupport'), icon: 'help-circle-outline' },
+    { id: 'feedback', label: t('contact.catFeedback'), icon: 'chatbox-ellipses-outline' },
+    { id: 'other', label: t('contact.catOther'), icon: 'ellipsis-horizontal-circle-outline' },
   ] as const;
 
   const handleSubmit = () => {
@@ -40,8 +42,8 @@ export default function ContactScreen() {
       setModal({
         visible: true,
         type: 'error',
-        title: 'Subject Required',
-        message: 'Please enter a brief subject for your request.',
+        title: t('contact.errSubjectTitle'),
+        message: t('contact.errSubjectDesc'),
       });
       return;
     }
@@ -50,8 +52,8 @@ export default function ContactScreen() {
       setModal({
         visible: true,
         type: 'error',
-        title: 'Message Required',
-        message: 'Please write details about your issue or refund request.',
+        title: t('contact.errMessageTitle'),
+        message: t('contact.errMessageDesc'),
       });
       return;
     }
@@ -69,16 +71,16 @@ export default function ContactScreen() {
           setModal({
             visible: true,
             type: 'success',
-            title: 'Message Sent Successfully',
-            message: res.message || 'We have received your request. Our support team will review and contact you via email shortly.',
+            title: t('contact.successTitle'),
+            message: res.message || t('contact.successDesc'),
           });
         },
         onError: (err: any) => {
           setModal({
             visible: true,
             type: 'error',
-            title: 'Submission Failed',
-            message: err.response?.data?.message || err.message || 'Failed to send message. Please check your connection and try again.',
+            title: t('contact.failedTitle'),
+            message: err.response?.data?.message || err.message || t('contact.failedDesc'),
           });
         },
       }
@@ -107,16 +109,16 @@ export default function ContactScreen() {
             >
               <Ionicons name="arrow-back" size={20} color={isDark ? 'white' : 'black'} />
             </TouchableOpacity>
-            <Text className="text-foreground text-xl font-bold ml-4">Contact Support</Text>
+            <Text className="text-foreground text-xl font-bold ml-4">{t('contact.title')}</Text>
           </View>
 
           <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 40 }}>
             <Text className="text-muted-foreground text-sm mb-6 leading-5">
-              Need assistance? Fill out the details below. We'll automatically lookup your transaction history and account details to resolve requests quickly.
+              {t('contact.subtitle')}
             </Text>
 
             {/* Select Category */}
-            <Text className="text-foreground text-sm font-semibold mb-3">Category</Text>
+            <Text className="text-foreground text-sm font-semibold mb-3">{t('contact.lblCategory')}</Text>
             <View className="flex-row flex-wrap gap-2 mb-6">
               {categories.map((cat) => {
                 const isSelected = category === cat.id;
@@ -151,13 +153,13 @@ export default function ContactScreen() {
 
             {/* Subject Input */}
             <View className="mb-5">
-              <Text className="text-foreground text-sm font-semibold mb-2 pl-1">Subject</Text>
+              <Text className="text-foreground text-sm font-semibold mb-2 pl-1">{t('contact.lblSubject')}</Text>
               <View className="bg-card border border-border rounded-2xl h-14 px-4 flex-row items-center shadow-xs">
                 <Ionicons name="bookmark-outline" size={18} color={isDark ? '#64748b' : '#94a3b8'} />
                 <TextInput
                   value={subject}
                   onChangeText={setSubject}
-                  placeholder="e.g. Refund request for order overpayment"
+                  placeholder={t('contact.placeholderSubject')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   className="flex-1 h-full text-foreground ml-3 text-sm"
                 />
@@ -166,12 +168,12 @@ export default function ContactScreen() {
 
             {/* Message Input */}
             <View className="mb-8">
-              <Text className="text-foreground text-sm font-semibold mb-2 pl-1">Message Description</Text>
+              <Text className="text-foreground text-sm font-semibold mb-2 pl-1">{t('contact.lblMessage')}</Text>
               <View className="bg-card border border-border rounded-2xl p-4 shadow-xs min-h-[160px]">
                 <TextInput
                   value={message}
                   onChangeText={setMessage}
-                  placeholder="Explain your request or issue in detail here..."
+                  placeholder={t('contact.placeholderMessage')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   multiline
                   numberOfLines={6}
@@ -192,7 +194,7 @@ export default function ContactScreen() {
               ) : (
                 <>
                   <Ionicons name="paper-plane" size={20} color="white" />
-                  <Text className="text-white font-bold text-lg ml-2">Send Message</Text>
+                  <Text className="text-white font-bold text-lg ml-2">{t('contact.btnSubmit')}</Text>
                 </>
               )}
             </TouchableOpacity>

@@ -30,11 +30,11 @@ import { AIOrganizer, AIOrganizerHandle, AI_MODELS } from '@/src/ocr/AIOrganizer
 import {
   AIModelId,
   isModelDownloaded,
-  downloadModel,
   getModelLocalPath,
-  DownloadProgress,
+  deleteModel,
 } from '@/src/ocr/model-download-manager';
 import { startModelServer, stopModelServer } from '@/src/ocr/local-model-server';
+import { useGlobalDownload } from '@/src/context/DownloadContext';
 
 const MODEL_STORAGE_KEY = 'trustpay_selected_ai_model';
 
@@ -47,10 +47,10 @@ export default function UnifiedScanner() {
 
   const cameraRef = useRef<any>(null);
   const aiRef = useRef<AIOrganizerHandle>(null);
+  const { downloadingModelId, progress: dlProgress, startGlobalDownload } = useGlobalDownload();
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
-  // Processing states
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
@@ -59,12 +59,10 @@ export default function UnifiedScanner() {
   const [refNo, setRefNo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Local AI Model Lifecycle States
   const [phase, setPhase] = useState<AppPhase>('checking');
   const [selectedModel, setSelectedModel] = useState<AIModelId | null>(null);
   const [localBaseUrl, setLocalBaseUrl] = useState<string | null>(null);
   const [useWebViewAi, setUseWebViewAi] = useState(true);
-  const [dlProgress, setDlProgress] = useState<DownloadProgress | null>(null);
   const [compileProgress, setCompileProgress] = useState(0);
   const [compileStatus, setCompileStatus] = useState('');
 
@@ -78,10 +76,18 @@ export default function UnifiedScanner() {
 
   const verifyManualMutation = useVerifyManual();
 
-  // --- Auto-load or pick target model on mount ---
+  useEffect(() => {
+    if (downloadingModelId) {
+      setSelectedModel(downloadingModelId);
+      setPhase('downloading');
+    }
+  }, [downloadingModelId]);
+
   useEffect(() => {
     const load = async () => {
       try {
+        if (downloadingModelId) return;
+
         const saved = await AsyncStorage.getItem(MODEL_STORAGE_KEY);
         if (saved) {
           setSelectedModel(saved as AIModelId);
@@ -89,7 +95,8 @@ export default function UnifiedScanner() {
         } else {
           setPhase('selecting');
         }
-      } catch {
+      } catch (err) {
+        console.warn('[Unified Scan Storage Load Catch]', err);
         setPhase('selecting');
       }
     };
@@ -100,26 +107,47 @@ export default function UnifiedScanner() {
     };
   }, []);
 
+  useEffect(() => {
+    if (phase === 'downloading' && !downloadingModelId && selectedModel) {
+      verifyAndBootServer(selectedModel);
+    }
+  }, [downloadingModelId, phase, selectedModel]);
+
+  const verifyAndBootServer = async (modelId: AIModelId) => {
+    try {
+      setPhase('starting_server');
+      const modelPath = getModelLocalPath(modelId);
+      const serverUrl = await startModelServer(modelPath);
+      setLocalBaseUrl(serverUrl);
+      setPhase('compiling');
+    } catch (err) {
+      handleGracefulFailure(modelId, err);
+    }
+  };
+
+  const handleGracefulFailure = async (modelId: AIModelId, err: any) => {
+    console.error('[Scan Init Error Gracefully Managed]', err);
+    try {
+      await AsyncStorage.removeItem(MODEL_STORAGE_KEY);
+      await deleteModel(modelId);
+    } catch (cleanupErr) {
+      console.warn('Could not reset local model folders', cleanupErr);
+    }
+    setSelectedModel(null);
+    setPhase('selecting');
+  };
+
   const initializeModel = async (modelId: AIModelId) => {
     try {
       const alreadyDownloaded = await isModelDownloaded(modelId);
       if (!alreadyDownloaded) {
         setPhase('downloading');
-        await downloadModel(modelId, (progress) => {
-          setDlProgress(progress);
-        });
+        await startGlobalDownload(modelId);
+        return;
       }
-
-      setPhase('starting_server');
-      const modelPath = getModelLocalPath(modelId);
-      const serverUrl = await startModelServer(modelPath);
-      setLocalBaseUrl(serverUrl);
-
-      setPhase('compiling');
+      await verifyAndBootServer(modelId);
     } catch (err) {
-      console.error('[Scan Init Error]', err);
-      setUseWebViewAi(false);
-      setPhase('ready');
+      await handleGracefulFailure(modelId, err);
     }
   };
 
@@ -144,7 +172,6 @@ export default function UnifiedScanner() {
     setPhase('ready');
   };
 
-  // --- Process raw data through Core verification endpoints ---
   const handleVerification = (ai: any) => {
     const extractedRef = ai?.referenceNumber || ai?.transactionNumber || ai?.receiptNumber || null;
     setRefNo(extractedRef);
@@ -201,7 +228,6 @@ export default function UnifiedScanner() {
     );
   };
 
-  // --- Path A: QR Code Detected ---
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (processing || imageUri || !data) return;
     setProcessing(true);
@@ -254,7 +280,6 @@ export default function UnifiedScanner() {
     );
   };
 
-  // --- Path B: Paper Snapshot Snapshot Trigger Button ---
   const takeReceiptSnapshot = async () => {
     if (!cameraRef.current || processing) return;
     
@@ -264,7 +289,6 @@ export default function UnifiedScanner() {
       if (photo?.uri) {
         setImageUri(photo.uri);
         
-        // Feed frame into native image parser
         const ocr = await runOCR(photo.uri);
         const rawText = ocr.text || '';
         setOcrText(rawText);
@@ -288,7 +312,6 @@ export default function UnifiedScanner() {
     }
   };
 
-  // --- Global Parser Callback Hooks ---
   const handleResult = (resultText: string) => {
     try {
       const start = resultText.indexOf('{');
@@ -312,27 +335,42 @@ export default function UnifiedScanner() {
     }
   };
 
-  // --- Initial Setup/Loading Interface Render Blocks ---
+  // 🛠️ FIXED: Centered setup and engine building interfaces completely
   if (phase === 'checking' || phase === 'selecting') {
     return (
-      <View className="flex-1 bg-background justify-center px-6">
+      <View className="flex-1 bg-background justify-center items-center px-6 relative">
+        <SafeAreaView className="w-full absolute top-4 left-6 flex-row items-center z-10">
+          <TouchableOpacity onPress={() => router.back()} className="p-2 rounded-full bg-muted/50 active:scale-95">
+            <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
+          </TouchableOpacity>
+        </SafeAreaView>
+
         {phase === 'checking' ? (
           <ActivityIndicator color={themePrimary} size="large" />
         ) : (
-          <View className="bg-card border border-border rounded-[32px] p-6 shadow-xl">
+          <View className="bg-card border border-border/80 rounded-[32px] p-6 shadow-2xl w-full max-w-sm">
             <View className="items-center mb-6">
-              <View className="bg-primary/10 p-4 rounded-full mb-4">
-                <Ionicons name="sparkles" size={36} color={themePrimary} />
+              <View className="bg-primary/10 p-4 rounded-2xl mb-4 border border-primary/20">
+                <Ionicons name="sparkles" size={32} color={themePrimary} />
               </View>
-              <Text className="text-foreground text-xl font-bold text-center">Select Intelligence Core</Text>
+              <Text className="text-foreground text-xl font-black tracking-tight text-center">Intelligence Core</Text>
+              <Text className="text-muted-foreground text-center text-sm mt-2 leading-5">
+                Select a local text processing node. System path directories are synchronized.
+              </Text>
             </View>
             {AI_MODELS.map((model) => (
               <TouchableOpacity
                 key={model.id}
                 onPress={() => handleSelectModel(model.id)}
-                className="border border-border bg-muted/30 rounded-2xl p-4 mb-3"
+                className="border border-border/60 bg-muted/20 rounded-2xl p-4 mb-3 active:scale-[0.98] transition-all flex-row justify-between items-center"
               >
-                <Text className="text-foreground text-base font-bold">{model.label}</Text>
+                <View className="flex-1 pr-3">
+                  <Text className="text-foreground text-md font-bold tracking-wide">{model.label}</Text>
+                  <Text className="text-muted-foreground text-xs mt-1" numberOfLines={1}>{model.description}</Text>
+                </View>
+                <View className="bg-primary/15 px-2.5 py-1 rounded-lg border border-primary/20">
+                  <Text className="text-primary text-[11px] font-extrabold tracking-wider">{model.size}</Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -341,12 +379,24 @@ export default function UnifiedScanner() {
     );
   }
 
+  // 🛠️ FIXED: Centered the Compiling Engine state layout components perfectly inside viewport
   if (phase === 'downloading' || phase === 'starting_server' || phase === 'compiling') {
     return (
-      <View className="flex-1 bg-background justify-center px-6">
-        <View className="bg-card border border-border rounded-[32px] p-8 items-center shadow-xl">
-          <ActivityIndicator color={themePrimary} size="large" />
-          <Text className="text-foreground text-lg font-bold mt-4">Assembling Offline Engine...</Text>
+      <View className="flex-1 bg-background justify-center items-center px-6 relative">
+        <SafeAreaView className="w-full absolute top-4 left-6 flex-row items-center z-10">
+          <TouchableOpacity onPress={() => router.back()} className="p-2 rounded-full bg-muted/50 active:scale-95">
+            <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
+          </TouchableOpacity>
+        </SafeAreaView>
+
+        <View className="bg-card border border-border/80 rounded-[32px] p-8 items-center justify-center shadow-2xl w-full max-w-sm">
+          <ActivityIndicator color={themePrimary} size="large" className="mb-4" />
+          <Text className="text-foreground text-lg font-black tracking-tight text-center">Compiling Engines...</Text>
+          <Text className="text-muted-foreground text-center text-sm mt-2 leading-5 px-2">
+            {phase === 'downloading' 
+              ? `Downloading neural pathways: ${(dlProgress?.percent ? dlProgress.percent * 100 : 0).toFixed(0)}%` 
+              : 'Mounting local node nodes...'}
+          </Text>
         </View>
         {selectedModel && (
           <AIOrganizer
@@ -366,120 +416,146 @@ export default function UnifiedScanner() {
   if (!cameraPermission || !cameraPermission.granted) {
     return (
       <View className="flex-1 bg-background items-center justify-center px-6">
-        <Ionicons name="camera-outline" size={64} color={themePrimary} />
-        <Text className="text-foreground text-xl font-bold mt-6 text-center">Camera Access Required</Text>
-        <TouchableOpacity onPress={requestCameraPermission} className="bg-primary px-10 h-14 rounded-2xl mt-6 items-center justify-center">
-          <Text className="text-primary-foreground font-bold">Grant Permission</Text>
+        <View className="bg-primary/10 p-5 rounded-3xl mb-6 border border-primary/20">
+          <Ionicons name="camera-outline" size={48} color={themePrimary} />
+        </View>
+        <Text className="text-foreground text-2xl font-black tracking-tight text-center">Camera Access Required</Text>
+        <Text className="text-muted-foreground text-center text-sm mt-2 mb-6 max-w-xs leading-5">
+          We need access to the device lens layout configurations to initialize standard scanning.
+        </Text>
+        <TouchableOpacity onPress={requestCameraPermission} className="bg-primary px-8 h-14 rounded-2xl items-center justify-center shadow-md active:opacity-90">
+          <Text className="text-primary-foreground font-bold tracking-wide text-base">Grant Access</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
-        
-        {/* Universal Sticky Top Header Bar */}
-        <View className="pt-2 pb-4 px-6 flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={isDark ? 'white' : 'black'} />
-            </TouchableOpacity>
-            <Text className="text-foreground text-2xl font-bold ml-4">Universal Scanner</Text>
-          </View>
-        </View>
+    <View className="flex-1 bg-black">
+      {!imageUri ? (
+        <View className="flex-1 relative">
+          <CameraView
+            ref={cameraRef}
+            style={StyleSheet.absoluteFillObject}
+            onBarcodeScanned={processing ? undefined : handleBarCodeScanned}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          />
+          
+          {/* Full Screen Immersive HUD Overlay */}
+          <SafeAreaView style={StyleSheet.absoluteFillObject} className="justify-between p-6 bg-black/30">
+            {/* Header Toolbar floating on canvas */}
+            <View className="flex-row items-center justify-between w-full mt-2">
+              <TouchableOpacity onPress={() => router.back()} className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-2xl items-center justify-center border border-white/10 active:scale-95">
+                <Ionicons name="chevron-back" size={24} color="white" />
+              </TouchableOpacity>
+              <View className="bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10">
+                <Text className="text-white text-xs font-bold uppercase tracking-widest">Live Matrix View</Text>
+              </View>
+              <View className="w-12" />
+            </View>
 
-        {/* Unified Display Frame */}
-        <View className="flex-1 px-6 pb-4">
-          {!imageUri ? (
-            <View className="flex-1 rounded-[36px] overflow-hidden relative border border-border shadow-md">
-              <CameraView
-                ref={cameraRef}
-                style={StyleSheet.absoluteFillObject}
-                onBarcodeScanned={processing ? undefined : handleBarCodeScanned}
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-              />
-              
-              {/* Isolated Absolute Interface View Overlay Layers */}
-              <View style={StyleSheet.absoluteFillObject} className="justify-between items-center bg-black/20 p-6">
-                <View className="items-center mt-4 bg-black/40 px-4 py-2 rounded-full">
-                  <Text className="text-white text-xs font-semibold tracking-wide">
-                    Holds QR inside frame or Point & Tap Snapshot
-                  </Text>
-                </View>
-
-                {/* Target Frame Alignment Box UI */}
-                <View className="w-64 h-64 border-2 border-dashed border-white/80 rounded-[40px] items-center justify-center">
-                  {processing && <ActivityIndicator size="large" color="#ffffff" />}
-                </View>
-
-                {/* Single Primary Capture Control Handle Bar */}
-                <TouchableOpacity
-                  onPress={takeReceiptSnapshot}
-                  disabled={processing}
-                  className="w-20 h-20 bg-white border-4 border-slate-300 rounded-full items-center justify-center shadow-lg active:scale-95"
-                >
-                  <Ionicons name="camera" size={32} color="#0f172a" />
-                </TouchableOpacity>
+            {/* Central Target Alignment Area */}
+            <View className="items-center justify-center flex-1">
+              <View className="w-72 h-72 border-[3px] border-dashed border-white/70 rounded-[48px] items-center justify-center bg-black/10 relative shadow-2xl">
+                <View className="absolute top-6 left-6 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-md" />
+                <View className="absolute top-6 right-6 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-md" />
+                <View className="absolute bottom-6 left-6 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-md" />
+                <View className="absolute bottom-6 right-6 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-md" />
+                
+                {processing ? (
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="scan-outline" size={48} color="rgba(255,255,255,0.4)" />
+                )}
+              </View>
+              <View className="bg-black/60 backdrop-blur-md px-5 py-2 rounded-full mt-6 border border-white/5 max-w-[280px]">
+                <Text className="text-white/90 text-xs font-medium tracking-wide text-center leading-5">
+                  Align QR within boundaries or capture text document
+                </Text>
               </View>
             </View>
-          ) : (
-            /* Analysis Frozen State Display Board */
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Image source={{ uri: imageUri }} className="h-72 rounded-[28px] mb-4" />
-              
+
+            {/* Capture Control Panel */}
+            <View className="items-center justify-center pb-4">
+              <TouchableOpacity
+                onPress={takeReceiptSnapshot}
+                disabled={processing}
+                className="w-20 h-20 bg-white rounded-full items-center justify-center shadow-2xl active:scale-90 border-[6px] border-white/30"
+              >
+                <Ionicons name="camera" size={32} color="#000000" />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+      ) : (
+        /* Document Analysis Display Staging Board */
+        <View className="flex-1 bg-background">
+          <SafeAreaView className="flex-1 px-6 pb-6">
+            <View className="flex-row items-center justify-between my-4">
+              <Text className="text-foreground text-2xl font-black tracking-tight">Analysis Phase</Text>
               <TouchableOpacity 
                 onPress={() => { setImageUri(null); setOcrText(null); setProcessing(false); }}
-                className="bg-muted h-12 rounded-xl items-center justify-center flex-row mb-4 border border-border"
+                className="bg-muted px-4 h-10 rounded-xl items-center justify-center flex-row border border-border active:scale-95"
               >
                 <Ionicons name="refresh" size={16} color={isDark ? 'white' : 'black'} />
-                <Text className="text-foreground font-semibold ml-2">Reset Camera Lens</Text>
+                <Text className="text-foreground text-xs font-bold ml-2 tracking-wide">Reset Lens</Text>
               </TouchableOpacity>
+            </View>
+
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Image source={{ uri: imageUri }} className="h-64 rounded-3xl border border-border shadow-sm mb-4" resizeMode="cover" />
 
               {processing && (
-                <View className="bg-card p-4 rounded-2xl flex-row items-center justify-center border border-border shadow-sm mb-4">
-                  <ActivityIndicator color={themePrimary} />
-                  <Text className="text-foreground font-medium ml-3">Running Intelligent Content Extractors...</Text>
+                <View className="bg-primary/5 p-4 rounded-2xl flex-row items-center justify-center border border-primary/10 shadow-sm mb-4">
+                  <ActivityIndicator color={themePrimary} size="small" />
+                  <Text className="text-primary font-bold text-sm ml-3 tracking-wide">Running Intelligence Extraction Node...</Text>
                 </View>
               )}
 
               {ocrText && (
-                <View className="bg-card p-4 rounded-2xl border border-border shadow-sm">
-                  <Text className="text-foreground font-bold mb-2">Extracted Document Text</Text>
-                  <TextInput value={ocrText} multiline editable={false} className="text-muted-foreground text-xs leading-5 bg-muted/40 p-3 rounded-xl" />
+                <View className="bg-card p-5 rounded-3xl border border-border/80 shadow-sm">
+                  <Text className="text-foreground font-bold mb-3 tracking-wide text-md">Parsed Content Stream</Text>
+                  <TextInput 
+                    value={ocrText} 
+                    multiline 
+                    editable={false} 
+                    className="text-muted-foreground text-xs leading-6 bg-muted/30 p-4 rounded-2xl border border-border/40 font-mono" 
+                  />
                   <TouchableOpacity
-                    className="mt-4 flex-row items-center"
+                    className="mt-4 flex-row items-center bg-primary/10 p-3 rounded-xl border border-primary/20 self-start active:opacity-80"
                     onPress={async () => {
                       await Clipboard.setStringAsync(refNo ?? '');
                       setCopied(true);
                     }}
                   >
                     <Ionicons name="copy-outline" size={16} color={themePrimary} />
-                    <Text className="text-primary font-bold text-sm ml-2">{copied ? 'Reference Copied!' : 'Copy Parsed ID'}</Text>
+                    <Text className="text-primary font-bold text-sm ml-2 tracking-wide">
+                      {copied ? 'Payload Cached!' : 'Copy Matrix Reference'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
             </ScrollView>
-          )}
+          </SafeAreaView>
         </View>
+      )}
 
-        {/* Global Feedback Handling Notification Modal Sheets */}
-        <StatusModal
-          {...modal}
-          onClose={() => {
-            setModal((p) => ({ ...p, visible: false }));
-            if (modal.type === 'success' && verifiedId) {
-              router.dismissAll();
-              router.push(`/verification/${verifiedId}` as any);
-            } else if (modal.isVerificationFailure && referenceId) {
-              Clipboard.setStringAsync(referenceId);
-              router.replace('/(tabs)/verify/manual');
-            }
-          }}
-        />
-      </SafeAreaView>
+      {/* Error & Resolution Modals */}
+      <StatusModal
+        {...modal}
+        onClose={() => {
+          setModal((p) => ({ ...p, visible: false }));
+          if (modal.type === 'success' && verifiedId) {
+            router.dismissAll();
+            router.push(`/verification/${verifiedId}` as any);
+          } else if (modal.isVerificationFailure && referenceId) {
+            Clipboard.setStringAsync(referenceId);
+            router.replace('/(tabs)/verify/manual');
+          }
+        }}
+      />
 
-      {/* Background AI Inference WebGPU Bridge Components */}
+      {/* Neural Core Bridge Container */}
       {selectedModel && (
         <AIOrganizer
           ref={aiRef}

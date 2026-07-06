@@ -6,7 +6,7 @@ export default function VerifyLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="manual" />
             <Stack.Screen name="ocr" />
-            <Stack.Screen name="screenshot" />
+            <Stack.Screen name="scan" />
         </Stack>
     );
 }

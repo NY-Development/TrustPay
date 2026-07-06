@@ -11,7 +11,8 @@ import {
   Legend, 
   ArcElement 
 } from 'chart.js';
-import { Line, Pie } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2/dist/components/line';
+import { Pie } from 'react-chartjs-2/dist/components/pie';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 

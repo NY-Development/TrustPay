@@ -57,5 +57,56 @@
     "languageTitle": "Afaan Appilikeeshinii",
     "languageSubTextEng": "English",
     "languageSubTextAmh": "አማርኛ"
-  }
+  },
+"splash": {
+  "appName": "TrustPay"
+},
+"privacy": {
+  "screenTitle": "Imaammata Mateenyaa",
+  "lastUpdated": "Haramayyuu kan dhumate: Onkololeessa 26, 2023",
+  "collectionTitle": "Oodeeffannoo Nuti Sassaabnu",
+  "collectionContent1": "Tajaajila gaarii fi nageenyi isaa mirkanaa'e tajaajiltoota keenya hundaaf kennuuf odeeffannoo ni sassaabna. Kunis odeeffannoo bu'uuraa herrega banuuf barbaachisu kan akka maqaa, bilbila, fi kkf dabalata.",
+  "collectionContent2": "Kana malees, kaffaltii amansiisaa ta'e mijeessuuf, imaammata seeraa jabaa ta'e hordofuun odeeffannoo kaffaltii fi herrega faayinaansii ni sassaabna. Hayyama keessan malee daataa biyaameetrikisii kamiyyuu dhuunfaatti kuusaa keenya irratti hin maxxansu.",
+  "usageTitle": "Daataa Akkamitti Fayyadamna",
+  "usageContent": "Odeeffannoon keessan kaffaltii raawwachuuf, yakka hordofuun eenyummaa mirkaneessuuf, fi nageenya herrega TrustPay keessanii eeguuf qofa tajaajila.",
+  "usagePoint1": "Eenyummaa keessan mirkaneessuuf fi gochaaleen hamoo akka hin raawwatin eeguuf.",
+  "usagePoint2": "Ergaawwan herregaa fi beeksisoota nageenyaa dhimma jabaa qaban yeroon ibsuuf.",
+  "usagePoint3": "Seera faayinaansii addunyaa fi dambiiwwan jiran hordofuun hojjechuuf.",
+  "sharingTitle": "Giddu-gala Sadaffaatti Qooduu",
+  "sharingContent": "TrustPay daataa dhuunfaa keessan qaama sadaffaatti hin gurguru. Toora kaffaltii yeroo jalqabdan qofa mallattoo mirkaneessaa abbaa qabeenyaa hayyamameef waliin qoodna. Akkasumas seera eegsisuuf jecha baankota mirkanaa'an waliin hojjechuuf daataan qoodamuu danda'a.",
+  "securityTitle": "Tarkaanfii Nageenyaa",
+  "securityContent": "Eegumsa daataaf encryption sadarkaa interpiraayizii (AES-256) fi TLS 1.3 fayyadamna. Sirni keenya ittifufiinsan sakatta'iinsa nageenyaa otomaatikaa fi qorannoo penetration testing waggaa gadi fageenyaan ni raawwata.",
+  "rightsTitle": "Mirga Keessan",
+  "rightsDesc": "Daataa dhuunfaa keessan irratti abbummaa guutuu qabdu. Seera biyya keessanii irratti hundahun (fkf, GDPR, CCPA), mirga kanneen gadii qabdu:",
+  "right1": "Daataa keessan ol-kaayame akka agarsiifamu gaafachuu",
+  "right2": "Odeeffannoo dogoggora ta'e akka sirreeffamu gaafachuu",
+  "right3": "Herrega fi daataa keessan guutumaan guutuutti akka haqamu gaafachuu",
+  "right4": "Ergaawwan dabalataa beeksisaa irraa ba'uu",
+  "questionsTitle": "Gaaffii ykn Yaada Qabduu?",
+  "questionsDesc": "Garee nageenya daataa keenya sa'aatii 24/7 isin gargaaruuf qophiidha.",
+  "inquirySubject": "Gaaffii Imaammata Mateenyaa",
+  "contactBtn": "Garee Mateenyaa Quunnamtu"
+},
+"contact": {
+  "title": "Deeggarsa Quunnamuuf",
+  "subtitle": "Gargaarsa qabduu? Bal'ina isaa gadii guutaa. Gaaffii keessan dafnee furuuf seenaa kaffaltii fi daataa herrega keessanii otomaatikaan ni sakattaana.",
+  "lblCategory": "Gosa",
+  "catRefund": "Gaaffii Deebisa Kaffaltii",
+  "catSupport": "Gargaarsa Tekniikaa",
+  "catFeedback": "Yaada",
+  "catOther": "Gaaffii Biroo",
+  "lblSubject": "Dhimma",
+  "placeholderSubject": "Fkn. Kaffaltii dabalataa deebisiisuuf",
+  "lblMessage": "Ibsa Ergaa",
+  "placeholderMessage": "Rakkoo ykn gaaffii keessan bal'inaan as irratti ibsa...",
+  "btnSubmit": "Ergaa Eargi",
+  "errSubjectTitle": "Dhimmi Barbaachisaadha",
+  "errSubjectDesc": "Maaloo, gaaffii keessaniif dhimma gabaabaa galchaa.",
+  "errMessageTitle": "Ergaan Barbaachisaadha",
+  "errMessageDesc": "Maaloo, rakkoo ykn gaaffii deebisa kaffaltii keessan irratti bal'ina barreessaa.",
+  "successTitle": "Ergaan Milkaa'inaan Ergameera",
+  "successDesc": "Gaaffiin keessan nu gaheera. Gareen deeggarsa keenya ergaa keessan ilaalee yeroo gabaabaa keessatti bilbila ykn email keessaniin isin quunnama.",
+  "failedTitle": "Erguun Hin Milkoofne",
+  "failedDesc": "Ergaan erguu hin dandahamne. Maaloo intarneetii keessan checking godhaatii deebisaa yaalaa."
+}
 }
