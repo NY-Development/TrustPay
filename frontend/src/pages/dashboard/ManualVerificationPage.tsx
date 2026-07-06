@@ -27,6 +27,7 @@ export default function ManualVerificationPage() {
   const [reference, setReference] = useState('');
   const [amount, setAmount] = useState('');
   const [verifiedId, setVerifiedId] = useState<string | null>(null);
+  const [showMobileBanner, setShowMobileBanner] = useState(true);
   
   const [modal, setModal] = useState<{
     visible: boolean;
@@ -98,7 +99,7 @@ export default function ManualVerificationPage() {
         <div className="flex items-center gap-4 mb-6">
           <button 
             onClick={() => navigate('/dashboard/verify')}
-            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 flex items-center justify-center transition-colors text-gray-700 dark:text-gray-300"
+            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 flex items-center justify-center transition-colors text-gray-700 dark:text-gray-300 cursor-pointer"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
@@ -107,6 +108,25 @@ export default function ManualVerificationPage() {
             <p className="text-xs text-[#54647a]">Validate CBE, Telebirr or M-Pesa reference receipts</p>
           </div>
         </div>
+
+        {/* Mobile-Only Features Banner */}
+        {showMobileBanner && (
+          <div className="mb-6 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl p-4 flex items-start gap-3 relative">
+            <span className="material-symbols-outlined text-blue-500 text-[28px] mt-0.5">smartphone</span>
+            <div className="pr-8">
+              <h4 className="text-sm font-bold text-blue-700 dark:text-blue-400">📱 Scan & OCR — Mobile Exclusive</h4>
+              <p className="text-xs text-blue-600/80 dark:text-blue-300/70 mt-1 leading-relaxed">
+                Screenshot scan and OCR receipt extraction features are available exclusively on our TrustPay mobile app. Download from Play Store or App Store for the full experience.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowMobileBanner(false)}
+              className="absolute top-3 right-3 text-blue-400 hover:text-blue-600 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
+        )}
 
         {registeredProviders.length === 0 ? (
           <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl mb-8">

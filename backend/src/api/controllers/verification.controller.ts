@@ -15,6 +15,7 @@ import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
 import { NotificationService } from '../../services/notification.service';
 import { User } from '../../models/User';
+import { adminAlertService } from '../../services/adminAlert.service';
 
 
 function safeVerificationPayload(result: any, fallbackProvider: string) {
@@ -45,14 +46,19 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   const { reference, provider: clientProvider, amountExpected, branchId } = req.body;
   const userId = req.user?.userId;
 
+  // 2. Look up the verifier first (moved up to avoid block-scoped reference usage)
+  const verifier = await User.findById(userId);
+
   // 1. Check for duplicate (Idempotency)
   const existing = await Verification.findOne({ transactionId: reference.toUpperCase() });
   if (existing) {
+    adminAlertService.sendSuspiciousActivityAlert(
+      'Double Verification Attempt',
+      `User ID: ${userId} (${verifier?.email}) tried verifying reference: ${reference} which has already been verified under ID: ${existing._id}`
+    ).catch(err => logger.error('Alert failed', err));
     throw new ConflictError('This transaction reference has already been verified.');
   }
 
-  // 2. Look up the verifier's account number for settlement matching
-  const verifier = await User.findById(userId);
   const resolvedProvider = clientProvider || VerificationService.detectProvider(reference);
   const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === resolvedProvider);
   if (!matchingAccount) {
@@ -84,6 +90,13 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
 
   if (!result.verified) {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, { reference, provider: resolvedProvider, error: 'Provider reported invalid reference' });
+    adminAlertService.sendVerificationFailedAlert(
+      'N/A',
+      reference,
+      'Provider reported invalid reference',
+      amountExpected || 0,
+      resolvedProvider
+    ).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError('Payment verification failed. Invalid reference.');
   }
 
@@ -95,6 +108,13 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
       error: `Settlement account mismatch: ${result.settlementAccountMatch.reason}`,
       settlementAccountMatch: result.settlementAccountMatch,
     });
+    adminAlertService.sendVerificationFailedAlert(
+      'N/A',
+      reference,
+      `Settlement account mismatch: ${result.settlementAccountMatch.reason}`,
+      result.amount || 0,
+      resolvedProvider
+    ).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError(
       `Settlement account mismatch. The payment was not sent to your registered account. Reason: ${result.settlementAccountMatch.reason}`
     );
@@ -177,14 +197,19 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
     throw new BadRequestError('Could not extract transaction ID from the text. Please enter manually.');
   }
 
+  // 3. Look up the verifier first (moved up to avoid block-scoped reference usage)
+  const verifier = await User.findById(userId);
+
   // 2. Check for duplicate
   const existing = await Verification.findOne({ transactionId: extracted.transactionId.toUpperCase() });
   if (existing) {
+    adminAlertService.sendSuspiciousActivityAlert(
+      'Double OCR Verification Attempt',
+      `User ID: ${userId} (${verifier?.email}) tried verifying reference: ${extracted.transactionId} which has already been verified under ID: ${existing._id}`
+    ).catch(err => logger.error('Alert failed', err));
     throw new ConflictError('Transaction already processed.');
   }
 
-  // 3. Look up the verifier's account number for settlement matching
-  const verifier = await User.findById(userId);
   const detectedProvider = extracted.provider || VerificationService.detectProvider(extracted.transactionId);
   const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === detectedProvider);
   const settlementAccount = matchingAccount?.accountNumber || verifier?.accounts?.[0]?.accountNumber;
@@ -217,11 +242,25 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!result.verified) {
+    adminAlertService.sendVerificationFailedAlert(
+      'N/A',
+      extracted.transactionId,
+      'OCR verification reported invalid on provider check',
+      extracted.amount || amountExpected || 0,
+      resolvedProvider
+    ).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError('Extracted reference is invalid or could not be verified.');
   }
 
   // 5. Settlement Account Match Check
   if (result.settlementAccountMatch && !result.verified) {
+    adminAlertService.sendVerificationFailedAlert(
+      'N/A',
+      extracted.transactionId,
+      `OCR settlement account mismatch: ${result.settlementAccountMatch.reason}`,
+      result.amount || 0,
+      resolvedProvider
+    ).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError(
       `Settlement account mismatch. Reason: ${result.settlementAccountMatch.reason}`
     );

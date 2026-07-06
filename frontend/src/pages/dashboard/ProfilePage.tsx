@@ -3,6 +3,7 @@ import { useAuthStore } from '@/src/store/authStore';
 import { 
   useAccounts, 
   useAddAccount, 
+  useUpdateAccount,
   useRemoveAccount, 
   useChangePassword, 
   useUpdateProfile 
@@ -14,12 +15,18 @@ export default function ProfilePage() {
   const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
 
   const addAccountMutation = useAddAccount();
+  const updateAccountMutation = useUpdateAccount();
   const removeAccountMutation = useRemoveAccount();
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
 
   const [accNumber, setAccNumber] = useState('');
   const [provider, setProvider] = useState('cbe');
+
+  // Edit states for existing accounts
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editNumber, setEditNumber] = useState('');
+  const [editProvider, setEditProvider] = useState('cbe');
 
   // Profile details form
   const [profileName, setProfileName] = useState(user?.name || '');
@@ -62,6 +69,44 @@ export default function ProfilePage() {
         },
       }
     );
+  };
+
+  const handleUpdateAccount = (originalNumber: string, originalProvider: string) => {
+    if (!editNumber.trim()) return;
+
+    updateAccountMutation.mutate(
+      {
+        accountNumber: originalNumber,
+        accountProvider: originalProvider,
+        newAccountNumber: editNumber.trim(),
+        newAccountProvider: editProvider,
+      },
+      {
+        onSuccess: () => {
+          setEditingIndex(null);
+          setModal({
+            visible: true,
+            type: 'success',
+            title: 'Account Updated',
+            message: 'Reconciliation settlement details updated successfully.',
+          });
+        },
+        onError: (err: any) => {
+          setModal({
+            visible: true,
+            type: 'error',
+            title: 'Update Failed',
+            message: err.response?.data?.message || err.message || 'Could not modify account records.',
+          });
+        },
+      }
+    );
+  };
+
+  const handleStartEdit = (idx: number, num: string, prov: string) => {
+    setEditingIndex(idx);
+    setEditNumber(num);
+    setEditProvider(prov);
   };
 
   const handleRemoveAccount = (number: string, prov: string) => {
@@ -234,20 +279,76 @@ export default function ProfilePage() {
             <div className="text-center py-6 text-xs text-[#54647a]">No active reconciliation accounts. Add one below.</div>
           ) : (
             <div className="space-y-3 mb-6 pr-1 max-h-60 overflow-y-auto">
-              {accountsList.map((acc: any, idx: number) => (
-                <div key={idx} className="bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 rounded-xl p-3 flex justify-between items-center text-xs">
-                  <div>
-                    <span className="font-extrabold uppercase text-[#004bca]">{acc.accountProvider}</span>
-                    <p className="font-mono text-gray-700 dark:text-gray-300 mt-1">{acc.accountNumber}</p>
+              {accountsList.map((acc: any, idx: number) => {
+                const isEditing = editingIndex === idx;
+                return (
+                  <div key={idx} className="bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 rounded-xl p-3 text-xs leading-normal">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Provider</label>
+                          <select
+                            value={editProvider}
+                            onChange={(e) => setEditProvider(e.target.value)}
+                            className="w-full bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/40 dark:border-white/10 rounded-lg p-2 text-xs outline-none text-[#131b2e] dark:text-white"
+                          >
+                            <option value="cbe">CBE</option>
+                            <option value="telebirr">Telebirr</option>
+                            <option value="mpesa">M-Pesa</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Account ID</label>
+                          <input
+                            type="text"
+                            value={editNumber}
+                            onChange={(e) => setEditNumber(e.target.value)}
+                            className="w-full bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/40 dark:border-white/10 rounded-lg p-2 font-mono text-xs outline-none text-[#131b2e] dark:text-white"
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button
+                            onClick={() => setEditingIndex(null)}
+                            className="px-2.5 py-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleUpdateAccount(acc.accountNumber, acc.accountProvider)}
+                            disabled={updateAccountMutation.isPending}
+                            className="bg-[#004bca] hover:bg-[#0061ff] text-white px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            {updateAccountMutation.isPending ? 'Saving...' : 'Save'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-extrabold uppercase text-[#004bca]">{acc.accountProvider}</span>
+                          <p className="font-mono text-gray-700 dark:text-gray-300 mt-1">{acc.accountNumber}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleStartEdit(idx, acc.accountNumber, acc.accountProvider)}
+                            className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg dark:hover:bg-white/5 cursor-pointer"
+                            title="Edit Account Details"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleRemoveAccount(acc.accountNumber, acc.accountProvider)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg dark:hover:bg-white/5 cursor-pointer"
+                            title="Remove Account"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleRemoveAccount(acc.accountNumber, acc.accountProvider)}
-                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg dark:hover:bg-white/5 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

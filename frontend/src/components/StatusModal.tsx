@@ -18,7 +18,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({
 }) => {
   if (!visible) return null;
 
-  const iconColorClass = 
+  const iconColorclassName = 
     type === 'success' 
       ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
       : type === 'error' 
@@ -38,7 +38,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({
         </button>
 
         {/* Icon wrapper */}
-        <div className={`w-16 h-16 rounded-full border flex items-center justify-center mb-5 ${iconColorClass}`}>
+        <div className={`w-16 h-16 rounded-full border flex items-center justify-center mb-5 ${iconColorclassName}`}>
           {type === 'success' && <CheckCircle2 size={32} />}
           {type === 'error' && <AlertCircle size={32} />}
           {type === 'info' && <Info size={32} />}

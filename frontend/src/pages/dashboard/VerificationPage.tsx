@@ -10,6 +10,30 @@ export default function VerificationPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header action buttons */}
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#131b2e] dark:text-white">Verification History</h1>
+          <p className="text-xs text-[#54647a]">All payment reference query records</p>
+        </div>
+        <div className="flex gap-3">
+          <Link
+            to="/dashboard/verify/manual"
+            className="bg-[#004bca] hover:bg-[#0061ff] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs"
+          >
+            <span className="material-symbols-outlined text-[16px]">verified_user</span>
+            Verify Manually
+          </Link>
+          <Link
+            to="/dashboard/export"
+            className="bg-[#505f76]/10 hover:bg-[#505f76]/20 text-[#54647a] dark:text-[#c2c6d9] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all"
+          >
+            <span className="material-symbols-outlined text-[16px]">download</span>
+            Export
+          </Link>
+        </div>
+      </div>
+
       {/* Filters bar */}
       <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-2xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-xs">
         <div className="flex items-center gap-2 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9] dark:border-white/10 rounded-xl px-4 py-2 text-xs">
@@ -113,6 +137,12 @@ export default function VerificationPage() {
                 </button>
               </div>
             )}
+
+            {/* Export Center Note */}
+            <div className="text-center pt-2 text-[10px] text-[#54647a]">
+              For full exports with date range filters, visit the{' '}
+              <Link to="/dashboard/export" className="text-[#004bca] dark:text-[#549aff] font-bold hover:underline">Export Center</Link>.
+            </div>
           </div>
         )}
       </div>

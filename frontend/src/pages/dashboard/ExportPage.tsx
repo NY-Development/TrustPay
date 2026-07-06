@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
+import { exportToPDF } from '@/src/utils/pdfExport';
 
 export default function ExportPage() {
   const { data, isLoading } = useVerificationHistory({ limit: 100 });
@@ -8,17 +9,19 @@ export default function ExportPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const handleExport = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (verifications.length === 0) return;
-
-    // Filter by dates if selected
-    const filtered = verifications.filter((item: any) => {
+  const getFilteredVerifications = () => {
+    return verifications.filter((item: any) => {
       const itemDate = new Date(item.createdAt);
       if (dateFrom && itemDate < new Date(dateFrom)) return false;
       if (dateTo && itemDate > new Date(dateTo + 'T23:59:59')) return false;
       return true;
     });
+  };
+
+  const handleExportCSV = (e: React.FormEvent) => {
+    e.preventDefault();
+    const filtered = getFilteredVerifications();
+    if (filtered.length === 0) return;
 
     const headers = ['Reference Number', 'Amount', 'Currency', 'Provider', 'Payer Name', 'Status', 'Date Checked'];
     const csvRows = [headers.join(',')];
@@ -30,7 +33,7 @@ export default function ExportPage() {
         item.currency || 'ETB',
         item.provider,
         `"${(item.payerName || '').replace(/"/g, '""')}"`,
-        item.status,
+        item.status || item.verificationStatus,
         new Date(item.createdAt).toISOString()
       ];
       csvRows.push(row.join(','));
@@ -46,15 +49,22 @@ export default function ExportPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportPDF = (e: React.FormEvent) => {
+    e.preventDefault();
+    const filtered = getFilteredVerifications();
+    if (filtered.length === 0) return;
+    exportToPDF(filtered, dateFrom, dateTo);
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#131b2e] dark:text-white">Export Audit Logs</h1>
-        <p className="text-xs text-[#54647a]">Download cashier verified reference tables to Excel / CSV format</p>
+        <p className="text-xs text-[#54647a]">Download cashier verified reference tables to Excel/CSV or PDF formats</p>
       </div>
 
       <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-[32px] p-8 shadow-lg">
-        <form onSubmit={handleExport} className="space-y-6">
+        <form className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#131b2e] dark:text-[#eef0ff] uppercase tracking-wider mb-2">From Date</label>
@@ -76,14 +86,27 @@ export default function ExportPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || verifications.length === 0}
-            className="w-full bg-[#004bca] hover:bg-[#0061ff] text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer text-sm shadow-md flex justify-center items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">download_for_offline</span>
-            <span>Export Report (CSV)</span>
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={isLoading || verifications.length === 0}
+              className="bg-[#004bca] hover:bg-[#0061ff] disabled:bg-gray-400 text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer text-sm shadow-md flex justify-center items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">download_for_offline</span>
+              <span>CSV/Excel Format</span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleExportPDF}
+              disabled={isLoading || verifications.length === 0}
+              className="bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer text-sm shadow-md flex justify-center items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              <span>PDF Format Document</span>
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -10,7 +10,7 @@ export default function LegalPage() {
       
       <h2 className="text-lg font-bold mt-8 mb-4 text-[#131b2e] dark:text-white">1. Terms of Operations</h2>
       <p className="mb-4">
-        Nexus Verify is designed solely to audit transaction references. We do not hold cash deposits, settle local assets directly, or process third-party banking withdrawals. Users must maintain credentials securely.
+        Trust Pay is designed solely to audit transaction references. We do not hold cash deposits, settle local assets directly, or process third-party banking withdrawals. Users must maintain credentials securely.
       </p>
 
       <h2 className="text-lg font-bold mt-8 mb-4 text-[#131b2e] dark:text-white">2. Privacy & Data Integrity</h2>

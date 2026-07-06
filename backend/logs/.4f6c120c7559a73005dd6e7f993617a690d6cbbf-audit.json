@@ -144,6 +144,16 @@
             "date": 1783303696783,
             "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-05.log",
             "hash": "27d0fe8c553706a46412fba2666b57b5717337c14239a46648a60a5988c56eaf"
+        },
+        {
+            "date": 1783310835747,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-07.log",
+            "hash": "d3e9178db9dc75602bc68e825a84ca10b084d3b29a786854a8c687375cb3b115"
+        },
+        {
+            "date": 1783314172794,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-06-08.log",
+            "hash": "5bf479da6c2ae2e673d734b6c093d12396846d4f20236eb72171d64b159e1f62"
         }
     ],
     "hashType": "sha256"

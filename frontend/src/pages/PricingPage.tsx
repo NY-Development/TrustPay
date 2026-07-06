@@ -14,104 +14,164 @@ export default function PricingPage() {
     }
   };
 
-  const currentSubscription = null; // Normally fetched from subscription-status API
+  const currentSubscription = null;
 
   return (
-    <div className="bg-[#faf8ff] dark:bg-[#0b0e14] min-h-screen py-20 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-[#131b2e] dark:text-white leading-tight">
-            Tailored pricing for cashier desks
-          </h1>
-          <p className="text-lg text-[#424656] dark:text-[#c2c6d9] mt-4 leading-relaxed">
-            Eliminate double payments, reference check verification fraud, and manual logging error today.
-          </p>
-        </div>
+    <div className="bg-[#faf8ff] text-[#131b2e] antialiased min-h-screen flex flex-col font-['Inter']">
+      <style>{`
+        .pricing-card-hover:hover { 
+          transform: translateY(-4px); 
+          box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.1); 
+          border-color: #004bca; 
+        }
+        .table-row-hover:hover { 
+          background-color: #f2f3ff; 
+        }
+      `}</style>
 
-        {/* Pricing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Starter Plan */}
-          <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-3xl p-8 shadow-xs flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-[#131b2e] dark:text-white">Trial Tier</h3>
-              <p className="text-xs text-[#54647a] dark:text-[#c2c6d9] mt-1">Get started checking references</p>
-              <div className="mt-6 flex items-baseline gap-1 text-[#131b2e] dark:text-white">
-                <span className="text-4xl font-extrabold">0 ETB</span>
-                <span className="text-xs text-[#54647a] dark:text-[#c2c6d9]">/ month</span>
-              </div>
-              <ul className="mt-8 space-y-4 text-sm text-[#424656] dark:text-[#c2c6d9]">
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-[#004bca]">check</span>
-                  1 desk receptionist account
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-[#004bca]">check</span>
-                  15 verifications per day
-                </li>
-                <li className="flex items-center gap-3 text-gray-400">
-                  <span className="material-symbols-outlined text-[18px]">block</span>
-                  No CSV export logs
-                </li>
-              </ul>
+      <main className="flex-grow pt-24 pb-10 px-6 max-w-[1280px] mx-auto w-full">
+        {/* Clean Header Grid */}
+        <section className="text-center py-10 mb-6">
+          <h1 className="font-['Geist'] text-[32px] md:text-[48px] font-semibold text-[#131b2e] tracking-[-0.02em] mb-4">
+            Transparent pricing for verified trust.
+          </h1>
+          <p className="text-[18px] text-[#424656] max-w-2xl mx-auto leading-[1.6]">
+            Scale your verification infrastructure with plans designed for startups to global enterprises. No hidden fees, just reliable APIs.
+          </p>
+        </section>
+
+        {/* Structural Pricing Cards Bento Layout */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 pt-4">
+          
+          {/* Starter Plan Box */}
+          <div className="bg-[#ffffff] border border-[#c2c6d9] rounded-xl p-6 flex flex-col pricing-card-hover transition-all duration-300 text-left">
+            <div className="mb-4">
+              <h3 className="font-['Geist'] text-[24px] font-medium text-[#131b2e] mb-1">Starter</h3>
+              <p className="text-[14px] text-[#424656]">For early-stage startups needing basic KYC.</p>
             </div>
-            <button
+            <div className="mb-6">
+              <span className="font-['Geist'] text-[48px] font-semibold tracking-[-0.02em] text-[#131b2e]">0 ETB</span>
+              <span className="text-[14px] text-[#424656]">/mo</span>
+            </div>
+            <ul className="text-[14px] text-[#131b2e] space-y-3 mb-6 flex-grow">
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                1 desk receptionist account
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                15 verifications per day
+              </li>
+            </ul>
+            <button 
               onClick={handlePricingAction}
-              className="mt-8 w-full bg-[#505f76]/10 hover:bg-[#505f76]/15 hover:text-[#131b2e] dark:text-[#eef0ff] py-3 rounded-xl font-semibold transition-all cursor-pointer text-center text-sm"
+              className="w-full border border-[#737687] text-[#131b2e] font-['Geist'] text-[13px] font-medium py-2.5 rounded hover:bg-[#e2e7ff] transition-colors"
             >
               {isAuthenticated ? 'No Setup Required' : 'Get Started'}
             </button>
           </div>
 
-          {/* Premium Plan */}
-          <div className="bg-white dark:bg-[#131b2e] border-2 border-[#004bca] rounded-3xl p-8 shadow-md relative flex flex-col justify-between">
-            <div className="absolute top-0 right-8 -translate-y-1/2 bg-[#004bca] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              Popular Choice
+          {/* Premium Plan Box (Highlighted) */}
+          <div className="bg-[#ffffff] border-2 border-[#004bca] rounded-xl p-6 flex flex-col relative shadow-sm pricing-card-hover transition-all duration-300 transform scale-105 z-10 text-left">
+            <div className="absolute top-0 right-0 bg-[#004bca] text-white font-['Geist'] text-[13px] font-medium px-3 py-1 rounded-bl-lg rounded-tr-sm">Most Popular</div>
+            <div className="mb-4">
+              <h3 className="font-['Geist'] text-[24px] font-medium text-[#131b2e] mb-1">Business</h3>
+              <p className="text-[14px] text-[#424656]">Advanced risk mitigation for scaling platforms.</p>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-[#131b2e] dark:text-white">Premium Tier</h3>
-              <p className="text-xs text-[#54647a] dark:text-[#c2c6d9] mt-1">Full transaction assurance</p>
-              <div className="mt-6 flex items-baseline gap-1 text-[#131b2e] dark:text-white">
-                <span className="text-4xl font-extrabold">1,499.99 ETB</span>
-                <span className="text-xs text-[#54647a] dark:text-[#c2c6d9]">/ month</span>
-              </div>
-              <ul className="mt-8 space-y-4 text-sm text-[#424656] dark:text-[#c2c6d9]">
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-[#004bca]">check</span>
-                  Unlimited receptionist desks
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-[#004bca]">check</span>
-                  Unlimited payment verifications
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-[#004bca]">check</span>
-                  Real-time double spend alerts
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-[#004bca]">check</span>
-                  Excel/CSV export reporting logs
-                </li>
-              </ul>
+            <div className="mb-6">
+              <span className="font-['Geist'] text-[48px] font-semibold tracking-[-0.02em] text-[#131b2e]">1,499.99 ETB</span>
+              <span className="text-[14px] text-[#424656]">/mo</span>
             </div>
-            <button
+            <ul className="text-[14px] text-[#131b2e] space-y-3 mb-6 flex-grow">
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                Unlimited receptionist desks
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                Unlimited payment verifications
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                Real-time double spend alerts
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                Excel/CSV export reporting logs
+              </li>
+            </ul>
+            <button 
               onClick={handlePricingAction}
-              className="mt-8 w-full bg-[#004bca] hover:bg-[#0061ff] text-white py-3 rounded-xl font-bold transition-all cursor-pointer text-center text-sm shadow-md"
+              className="w-full bg-[#004bca] text-white font-['Geist'] text-[13px] font-medium py-2.5 rounded hover:bg-[#0061ff] transition-colors"
             >
               {isAuthenticated ? 'Verify CBE Reference Now' : 'Start Premium Trial'}
             </button>
           </div>
-        </div>
 
-        {/* Subscription Verification Drawer/Modal */}
-        {modalVisible && (
-          <SubscriptionModal
-            visible={modalVisible}
-            canClose={true}
-            onClose={() => setModalVisible(false)}
-            partialSubscription={currentSubscription}
-          />
-        )}
-      </div>
+          {/* Custom Enterprise Box */}
+          <div className="bg-[#ffffff] border border-[#c2c6d9] rounded-xl p-6 flex flex-col pricing-card-hover transition-all duration-300 text-left">
+            <div className="mb-4">
+              <h3 className="font-['Geist'] text-[24px] font-medium text-[#131b2e] mb-1">Enterprise</h3>
+              <p className="text-[14px] text-[#424656]">Custom workflows and high-volume SLAs.</p>
+            </div>
+            <div className="mb-6 flex items-end h-[53px]">
+              <span className="font-['Geist'] text-[32px] font-semibold text-[#131b2e] tracking-[-0.02em]">Custom Pricing</span>
+            </div>
+            <ul className="text-[14px] text-[#131b2e] space-y-3 mb-6 flex-grow">
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                Unlimited verifications
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#004bca] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 
+                99.99% Uptime SLA
+              </li>
+            </ul>
+            <button className="w-full border border-[#737687] text-[#131b2e] font-['Geist'] text-[13px] font-medium py-2.5 rounded hover:bg-[#e2e7ff] transition-colors">Contact Sales</button>
+          </div>
+        </section>
+
+        {/* Feature Matrix Table Section */}
+        <section className="mb-16 overflow-x-auto">
+          <h2 className="font-['Geist'] text-[32px] font-semibold text-[#131b2e] mb-6 text-center tracking-[-0.02em]">Compare Features</h2>
+          <div className="min-w-[800px] border border-[#c2c6d9] rounded-lg bg-[#ffffff] text-left">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-[#f2f3ff] border-b border-[#c2c6d9]">
+                  <th className="p-4 font-['Geist'] text-[13px] font-medium text-[#424656] uppercase tracking-wider w-1/4">Feature</th>
+                  <th className="p-4 font-['Geist'] text-[13px] font-medium text-[#424656] uppercase tracking-wider w-1/4 text-center">Starter</th>
+                  <th className="p-4 font-['Geist'] text-[13px] font-medium text-[#004bca] uppercase tracking-wider w-1/4 text-center bg-[#004bca]/5">Business</th>
+                  <th className="p-4 font-['Geist'] text-[13px] font-medium text-[#424656] uppercase tracking-wider w-1/4 text-center">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody className="text-[14px] text-[#131b2e]">
+                <tr className="border-b border-[#c2c6d9]/50 table-row-hover transition-colors">
+                  <td className="p-4">Identity Document Verification</td>
+                  <td className="p-4 text-center"><span className="material-symbols-outlined text-[#424656] text-[20px]">check</span></td>
+                  <td className="p-4 text-center bg-[#004bca]/5"><span className="material-symbols-outlined text-[#004bca] text-[20px]">check</span></td>
+                  <td className="p-4 text-center"><span className="material-symbols-outlined text-[#424656] text-[20px]">check</span></td>
+                </tr>
+                <tr className="border-b border-[#c2c6d9]/50 table-row-hover transition-colors">
+                  <td className="p-4">Audit Logs Retention</td>
+                  <td className="p-4 text-center">30 Days</td>
+                  <td className="p-4 text-center bg-[#004bca]/5">1 Year</td>
+                  <td className="p-4 text-center">Unlimited</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      {/* Subscription Verification Drawer/Modal System */}
+      {modalVisible && (
+        <SubscriptionModal
+          visible={modalVisible}
+          canClose={true}
+          onClose={() => setModalVisible(false)}
+          partialSubscription={currentSubscription}
+        />
+      )}
     </div>
   );
 }

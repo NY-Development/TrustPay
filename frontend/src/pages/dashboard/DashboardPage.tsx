@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 import { Link } from 'react-router-dom';
@@ -19,15 +19,34 @@ export default function DashboardPage() {
   const { data: subStatus } = useSubscriptionStatus();
   
   // Fetch verification history
-  const { data, isLoading } = useVerificationHistory({ limit: 5 });
-  const verifications = data?.pages?.[0]?.data || [];
+  const { data, isLoading } = useVerificationHistory({ limit: 50 });
+  const allVerifications = data?.pages?.flatMap(page => page.data) || [];
+  const verifications = allVerifications.slice(0, 5);
+
+  // Computed metrics from real data
+  const computed = useMemo(() => {
+    if (allVerifications.length === 0) return null;
+    const total = allVerifications.length;
+    const completed = allVerifications.filter((v: any) => v.status === 'completed').length;
+    const successRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
+    const totalVolume = allVerifications.reduce((a: number, v: any) => a + (v.amount || 0), 0);
+
+    // Daily grouping for chart
+    const dailyCounts: Record<string, number> = {};
+    allVerifications.forEach((v: any) => {
+      const day = new Date(v.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+      dailyCounts[day] = (dailyCounts[day] || 0) + 1;
+    });
+
+    return { total, completed, successRate, totalVolume, dailyCounts };
+  }, [allVerifications]);
 
   const chartData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    labels: computed ? Object.keys(computed.dailyCounts) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     datasets: [
       {
         label: 'Verifications Checked',
-        data: [12, 19, 3, 5, 2, 3, 10],
+        data: computed ? Object.values(computed.dailyCounts) : [0, 0, 0, 0, 0, 0, 0],
         backgroundColor: '#004bca',
         borderRadius: 6,
       },
@@ -88,7 +107,7 @@ export default function DashboardPage() {
           <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider block">Remaining Trial Days</span>
           <div className="mt-3 flex items-center justify-between">
             <span className="text-2xl font-bold text-[#131b2e] dark:text-white">
-              {subStatus?.data?.subsAccessTrialExpiresAt ? '14 Days' : 'Unlimited'}
+              {subStatus?.data?.subsAccessTrialExpiresAt ? '5 Days' : 'Unlimited'}
             </span>
             <span className="material-symbols-outlined text-[#004bca]">hourglass_empty</span>
           </div>
@@ -97,7 +116,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
           <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider block">Success Rate</span>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-2xl font-bold text-[#131b2e] dark:text-white">98.4%</span>
+            <span className="text-2xl font-bold text-[#131b2e] dark:text-white">{computed ? `${computed.successRate}%` : '—'}</span>
             <span className="material-symbols-outlined text-green-500">trending_up</span>
           </div>
         </div>

@@ -31,4 +31,5 @@ export const STORAGE_KEYS = {
   THEME_BUTTON_POSITION: 'theme_button_position',
   HAS_SEEN_ONBOARDING: 'has_seen_onboarding',
   BIOMETRICS_ENABLED: 'biometrics_enabled',
+  THEME: 'theme',
 };

@@ -6,6 +6,7 @@ import { AuthLayout } from './layouts/AuthLayout';
 
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicOnlyRoute } from './components/PublicOnlyRoute';
+import { ThemeToggle } from './components/ThemeToggle';
 
 // Public pages
 import HomePage from './pages/HomePage';
@@ -33,8 +34,17 @@ import NotificationsPage from './pages/dashboard/NotificationsPage';
 import ExportPage from './pages/dashboard/ExportPage';
 import ProfilePage from './pages/dashboard/ProfilePage';
 
+// Admin pages
+import { AdminLayout } from './layouts/AdminLayout';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminVerificationsPage from './pages/admin/AdminVerificationsPage';
+import AdminSubscriptionsPage from './pages/admin/AdminSubscriptionsPage';
+import AdminAuditLogsPage from './pages/admin/AdminAuditLogsPage';
+
 export default function App() {
   return (
+    <>
     <Routes>
       {/* Public Pages */}
       <Route element={<PublicLayout />}>
@@ -72,8 +82,21 @@ export default function App() {
         </Route>
       </Route>
 
+      {/* Admin Pages (Only accessible when logged in, role checked in AdminLayout) */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/verifications" element={<AdminVerificationsPage />} />
+          <Route path="/admin/subscriptions" element={<AdminSubscriptionsPage />} />
+          <Route path="/admin/audit" element={<AdminAuditLogsPage />} />
+        </Route>
+      </Route>
+
       {/* Fallback Catch-All */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    <ThemeToggle />
+    </>
   );
 }
