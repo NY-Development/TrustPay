@@ -215,13 +215,13 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Subscription Modal Enforced Visibility[cite: 17, 21] */}
+{/* Subscription Modal Enforced Visibility */}
       <SubscriptionModal 
         visible={modalVisible} 
         canClose={subData?.data?.active === true} 
         onClose={() => setModalVisible(false)} 
-        partialSubscription={subData?.data?.isPartialPayment ? subData.data.subscription : undefined}
+        // Ensure subData.data.subscription is only passed if it exists
+        partialSubscription={subData?.data?.subscription ?? undefined}
       />
     </div>
   );
