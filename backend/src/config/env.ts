@@ -43,6 +43,9 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   VERIFY_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
   VERIFY_RATE_LIMIT_MAX: z.coerce.number().default(20),
+
+  // Super Admin
+  SUPER_ADMIN_EMAIL: z.string().email().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -20,8 +20,20 @@ import { NotificationService } from '../../services/notification.service';
 /* =========================================================
    REGISTER
 ========================================================= */
+/* =========================================================
+   REGISTER
+========================================================= */
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, role, accounts, businessId, branchId } = req.body;
+  let { name, email, password, role, accounts, businessId, branchId } = req.body;
+
+  // 🛡️ Intercept and force Super Admin profile if the email matches the environment variable
+  const isSuperAdminEmail = email?.trim().toLowerCase() === env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+  
+  if (isSuperAdminEmail) {
+    name = 'Yamlak Negash';
+    role = 'SUPER_ADMIN';
+    // Any other specialized fields for the super admin can go here
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new ConflictError('User already exists with this email');
@@ -33,12 +45,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.create({
     name,
     email,
-    passwordHash: password,
+    passwordHash: password, // The model hook handles hashing automatically
     role,
     accounts,
     businessId,
     branchId,
-    // 🆕 TRIAL
     trialStartDate: now,
     trialEndDate: trialEnd,
     hasUsedTrial: true,
@@ -54,7 +65,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(201).json({
     success: true,
-    message: 'User registered successfully',
+    message: isSuperAdminEmail ? 'Super Admin registered successfully' : 'User registered successfully',
     data: {
       user: {
         ...user.toJSON(),
