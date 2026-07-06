@@ -30,6 +30,7 @@ export const DashboardLayout: React.FC = () => {
     { to: '/dashboard/notifications', label: 'Notifications', icon: 'notifications' },
     { to: '/dashboard/export', label: 'Export Center', icon: 'output' },
     { to: '/dashboard/profile', label: 'Profile Settings', icon: 'settings' },
+    { to: '/dashboard/pricing', label: 'Pricing', icon: 'money' },
   ];
 
   return (

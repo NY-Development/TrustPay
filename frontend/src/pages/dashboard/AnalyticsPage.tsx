@@ -1,177 +1,654 @@
-import React, { useMemo } from 'react';
-import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  BarElement,
-  Title, 
-  Tooltip, 
-  Legend, 
-  ArcElement 
-} from 'chart.js';
-import { Line, Pie, Bar } from 'react-chartjs-2';
+import React, { useMemo } from "react";
+import { useVerificationHistory } from "@/src/hooks/useVerification";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement);
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+
+const COLORS = [
+  "#004bca",
+  "#7c3aed",
+  "#06b6d4",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#6366f1",
+];
+
+const chartConfig = {
+  volume: {
+    label: "Verification Volume",
+    color: "#004bca",
+  },
+  revenue: {
+    label: "Revenue",
+    color: "#7c3aed",
+  },
+} satisfies ChartConfig;
 
 export default function AnalyticsPage() {
-  const { data } = useVerificationHistory({ limit: 100 });
-  const verifications = data?.pages?.flatMap(page => page.data) || [];
+  const { data } = useVerificationHistory({
+    limit: 100,
+  });
 
-  // ── Computed Metrics ──
+  const verifications =
+    data?.pages?.flatMap((page) => page.data) || [];
+
   const metrics = useMemo(() => {
-    if (verifications.length === 0) return null;
+    if (!verifications.length) return null;
 
     const total = verifications.length;
-    const completed = verifications.filter((v: any) => v.status === 'completed').length;
-    const failed = verifications.filter((v: any) => v.status === 'failed').length;
-    const successRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
-    const fraudCount = verifications.filter((v: any) => v.verificationSummary?.severity === 'fraud_risk').length;
-    const fraudRate = total > 0 ? ((fraudCount / total) * 100).toFixed(1) : '0';
 
-    const amounts = verifications.map((v: any) => v.amount || 0);
-    const totalVolume = amounts.reduce((a: number, b: number) => a + b, 0);
-    const avgAmount = total > 0 ? (totalVolume / total).toFixed(2) : '0';
+    const completed = verifications.filter(
+      (v: any) => v.status === "completed"
+    ).length;
 
-    // Provider distribution
+    const failed = verifications.filter(
+      (v: any) => v.status === "failed"
+    ).length;
+
+    const successRate =
+      total > 0
+        ? ((completed / total) * 100).toFixed(1)
+        : "0";
+
+    const fraudCount = verifications.filter(
+      (v: any) =>
+        v.verificationSummary?.severity === "fraud_risk"
+    ).length;
+
+    const fraudRate =
+      total > 0
+        ? ((fraudCount / total) * 100).toFixed(1)
+        : "0";
+
+    const amounts = verifications.map(
+      (v: any) => v.amount || 0
+    );
+
+    const totalVolume = amounts.reduce(
+      (a: number, b: number) => a + b,
+      0
+    );
+
+    const avgAmount =
+      total > 0
+        ? (totalVolume / total).toFixed(2)
+        : "0";
+
     const providerCounts: Record<string, number> = {};
-    verifications.forEach((v: any) => {
-      const p = (v.provider || 'unknown').toUpperCase();
-      providerCounts[p] = (providerCounts[p] || 0) + 1;
-    });
-    const topProvider = Object.entries(providerCounts).sort((a, b) => b[1] - a[1])[0];
 
-    // Daily volume grouping
+    verifications.forEach((v: any) => {
+      const provider = (
+        v.provider || "Unknown"
+      ).toUpperCase();
+
+      providerCounts[provider] =
+        (providerCounts[provider] || 0) + 1;
+    });
+
+    const topProvider = Object.entries(
+      providerCounts
+    ).sort((a, b) => b[1] - a[1])[0];
+
     const dailyCounts: Record<string, number> = {};
+
     verifications.forEach((v: any) => {
-      const day = new Date(v.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      dailyCounts[day] = (dailyCounts[day] || 0) + 1;
+      const day = new Date(
+        v.createdAt
+      ).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+
+      dailyCounts[day] =
+        (dailyCounts[day] || 0) + 1;
     });
 
-    // Revenue by provider
-    const providerRevenue: Record<string, number> = {};
+    const providerRevenue: Record<
+      string,
+      number
+    > = {};
+
     verifications.forEach((v: any) => {
-      const p = (v.provider || 'unknown').toUpperCase();
-      providerRevenue[p] = (providerRevenue[p] || 0) + (v.amount || 0);
+      const provider = (
+        v.provider || "Unknown"
+      ).toUpperCase();
+
+      providerRevenue[provider] =
+        (providerRevenue[provider] || 0) +
+        (v.amount || 0);
     });
+
+    const lineData = Object.entries(
+      dailyCounts
+    ).map(([date, volume]) => ({
+      date,
+      volume,
+    }));
+
+    const pieData = Object.entries(
+      providerCounts
+    ).map(([provider, value]) => ({
+      provider,
+      value,
+    }));
+
+    const barData = Object.entries(
+      providerRevenue
+    ).map(([provider, revenue]) => ({
+      provider,
+      revenue,
+    }));
 
     return {
-      total, completed, failed, successRate, fraudCount, fraudRate,
-      totalVolume, avgAmount, topProvider, providerCounts,
-      dailyCounts, providerRevenue,
+      total,
+      completed,
+      failed,
+      successRate,
+      fraudCount,
+      fraudRate,
+      totalVolume,
+      avgAmount,
+      providerCounts,
+      providerRevenue,
+      topProvider,
+      lineData,
+      pieData,
+      barData,
     };
   }, [verifications]);
-
-  // ── Chart Data ──
-  const lineData = {
-    labels: metrics ? Object.keys(metrics.dailyCounts) : [],
-    datasets: [{
-      label: 'Verifications per day',
-      data: metrics ? Object.values(metrics.dailyCounts) : [],
-      borderColor: '#004bca',
-      backgroundColor: '#004bca20',
-      tension: 0.3,
-      fill: true,
-    }],
-  };
-
-  const pieData = {
-    labels: metrics ? Object.keys(metrics.providerCounts) : [],
-    datasets: [{
-      label: 'Share by Provider',
-      data: metrics ? Object.values(metrics.providerCounts) : [],
-      backgroundColor: ['#8E24AA', '#00E5FF', '#4CAF50', '#FFD600', '#FF5722', '#2196F3', '#E91E63'],
-    }],
-  };
-
-  const barData = {
-    labels: metrics ? Object.keys(metrics.providerRevenue) : [],
-    datasets: [{
-      label: 'Revenue (ETB)',
-      data: metrics ? Object.values(metrics.providerRevenue) : [],
-      backgroundColor: '#004bca',
-      borderRadius: 6,
-    }],
-  };
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-[#131b2e] dark:text-white">Business Analytics</h1>
-        <p className="text-xs text-[#54647a]">Reconciled values, provider distributions, and system growth metrics</p>
-      </div>
+  <div className="space-y-8">
+    {/* Header */}
+    <div className="space-y-1">
+      <h1 className="text-3xl font-bold tracking-tight text-[#131b2e] dark:text-white">
+        Business Analytics
+      </h1>
 
-      {/* ── Insight Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Success Rate', value: metrics ? `${metrics.successRate}%` : '—', icon: 'trending_up', color: 'text-emerald-500' },
-          { label: 'Avg Transaction', value: metrics ? `${metrics.avgAmount} ETB` : '—', icon: 'payments', color: 'text-[#004bca]' },
-          { label: 'Top Provider', value: metrics?.topProvider ? metrics.topProvider[0] : '—', icon: 'account_balance', color: 'text-purple-500' },
-          { label: 'Fraud Detection', value: metrics ? `${metrics.fraudRate}%` : '—', icon: 'gpp_bad', color: 'text-red-500' },
-        ].map((card) => (
-          <div key={card.label} className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-5 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-bold text-[#54647a] uppercase tracking-wider">{card.label}</span>
-              <span className={`material-symbols-outlined text-[20px] ${card.color}`}>{card.icon}</span>
-            </div>
-            <p className="text-xl font-bold text-[#131b2e] dark:text-white mt-2">{card.value}</p>
+      <p className="text-sm text-[#54647a]">
+        Monitor verification performance, revenue trends, provider
+        distribution and fraud intelligence.
+      </p>
+    </div>
+
+    {/* KPI Cards */}
+
+    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      {[
+        {
+          label: "Success Rate",
+          value: metrics ? `${metrics.successRate}%` : "--",
+          icon: "trending_up",
+          color: "text-emerald-500",
+        },
+
+        {
+          label: "Average Amount",
+          value: metrics
+            ? `${Number(metrics.avgAmount).toLocaleString()} ETB`
+            : "--",
+
+          icon: "payments",
+
+          color: "text-blue-600",
+        },
+
+        {
+          label: "Top Provider",
+
+          value: metrics?.topProvider
+            ? metrics.topProvider[0]
+            : "--",
+
+          icon: "account_balance",
+
+          color: "text-purple-600",
+        },
+
+        {
+          label: "Fraud Rate",
+
+          value: metrics
+            ? `${metrics.fraudRate}%`
+            : "--",
+
+          icon: "gpp_bad",
+
+          color: "text-red-500",
+        },
+      ].map((card) => (
+        <div
+          key={card.label}
+          className="
+          rounded-2xl
+          border
+          border-border/60
+          bg-white
+          dark:bg-[#131b2e]
+          shadow-sm
+          p-6
+        "
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              {card.label}
+            </span>
+
+            <span
+              className={`material-symbols-outlined text-2xl ${card.color}`}
+            >
+              {card.icon}
+            </span>
           </div>
-        ))}
-      </div>
 
-      {/* ── Charts Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-          <h3 className="text-sm font-bold text-[#131b2e] dark:text-white mb-4">Daily Verification Volume</h3>
-          <div className="h-64 relative">
-            <Line data={lineData} options={{ responsive: true, maintainAspectRatio: false }} />
+          <div className="mt-5 text-3xl font-bold text-[#131b2e] dark:text-white">
+            {card.value}
           </div>
         </div>
+      ))}
+    </div>
 
-        <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-          <h3 className="text-sm font-bold text-[#131b2e] dark:text-white mb-4">Verification share by gateway</h3>
-          <div className="h-64 relative flex justify-center">
-            {metrics && Object.keys(metrics.providerCounts).length > 0 ? (
-              <Pie data={pieData} options={{ responsive: true, maintainAspectRatio: false }} />
-            ) : (
-              <div className="text-center py-12 text-xs text-[#54647a]">No gateway logs data found yet.</div>
-            )}
-          </div>
+    {/* Charts */}
+
+    <div className="grid gap-8 xl:grid-cols-2">
+
+      {/* Area Chart */}
+
+      <div className="rounded-2xl border border-border/60 bg-white dark:bg-[#131b2e] p-6">
+
+        <div className="mb-6">
+          <h2 className="font-semibold text-lg">
+            Daily Verification Volume
+          </h2>
+
+          <p className="text-sm text-muted-foreground">
+            Verification requests processed each day.
+          </p>
         </div>
+
+        <ChartContainer
+          config={chartConfig}
+          className="h-[320px] w-full"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={metrics?.lineData ?? []}>
+              <defs>
+                <linearGradient
+                  id="volumeFill"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="5%"
+                    stopColor="#004bca"
+                    stopOpacity={0.4}
+                  />
+
+                  <stop
+                    offset="95%"
+                    stopColor="#004bca"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid vertical={false} />
+
+              <XAxis dataKey="date" />
+
+              <YAxis />
+
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent />}
+              />
+
+              <Area
+                type="monotone"
+                dataKey="volume"
+                stroke="#004bca"
+                strokeWidth={3}
+                fill="url(#volumeFill)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartContainer>
       </div>
 
-      {/* ── Revenue by Provider Bar ── */}
-      <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
-        <h3 className="text-sm font-bold text-[#131b2e] dark:text-white mb-4">Revenue by Provider (ETB)</h3>
-        <div className="h-64 relative">
-          <Bar data={barData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+      {/* Provider Distribution */}
+
+      <div className="rounded-2xl border border-border/60 bg-white dark:bg-[#131b2e] p-6">
+
+        <div className="mb-6">
+          <h2 className="font-semibold text-lg">
+            Provider Distribution
+          </h2>
+
+          <p className="text-sm text-muted-foreground">
+            Verification requests by payment gateway.
+          </p>
         </div>
+
+        <ChartContainer
+          config={chartConfig}
+          className="h-[320px]"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+
+              <Pie
+                data={metrics?.pieData ?? []}
+                dataKey="value"
+                nameKey="provider"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={3}
+              >
+                {(metrics?.pieData ?? []).map((_, index) => (
+                  <Cell
+                    key={index}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+
+              <ChartTooltip
+                content={<ChartTooltipContent hideLabel />}
+              />
+
+              <ChartLegend
+                content={<ChartLegendContent />}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    </div>
+
+    {/* Revenue */}
+
+    <div className="rounded-2xl border border-border/60 bg-white dark:bg-[#131b2e] p-6">
+
+      <div className="mb-6">
+        <h2 className="font-semibold text-lg">
+          Revenue by Provider
+        </h2>
+
+        <p className="text-sm text-muted-foreground">
+          Total processed transaction value.
+        </p>
       </div>
 
-      {/* ── AI-Style Recommendation ── */}
+      <ChartContainer
+        config={chartConfig}
+        className="h-[340px]"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={metrics?.barData ?? []}
+          >
+            <CartesianGrid vertical={false} />
+
+            <XAxis
+              dataKey="provider"
+            />
+
+            <YAxis />
+
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent />}
+            />
+
+            <Bar
+              dataKey="revenue"
+              radius={[8, 8, 0, 0]}
+            >
+              {(metrics?.barData ?? []).map(
+                (_, index) => (
+                  <Cell
+                    key={index}
+                    fill={
+                      COLORS[index % COLORS.length]
+                    }
+                  />
+                )
+              )}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
+          {/* ───────────────── Business Insights ───────────────── */}
+
       {metrics && (
-        <div className="bg-gradient-to-r from-[#004bca]/5 to-purple-500/5 border border-[#004bca]/15 rounded-2xl p-6">
-          <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-[#004bca] text-[24px] mt-0.5">auto_awesome</span>
-            <div>
-              <h4 className="font-bold text-sm text-[#131b2e] dark:text-white mb-2">Business Insights</h4>
-              <ul className="text-xs text-[#54647a] dark:text-[#c2c6d9] space-y-1.5 leading-relaxed">
-                <li>• Your success rate is <strong>{metrics.successRate}%</strong> across <strong>{metrics.total}</strong> verifications.</li>
-                <li>• <strong>{metrics.topProvider?.[0]}</strong> accounts for most transactions ({metrics.topProvider?.[1]} out of {metrics.total}).</li>
-                <li>• Total processed volume: <strong>{metrics.totalVolume.toLocaleString()} ETB</strong>.</li>
-                {Number(metrics.fraudRate) > 0 && (
-                  <li>• ⚠️ Fraud detection rate is at <strong>{metrics.fraudRate}%</strong>. Review flagged verifications.</li>
-                )}
-                {Number(metrics.successRate) >= 95 && (
-                  <li>• ✅ Excellent transaction health. Your verification success rate is above 95%.</li>
-                )}
-              </ul>
+        <div className="rounded-2xl border border-[#004bca]/15 bg-gradient-to-r from-[#004bca]/5 via-white to-violet-500/5 dark:from-[#004bca]/10 dark:to-violet-500/10 p-6">
+
+          <div className="flex items-start gap-4">
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#004bca]/10">
+              <span className="material-symbols-outlined text-[#004bca] text-2xl">
+                auto_awesome
+              </span>
             </div>
+
+            <div className="flex-1">
+
+              <h3 className="text-lg font-semibold text-[#131b2e] dark:text-white">
+                Business Insights
+              </h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                AI-generated operational summary based on the latest
+                verification activity.
+              </p>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+
+                <div className="rounded-xl border bg-background p-4">
+                  <h4 className="font-medium mb-2">
+                    Verification Performance
+                  </h4>
+
+                  <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+
+                    <li>
+                      ✅ Success rate:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.successRate}%
+                      </strong>
+                    </li>
+
+                    <li>
+                      📦 Total verifications:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.total}
+                      </strong>
+                    </li>
+
+                    <li>
+                      ✔ Completed:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.completed}
+                      </strong>
+                    </li>
+
+                    <li>
+                      ✖ Failed:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.failed}
+                      </strong>
+                    </li>
+
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border bg-background p-4">
+
+                  <h4 className="font-medium mb-2">
+                    Financial Overview
+                  </h4>
+
+                  <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+
+                    <li>
+                      💰 Total Volume:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.totalVolume.toLocaleString()} ETB
+                      </strong>
+                    </li>
+
+                    <li>
+                      💳 Average Transaction:
+                      <strong className="ml-1 text-foreground">
+                        {Number(metrics.avgAmount).toLocaleString()} ETB
+                      </strong>
+                    </li>
+
+                    <li>
+                      🏆 Leading Provider:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.topProvider?.[0] ?? "--"}
+                      </strong>
+                    </li>
+
+                  </ul>
+
+                </div>
+
+                <div className="rounded-xl border bg-background p-4">
+
+                  <h4 className="font-medium mb-2">
+                    Risk Assessment
+                  </h4>
+
+                  <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+
+                    <li>
+                      🚨 Fraud Rate:
+                      <strong className="ml-1 text-red-500">
+                        {metrics.fraudRate}%
+                      </strong>
+                    </li>
+
+                    <li>
+                      ⚠ Flagged Verifications:
+                      <strong className="ml-1 text-foreground">
+                        {metrics.fraudCount}
+                      </strong>
+                    </li>
+
+                    {Number(metrics.fraudRate) > 5 && (
+                      <li className="text-red-500">
+                        High fraud activity detected. Review verification
+                        logs immediately.
+                      </li>
+                    )}
+
+                    {Number(metrics.fraudRate) <= 5 && (
+                      <li className="text-emerald-600">
+                        Fraud indicators remain within acceptable levels.
+                      </li>
+                    )}
+
+                  </ul>
+
+                </div>
+
+                <div className="rounded-xl border bg-background p-4">
+
+                  <h4 className="font-medium mb-2">
+                    Recommendations
+                  </h4>
+
+                  <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+
+                    {Number(metrics.successRate) >= 98 && (
+                      <li>
+                        🚀 Excellent transaction health. Current processing
+                        quality is outstanding.
+                      </li>
+                    )}
+
+                    {Number(metrics.successRate) >= 95 &&
+                      Number(metrics.successRate) < 98 && (
+                        <li>
+                          👍 Overall platform performance is very stable.
+                        </li>
+                      )}
+
+                    {Number(metrics.successRate) < 95 && (
+                      <li>
+                        ⚠ Investigate failed verification requests to improve
+                        customer experience.
+                      </li>
+                    )}
+
+                    <li>
+                      📈 Continue monitoring provider distribution to avoid
+                      over-reliance on a single payment gateway.
+                    </li>
+
+                    <li>
+                      💡 Consider enabling automated alerts for abnormal
+                      fraud spikes.
+                    </li>
+
+                  </ul>
+
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
+
         </div>
       )}
+
+      {!metrics && (
+
+        <div className="rounded-2xl border border-dashed py-20 text-center">
+
+          <span className="material-symbols-outlined text-6xl text-muted-foreground">
+            analytics
+          </span>
+
+          <h3 className="mt-6 text-xl font-semibold">
+            No analytics available
+          </h3>
+
+          <p className="mt-2 text-muted-foreground">
+            Analytics will appear once verification data has been collected.
+          </p>
+
+        </div>
+
+      )}
+
     </div>
   );
 }

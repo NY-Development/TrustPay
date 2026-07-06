@@ -79,6 +79,7 @@ export default function App() {
           <Route path="/dashboard/notifications" element={<NotificationsPage />} />
           <Route path="/dashboard/export" element={<ExportPage />} />
           <Route path="/dashboard/profile" element={<ProfilePage />} />
+          <Route path="/dashboard/pricing" element={<PricingPage />} />
         </Route>
       </Route>
 

@@ -6,11 +6,14 @@ import { useRegister } from '@/src/hooks/useAuth';
 import { StatusModal } from '@/src/components/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import { useTranslation } from 'react-i18next'; //
 
 export default function Register() {
+  const { t } = useTranslation(); //
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
+  
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -30,11 +33,11 @@ export default function Register() {
 
   const handleAddAccount = () => {
     if (!currentAccountNumber) {
-      setModal({ visible: true, type: 'error', title: 'Input Error', message: 'Please enter an account number.' });
+      setModal({ visible: true, type: 'error', title: t('register.errorTitle'), message: t('register.errAccountNum') });
       return;
     }
     if (accounts.some(acc => acc.accountProvider === currentAccountProvider)) {
-      setModal({ visible: true, type: 'error', title: 'Duplicate Provider', message: `You have already added an account for ${currentAccountProvider.toUpperCase()}.` });
+      setModal({ visible: true, type: 'error', title: t('register.errorTitle'), message: `${t('register.errDuplicate')} ${currentAccountProvider.toUpperCase()}.` });
       return;
     }
     setAccounts([...accounts, { accountNumber: currentAccountNumber, accountProvider: currentAccountProvider }]);
@@ -47,11 +50,11 @@ export default function Register() {
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      setModal({ visible: true, type: 'error', title: 'Input Error', message: 'Please fill name, email and password.' });
+      setModal({ visible: true, type: 'error', title: t('register.errorTitle'), message: 'Please fill name, email and password.' });
       return;
     }
     if (accounts.length === 0) {
-      setModal({ visible: true, type: 'error', title: 'Input Error', message: 'Please add at least one settlement account.' });
+      setModal({ visible: true, type: 'error', title: t('register.errorTitle'), message: 'Please add at least one settlement account.' });
       return;
     }
 
@@ -65,7 +68,7 @@ export default function Register() {
         setModal({
           visible: true,
           type: 'success',
-          title: 'Account Created',
+          title: t('register.errRegisterFailed'),
           message: 'Your account has been created successfully. Welcome to TrustPay!',
         });
       },
@@ -73,7 +76,7 @@ export default function Register() {
         setModal({
           visible: true,
           type: 'error',
-          title: 'Registration Failed',
+          title: t('register.errRegisterFailed'),
           message: error.response?.data?.message || 'Something went wrong. Please try again.'
         });
       }
@@ -90,42 +93,39 @@ export default function Register() {
           className="flex-1 px-6"
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 40 }}
         >
-          {/* Header */}
           <View className="items-center mb-10">
             <View className="w-16 h-16 bg-primary/10 rounded-2xl items-center justify-center mb-6 border border-primary/20">
               <Ionicons name="person-add-outline" size={32} color={isDark ? '#3b82f6' : '#003ec7'} />
             </View>
-            <Text className="text-foreground text-3xl font-bold mb-2">Create Account</Text>
-            <Text className="text-muted-foreground text-lg">Join the TrustPay network</Text>
+            <Text className="text-foreground text-3xl font-bold mb-2">{t('register.title')}</Text>
+            <Text className="text-muted-foreground text-lg">{t('register.subtitle')}</Text>
           </View>
 
-          {/* Form */}
           <View className="space-y-4">
             <View>
-              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1">Full Name</Text>
+              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1">{t('register.fullName')}</Text>
               <View className="bg-muted border border-border rounded-2xl h-14 px-4 flex-row items-center focus:border-primary mb-1">
                 <Ionicons name="person-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                 <TextInput
                   className="flex-1 ml-3 text-foreground text-lg"
-                  placeholder="Enter your name"
+                  placeholder={t('register.namePlaceholder')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={name}
                   onChangeText={setName}
                 />
               </View>
-              {/* Informative notice text */}
               <Text className="text-xs text-warning ml-1 opacity-80 leading-relaxed">
-                Must match the official name on your account. This is required for identity verification and dispute resolution.
+                {t('register.nameNotice')}
               </Text>
             </View>
 
             <View>
-              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1 mt-4">Email Address</Text>
+              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1 mt-4">{t('register.email')}</Text>
               <View className="bg-muted border border-border rounded-2xl h-14 px-4 flex-row items-center focus:border-primary">
                 <Ionicons name="mail-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                 <TextInput
                   className="flex-1 ml-3 text-foreground text-lg"
-                  placeholder="name@business.com"
+                  placeholder={t('register.emailPlaceholder')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={email}
                   onChangeText={setEmail}
@@ -136,12 +136,12 @@ export default function Register() {
             </View>
 
             <View>
-              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1 mt-4">Password</Text>
+              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1 mt-4">{t('register.password')}</Text>
               <View className="bg-muted border border-border rounded-2xl h-14 px-4 flex-row items-center focus:border-primary">
                 <Ionicons name="lock-closed-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                 <TextInput
                   className="flex-1 ml-3 text-foreground text-lg"
-                  placeholder="Min. 8 characters"
+                  placeholder={t('register.passPlaceholder')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={password}
                   onChangeText={setPassword}
@@ -157,10 +157,9 @@ export default function Register() {
               </View>
             </View>
 
-            {/* Added Accounts List */}
             {accounts.length > 0 && (
               <View className="mt-4">
-                <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1">Added Settlement Accounts</Text>
+                <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1">{t('register.settlementAccounts')}</Text>
                 {accounts.map((acc, index) => (
                   <View key={index} className="bg-muted border border-border rounded-2xl p-4 flex-row justify-between items-center mb-2">
                     <View>
@@ -175,14 +174,13 @@ export default function Register() {
               </View>
             )}
 
-            {/* Add New Account Form */}
             <View>
-              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1 mt-4">Add Settlement Account</Text>
+              <Text className="text-muted-foreground text-sm font-medium mb-2 ml-1 mt-4">{t('register.addAccountTitle')}</Text>
               <View className="bg-muted border border-border rounded-2xl h-14 px-4 flex-row items-center focus:border-primary">
                 <Ionicons name="card-outline" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
                 <TextInput
                   className="flex-1 ml-3 text-foreground text-lg"
-                  placeholder="Bank or wallet account number"
+                  placeholder={t('register.accountPlaceholder')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={currentAccountNumber}
                   onChangeText={setCurrentAccountNumber}
@@ -232,7 +230,7 @@ export default function Register() {
               onPress={handleAddAccount}
               className="bg-primary/10 border border-primary/20 h-12 rounded-2xl items-center justify-center mt-3"
             >
-              <Text className="text-primary font-semibold text-base">+ Add This Account</Text>
+              <Text className="text-primary font-semibold text-base">{t('register.addBtn')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -240,16 +238,15 @@ export default function Register() {
               disabled={registerMutation.isPending}
               className="bg-primary h-16 rounded-2xl items-center justify-center mt-8 active:opacity-90 shadow-lg shadow-primary/20"
             >
-              <Text className="text-primary-foreground font-bold text-xl">Sign Up Now</Text>
+              <Text className="text-primary-foreground font-bold text-xl">{t('register.signUpBtn')}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Footer */}
           <View className="flex-row justify-center mt-10">
-            <Text className="text-muted-foreground text-base">Already have an account? </Text>
+            <Text className="text-muted-foreground text-base">{t('register.alreadyHaveAccount')}</Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text className="text-primary font-bold text-base">Sign In</Text>
+                <Text className="text-primary font-bold text-base">{t('register.signIn')}</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -273,28 +270,28 @@ export default function Register() {
             <View className="w-16 h-16 bg-primary/10 rounded-2xl items-center justify-center mb-5 self-center border border-primary/20">
               <Ionicons name="shield-checkmark-outline" size={32} color={themePrimary} />
             </View>
-            <Text className="text-foreground text-xl font-bold text-center mb-3">Confirm Full Name</Text>
+            <Text className="text-foreground text-xl font-bold text-center mb-3">{t('register.confirmTitle')}</Text>
             <Text className="text-muted-foreground text-center text-sm leading-relaxed mb-5">
-              Please double check that your name matches the account name on your settlement bank accounts exactly(even Mr. and Ms. must be included):
+              {t('register.confirmDesc')}
             </Text>
             <View className="bg-muted p-4 rounded-2xl mb-6">
               <Text className="text-foreground font-extrabold text-center text-lg">{name.trim()}</Text>
             </View>
             <Text className="text-xs text-warning text-center font-medium leading-relaxed mb-6">
-              If names do not match exactly, manual or automated transaction verify checks will fail.
+              {t('register.confirmWarning')}
             </Text>
             <View className="flex-row justify-between">
               <TouchableOpacity
                 onPress={() => setConfirmModalVisible(false)}
                 className="w-[47%] h-14 bg-muted rounded-2xl items-center justify-center border border-border active:opacity-90 animate-none"
               >
-                <Text className="text-foreground font-bold text-base">Edit Name</Text>
+                <Text className="text-foreground font-bold text-base">{t('register.btnEdit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={executeRegistration}
                 className="w-[47%] h-14 bg-primary rounded-2xl items-center justify-center active:opacity-90 animate-none"
               >
-                <Text className="text-white font-bold text-base">Confirm</Text>
+                <Text className="text-white font-bold text-base">{t('register.btnConfirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>

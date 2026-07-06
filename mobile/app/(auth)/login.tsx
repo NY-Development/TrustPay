@@ -26,8 +26,10 @@ import {
   clearAuthCache,
   hydrateAuthCache,
 } from '@/src/providers/query-auth-sync';
+import { useTranslation } from 'react-i18next'; // 👈 Import Translation
 
 export default function Login() {
+  const { t } = useTranslation(); // 👈 Initialize Translation
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -42,7 +44,6 @@ export default function Login() {
 
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
-  // Check if we have active persistent token architectures ready to bypass manual passwords
   React.useEffect(() => {
     const checkSavedTokens = async () => {
       try {
@@ -66,8 +67,8 @@ export default function Login() {
         setModalState({
           visible: true,
           type: 'error',
-          title: 'Not Supported',
-          message: 'Biometric authorization is not configured or supported on this device.',
+          title: t('login.bioNotSupportedTitle'),
+          message: t('login.bioNotSupportedDesc'),
           onClose: () => setModalState((prev) => ({ ...prev, visible: false })),
         });
         return;
@@ -78,14 +79,14 @@ export default function Login() {
         setModalState({
           visible: true,
           type: 'error',
-          title: 'Session Expired',
-          message: 'Please log in manually with your password to re-enable biometrics.',
+          title: t('login.sessionExpiredTitle'),
+          message: t('login.sessionExpiredDesc'),
           onClose: () => setModalState((prev) => ({ ...prev, visible: false })),
         });
         return;
       }
 
-      const result = await BiometricService.authenticate('Quick sign in to TrustPay');
+      const result = await BiometricService.authenticate(t('login.bioPromptMsg'));
       if (result) {
         clearAuthCache();
         await hydrateAuthCache();
@@ -105,9 +106,6 @@ export default function Login() {
       setModalState((prev) => ({ ...prev, visible: false })),
   });
 
-  /* =========================================================
-     BIOMETRIC AUTO TRIGGER (For returning users)
-  ========================================================= */
   React.useEffect(() => {
     let active = true;
     const checkAndTriggerBiometrics = async () => {
@@ -125,7 +123,7 @@ export default function Login() {
 
         if (refreshToken && active && !biometricsPrompted) {
           setBiometricsPrompted(true);
-          const result = await BiometricService.authenticate('Sign in to TrustPay');
+          const result = await BiometricService.authenticate(t('login.bioPromptMsg'));
           if (result && active) {
             clearAuthCache();
             await hydrateAuthCache();
@@ -150,16 +148,13 @@ export default function Login() {
     };
   }, [biometricsPrompted]);
 
-  /* =========================================================
-     LOGIN HANDLER (Fixed Race Condition for First-Time Users)
-  ========================================================= */
   const handleLogin = async () => {
     if (!email || !password) {
       setModalState({
         visible: true,
         type: 'error',
-        title: 'Input Error',
-        message: 'Please fill in all fields.',
+        title: t('login.inputErrorTitle'),
+        message: t('login.inputErrorDesc'),
         onClose: () =>
           setModalState((prev) => ({ ...prev, visible: false })),
       });
@@ -184,17 +179,16 @@ export default function Login() {
             setModalState({
               visible: true,
               type: 'success',
-              title: 'Login Successful',
+              title: t('login.successTitle'),
               message: isAvailable && isEnrolled 
-                ? "Welcome! Let's activate biometrics for quicker access next time." 
-                : 'Welcome back to TrustPay!',
+                ? t('login.successBioMsg') 
+                : t('login.successMsg'),
               onClose: async () => {
                 setModalState((prev) => ({ ...prev, visible: false }));
 
-                // Intercept navigation to configure hardware keys sequentially
                 if (isAvailable && isEnrolled) {
                   try {
-                    const confirmed = await BiometricService.authenticate('Enable biometric access for TrustPay');
+                    const confirmed = await BiometricService.authenticate(t('login.bioEnablePrompt'));
                     if (confirmed) {
                       await setBiometricsEnabled(true);
                       await Storage.setItem(STORAGE_KEYS.BIOMETRICS_ENABLED, true);
@@ -204,7 +198,6 @@ export default function Login() {
                   }
                 }
                 
-                // Route safely into workspace after storage resolves
                 router.replace('/(tabs)');
               },
             });
@@ -217,10 +210,9 @@ export default function Login() {
           setModalState({
             visible: true,
             type: 'error',
-            title: 'Login Failed',
+            title: t('login.failedTitle'),
             message:
-              error.response?.data?.message ||
-              'Invalid credentials. Please try again.',
+              error.response?.data?.message || t('login.failedDesc'),
             onClose: () =>
               setModalState((prev) => ({ ...prev, visible: false })),
           });
@@ -243,36 +235,23 @@ export default function Login() {
               justifyContent: 'center',
             }}
           >
-            {/* HEADER */}
             <View className="mb-12">
               <Text className="text-foreground text-3xl font-bold mb-4">
-                Welcome Back
+                {t('login.welcomeTitle')}
               </Text>
-
               <Text className="text-muted-foreground text-lg">
-                Enter your credentials to access your merchant dashboard.
+                {t('login.welcomeSubtitle')}
               </Text>
             </View>
 
-            {/* EMAIL */}
             <View className="space-y-2 mb-6">
-              <Text className="text-muted-foreground font-medium">
-                Email Address
-              </Text>
-
+              <Text className="text-muted-foreground font-medium">{t('login.emailLabel')}</Text>
               <View className="flex-row items-center bg-muted border border-border rounded-2xl px-4 h-14">
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color={isDark ? '#94a3b8' : '#64748b'}
-                />
-
+                <Ionicons name="mail-outline" size={20} color={isDark ? '#94a3b8' : '#64748b'} />
                 <TextInput
                   className="flex-1 text-foreground ml-3 h-full"
                   placeholder="abebe@gmail.com"
-                  placeholderTextColor={
-                    isDark ? '#64748b' : '#94a3b8'
-                  }
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
@@ -280,95 +259,59 @@ export default function Login() {
               </View>
             </View>
 
-            {/* PASSWORD */}
             <View className="space-y-2 mb-2">
-              <Text className="text-muted-foreground font-medium">
-                Password
-              </Text>
-
+              <Text className="text-muted-foreground font-medium">{t('login.passLabel')}</Text>
               <View className="flex-row items-center bg-muted border border-border rounded-2xl px-4 h-14">
                 <Ionicons
-                  name={
-                    showPassword
-                      ? 'lock-open-outline'
-                      : 'lock-closed-outline'
-                  }
+                  name={showPassword ? 'lock-open-outline' : 'lock-closed-outline'}
                   size={20}
                   color={isDark ? '#94a3b8' : '#64748b'}
                 />
-
                 <TextInput
                   className="flex-1 text-foreground ml-3 h-full"
                   placeholder="••••••••"
-                  placeholderTextColor={
-                    isDark ? '#64748b' : '#94a3b8'
-                  }
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    color={isDark ? '#94a3b8' : '#64748b'}
-                  />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={isDark ? '#94a3b8' : '#64748b'} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* FORGOT PASSWORD */}
             <TouchableOpacity
-              onPress={() =>
-                router.push('/(auth)/forgot-password' as any)
-              }
+              onPress={() => router.push('/(auth)/forgot-password' as any)}
               className="items-end mb-6"
             >
-              <Text className="text-primary font-medium">
-                Forgot Password?
-              </Text>
+              <Text className="text-primary font-medium">{t('login.forgotPass')}</Text>
             </TouchableOpacity>
 
-            {/* LOGIN BUTTON */}
             <TouchableOpacity
               onPress={handleLogin}
               disabled={loginMutation.isPending}
               className="w-full h-16 bg-primary rounded-2xl items-center justify-center shadow-md active:opacity-90"
             >
               {loginMutation.isPending ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#ffffff"
-                />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text className="text-primary-foreground font-bold text-lg">
-                  Sign In
-                </Text>
+                <Text className="text-primary-foreground font-bold text-lg">{t('login.btnSignIn')}</Text>
               )}
             </TouchableOpacity>
 
-            {/* FOOTER */}
             <View className="items-center mt-8">
-              <Text className="text-muted-foreground">
-                Don't have an account?
-              </Text>
-
+              <Text className="text-muted-foreground">{t('login.noAccount')}</Text>
               <Link href="/(auth)/register" asChild>
                 <TouchableOpacity className="mt-2">
-                  <Text className="text-primary font-bold text-lg">
-                    Create an Account
-                  </Text>
+                  <Text className="text-primary font-bold text-lg">{t('login.btnRegister')}</Text>
                 </TouchableOpacity>
               </Link>
 
-              {/* Dynamic biometric access panel relying on Refresh Tokens */}
               {hasSavedTokens && (
                 <View className="w-full items-center mt-6 pt-4 border-t border-border/40">
                   <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-widest mb-4">
-                    Or sign in with biometrics
+                    {t('login.bioOrLabel')}
                   </Text>
                   
                   <TouchableOpacity
@@ -389,8 +332,6 @@ export default function Login() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-
-        {/* MODAL */}
         <StatusModal
           visible={modalState.visible}
           type={modalState.type}
