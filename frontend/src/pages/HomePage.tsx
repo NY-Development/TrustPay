@@ -115,12 +115,12 @@ function HeroInteractivePhysics() {
 // --- TRUSTED BY COMPONENT ---
 // --- ANIMATED TRUSTED BY COMPONENT ---
 function TrustedBy() {
-  const organizations = [
-    { id: 1, name: "AYU HOTEL" },
-    { id: 2, name: "FILAGOT HOTEL" },
-    { id: 3, name: "DINA RESTAURANT" },
-    { id: 4, name: "DEMBEL HOTEL" },
-    { id: 5, name: "ROOBE HOTEL" }
+  const organizations: { id: number; name: string }[] = [
+    // { id: 1, name: "AYU HOTEL" },
+    // { id: 2, name: "FILAGOT HOTEL" },
+    // { id: 3, name: "DINA RESTAURANT" },
+    // { id: 4, name: "DEMBEL HOTEL" },
+    // { id: 5, name: "ROOBE HOTEL" }
   ];
 
   return (
