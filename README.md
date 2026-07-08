@@ -6,20 +6,25 @@ TrustPay is a state-of-the-art Ethiopian payment verification service and mobile
 
 ## 🚀 Key Features
 
-* **🤖 AI-Driven Screenshot OCR**: Instantly extract reference/transaction IDs from uploaded payment receipt screenshots using Google's local **ML Kit Text Recognition** and a remote **OpenRouter Mistral AI Engine**.
-* **⚙️ Automated Settlement Processing**: Verify payment logs using **Verify.ET** API. Validates that the provider, transaction ID, bank account suffixes (e.g. CBE last 8 digits, BOA last 5 digits) match database records automatically.
-* **💳 Yearly/Monthly Subscription Blocking Modal**: Enforces a yearly ($1000$ ETB) or monthly ($100$ ETB) access subscription. If a user doesn't have an active subscription, they are presented with a blocking checkout paywall modal.
-* **🔒 SMTP Password Recovery**: Fully functional forgot-password wizard using email target OTP codes powered by **Brevo (Sendinblue) SMTP** and nodemailer with time-based (TTL) index expiry security.
-* **📊 Dashboard & Log Inspecting**: Interactive dashboard showing recent verifications, detailed history logs, and dynamic `[id].tsx` detail screens exposing verification states, payer name, and raw api response payload inspector.
+* **🤖 Unified Provider-Agnostic AI Architecture (`AIOrganizer`)**: A single, clean API orchestrating all document extraction, insights generation, auditing, and anomaly detection. UI components never access inference libraries directly.
+* **📱 Desktop Web Offline Inference**: In-browser local model execution via custom `GemmaProvider` and off-thread Web Workers, powered by IndexedDB resource caching.
+* **📱 Mobile Native AI Edge**: On-device native execution via `react-native-executorch` utilizing local `LLAMA-3.2-1B` models, managed by an Expo-compatible `ResourceFetcher`.
+* **🛡️ Graceful Heuristic Fallbacks**: In case models are still downloading, loading, or unsupported, all components fail-soft to specialized local heuristics that parse Ethiopian financial layouts (CBE, Telebirr, BOA, CBE Birr, Dashen, Awash, M-Pesa).
+* **⚙️ Automated Settlement Processing**: Verify payment logs using **Verify.ET** API. Validates that the provider, transaction ID, bank account suffixes match database records automatically.
+* **💳 Yearly/Monthly Subscription Blocking Modal**: Enforces a yearly (1000 ETB) or monthly (100 ETB) access subscription with blocking checkout paywall modals.
+* **🔒 SMTP Password Recovery**: Fully functional forgot-password wizard using email OTP codes powered by **Brevo (Sendinblue) SMTP** and Nodemailer with time-based TTL index security.
+* **📊 Dashboard & Log Inspecting**: Interactive dashboard showing recent verifications, detailed history logs, and dynamic detail screens exposing verification states, payer name, and raw API response payload inspector.
 * **🌙 Adaptive Dark Mode**: High-fidelity dark mode designed using NativeWind Tailwind tokens and React Navigation theme provider synchronization.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Platform / Layer | Technologies User |
+| Platform / Layer | Technologies Used |
 | :--- | :--- |
-| **Mobile Client** | React Native, Expo (SDK 55), Expo Router, TailwindCSS (NativeWind v4), React Query (TanStack), Zustand, ML Kit, OpenRouter API |
+| **Common AI API** | `AIOrganizer`, Zod-Validated Parsers (Receipts, Insights, Audits) |
+| **Mobile Client** | React Native, Expo (SDK 55), Expo Router, TailwindCSS (NativeWind v4), React Query (TanStack), Zustand, `react-native-executorch`, `react-native-executorch-expo-resource-fetcher` |
+| **Web Client** | React (v19), Vite (v8), TailwindCSS (v4), React Query, Zustand, `idb` Caching, Comlink Web Workers |
 | **Backend API** | Node.js, Express, TypeScript, MongoDB, Mongoose, Nodemailer, Axios |
 | **Integrations** | Verify.ET, Brevo (SMTP Host) |
 
@@ -27,33 +32,57 @@ TrustPay is a state-of-the-art Ethiopian payment verification service and mobile
 
 ## 📂 Project Architecture
 
+```text
+                        Shared AI API (AIOrganizer)
+                                     │
+             ┌───────────────────────┴───────────────────────┐
+             ▼                                               ▼
+        Web (React)                                    Mobile (Expo)
+             │                                               │
+    ┌────────┴────────┐                             ┌────────┴────────┐
+    ▼                 ▼                             ▼                 ▼
+GemmaProvider    CloudProvider                 ExecuTorch       Heuristic Fallback
+(Local Edge)     (REST API)                    (Llama 3.2)
+    │
+OCR → Pipeline → Zod Parser                     OCR → Pipeline → Zod Parser
+```
+
 ```
 trust-pay/
 ├── backend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   ├── controllers/      # auth, subscription, verification logic
+│   │   │   ├── controllers/      # Auth, subscription, verification logic
 │   │   │   ├── routes/           # REST endpoints
 │   │   │   └── validators/       # Request schemas (Zod)
-│   │   ├── config/               # database connection & environment loader
-│   │   ├── models/               # User, Verification, Subscription, Otp (Mongoose)
-│   │   ├── services/             # Verify.ET api client, SMTP email service
+│   │   ├── config/               # Database connection & environment loader
+│   │   Model files/              # User, Verification, Subscription, Otp (Mongoose)
+│   │   Services/                 # Verify.ET API client, SMTP email service
 │   │   └── server.ts             # Express application lifecycles
 │   └── package.json
 │
-└── mobile/
+├── frontend/                     # Desktop Web Dashboard Client
+│   ├── src/
+│   │   ├── ai/                   # Unified AI Platform
+│   │   │   ├── providers/        # Gemma, Cloud, and Mock AI providers
+│   │   │   ├── runtime/          # Gemma in-browser runtime & db caches
+│   │   │   ├── types/            # Zod validation schemas
+│   │   │   └── AIOrganizer.ts    # Main orchestrator instance
+│   │   ├── pages/                # Analytics, Audit, Verifications dashboard
+│   │   └── main.tsx              # Web app entry with context provider
+│   └── package.json
+│
+└── mobile/                       # Native Merchant App
     ├── app/
-    │   ├── (auth)/               # login, register, forgot-password, reset auth stack
-    │   ├── (tabs)/               # dashboard index, history logs, verify options
-    │   ├── verification/         # dynamic [id].tsx verification details panel
-    │   └── _layout.tsx           # app routing, Hydration & Subscription enforcer
+    │   ├── (auth)/               # LoginStack, OTP recovery stacks
+    │   ├── (tabs)/               # Dashboard tabs, history logs, OCR/Manual entry
+    │   └── _layout.tsx           # App routing, hydration provider
     ├── src/
-    │   ├── api/                  # Axios apiClient, authApi, subscriptionApi, verificationApi
-    │   ├── components/           # SubscriptionModal, StatusModal, ThemeSwitcher
-    │   ├── hooks/                # React Query hooks (useAuth, useSubscription, useVerification)
-    │   ├── store/                # Zustand client state (authStore)
-    │   └── types/                # TypeScript interfaces (User, Subscription, Verification)
-    └── package.json
+    │   ├── ai/                   # Mobile AI client (ExecuTorch hooks wrapper)
+    │   │   ├── AIProvider.tsx    # Native ExecuTorch hook hosting context
+    │   │   └── AIOrganizer.ts    # Shared parser & mapper layouts
+    │   ├── components/           # Subscriptions & status widgets
+    │   └── store/                # Zustand client state (authStore)
 ```
 
 ---
