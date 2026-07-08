@@ -13,7 +13,17 @@ import type {
 import type { ValidatedReceiptData } from '../types/receipt.types';
 import type { ValidatedInsightReport } from '../types/analytics.types';
 import type { ValidatedAuditReport, ValidatedAnomalyReport } from '../types/audit.types';
-import { v4 as uuidv4 } from 'uuid';
+// A self-contained UUID generator to avoid dependency issues with vite bundling of npm uuid
+const uuidv4 = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export class MockProvider extends BaseAIProvider {
   constructor(config?: Partial<AIProviderConfig>) {

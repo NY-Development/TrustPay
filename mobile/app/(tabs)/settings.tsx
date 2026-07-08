@@ -61,6 +61,8 @@ export default function Settings() {
     { section: t('settings.supportFeedback'), items: [
       { id: 'contact', title: t('settings.contactSupport'), icon: 'chatbubbles-outline', type: 'chevron', route: '/contact' },
       { id: 'privacy', title: t('settings.privacyPolicy'), icon: 'document-text-outline', type: 'chevron', route: '/privacy-policy' },
+      { id: 'terms', title: t('settings.termsOfUse'), icon: 'document-text-outline', type: 'chevron', route: '/terms-of-use' },
+      { id: 'security', title: t('settings.security'), icon: 'document-text-outline', type: 'chevron', route: '/security' },
     ]},
   ];
 

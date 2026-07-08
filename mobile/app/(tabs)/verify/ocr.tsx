@@ -193,15 +193,38 @@ export default function OcrVerification() {
 
   // From Camera capture
   const captureImage = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        setModal({
+          visible: true,
+          type: 'error',
+          title: 'Permission Denied',
+          message: 'Camera permission is required to capture receipts.',
+          isVerificationFailure: false,
+        });
+        return;
+      }
 
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      setImage(uri);
-      await processImage(uri);
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setImage(uri);
+        await processImage(uri);
+      }
+    } catch (err: any) {
+      console.warn('[Camera Capture Error Processed]', err);
+      setModal({
+        visible: true,
+        type: 'error',
+        title: 'Camera Error',
+        message: err.message || 'Could not launch device camera.',
+        isVerificationFailure: false,
+      });
     }
   };
 
@@ -364,23 +387,26 @@ export default function OcrVerification() {
           keyboardShouldPersistTaps="handled"
         >
           {!image ? (
-            <View className="flex gap-8 items-center justify-center">
-            
-            <TouchableOpacity
-              onPress={pickImage}
-              className="h-52 w-full bg-card border border-border rounded-3xl items-center justify-center"
-            >
-              <Ionicons name="cloud-upload-outline" size={48} color={themePrimary} />
-              <Text className="text-foreground mt-4 font-bold">Upload Receipt</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              onPress={captureImage}
-              className="h-52 w-full bg-card border border-border rounded-3xl items-center justify-center"
-            >
-              <Ionicons name="camera-outline" size={48} color={themePrimary} />
-              <Text className="text-foreground mt-4 font-bold">Capture Receipt</Text>
-            </TouchableOpacity>
+            <View className="flex-row gap-4 items-center justify-between">
+              <TouchableOpacity
+                onPress={pickImage}
+                className="flex-1 h-44 bg-card border border-border rounded-3xl items-center justify-center active:bg-muted/30"
+              >
+                <View className="bg-primary/10 p-3 rounded-full mb-3">
+                  <Ionicons name="cloud-upload-outline" size={32} color={themePrimary} />
+                </View>
+                <Text className="text-foreground text-sm font-bold text-center">Upload Receipt</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={captureImage}
+                className="flex-1 h-44 bg-card border border-border rounded-3xl items-center justify-center active:bg-muted/30"
+              >
+                <View className="bg-primary/10 p-3 rounded-full mb-3">
+                  <Ionicons name="camera-outline" size={32} color={themePrimary} />
+                </View>
+                <Text className="text-foreground text-sm font-bold text-center">Capture Receipt</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <>

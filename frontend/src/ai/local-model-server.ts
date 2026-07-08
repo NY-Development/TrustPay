@@ -8,8 +8,6 @@
 import type { AIStatus, RuntimeMetrics, InferenceRequest } from './types/model.types';
 import { BrowserAIRuntime } from './runtime/gemma-runtime';
 import { getMemoryInfo, canLoadModel } from './runtime/browser-memory';
-import { v4 as uuidv4 } from 'uuid';
-
 // ─── Singleton Runtime ───────────────────────────────────────────
 
 const runtime = new BrowserAIRuntime();

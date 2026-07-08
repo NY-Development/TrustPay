@@ -12,7 +12,15 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import type { AIStatus } from './ai-types';
 import { aiOrganizer, AIOrganizer } from './AIOrganizer';
 import { initRuntime, setStatus as setRuntimeStatus } from './local-model-server';
-import { useLLM, LLAMA3_2_1B } from 'react-native-executorch';
+import { useLLM, LLAMA3_2_1B, initExecutorch } from 'react-native-executorch';
+import { ExpoResourceFetcher } from 'react-native-executorch-expo-resource-fetcher';
+
+// Initialize ExecuTorch with the Expo-specific resource fetcher
+try {
+  initExecutorch({ resourceFetcher: ExpoResourceFetcher });
+} catch (e) {
+  console.warn('[AIProvider] initExecutorch failed:', e);
+}
 
 // ─── Context ─────────────────────────────────────────────────────
 

@@ -10,7 +10,17 @@
  * _loadEngine() and _runInference() will be updated.
  */
 import type { RuntimeMetrics, InferenceRequest } from '../types/model.types';
-import { v4 as uuidv4 } from 'uuid';
+// A self-contained UUID generator to avoid dependency issues with vite bundling of npm uuid
+const uuidv4 = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 const MAX_CONCURRENT = 1;
 const INFERENCE_TIMEOUT_MS = 60_000;

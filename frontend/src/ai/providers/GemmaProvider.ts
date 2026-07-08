@@ -29,7 +29,17 @@ import { buildPrompt } from '../utils/prompt-builder';
 import { repairJson } from '../parsers/json-repair';
 import { validateOrFallback } from '../utils/json-validator';
 import { BrowserAIRuntime } from '../runtime/gemma-runtime';
-import { v4 as uuidv4 } from 'uuid';
+// A self-contained UUID generator to avoid dependency issues with vite bundling of npm uuid
+const uuidv4 = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export class GemmaProvider extends BaseAIProvider {
   private _runtime: BrowserAIRuntime;

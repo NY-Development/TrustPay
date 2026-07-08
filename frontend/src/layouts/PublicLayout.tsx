@@ -71,11 +71,11 @@ export const PublicLayout: React.FC = () => {
             <span className="text-xs text-[#54647a]">Scale your verification infrastructure.</span>
           </div>
           <div className="flex flex-col gap-2 text-sm">
-            <Link to="/legal" className="text-[#54647a] hover:text-[#004bca]">Privacy Policy</Link>
-            <Link to="/legal" className="text-[#54647a] hover:text-[#004bca]">Terms of Service</Link>
+            <Link to="/privacy" className="text-[#54647a] hover:text-[#004bca]">Privacy Policy</Link>
+            <Link to="/terms" className="text-[#54647a] hover:text-[#004bca]">Terms of Service</Link>
           </div>
           <div className="flex flex-col gap-2 text-sm">
-            <Link to="/features" className="text-[#54647a] hover:text-[#004bca]">Security</Link>
+            <Link to="/security" className="text-[#54647a] hover:text-[#004bca]">Security</Link>
             <Link to="/pricing" className="text-[#54647a] hover:text-[#004bca]">Pricing Plans</Link>
           </div>
           <div className="text-sm text-[#54647a] md:text-right">
