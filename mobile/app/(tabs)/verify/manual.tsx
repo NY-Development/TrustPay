@@ -46,8 +46,12 @@ export default function ManualEntry() {
   const verifyMutation = useVerifyManual();
   const { data: history, isLoading, refetch } = useVerificationHistory();
 
-  // history filtered by matching the refrence here and reference on the history fetched okay.
-  const filteredHistory = history?.data?.filter(item => 
+  const verifications = React.useMemo(() => {
+    return history?.pages?.flatMap(page => page.data) || [];
+  }, [history]);
+
+  // history filtered by matching the reference here and reference on the history fetched okay.
+  const filteredHistory = verifications.filter(item => 
     item.transactionId.toLowerCase().includes(reference.toLowerCase()) || 
     item.referenceNumber.toLowerCase().includes(reference.toLowerCase())
   );

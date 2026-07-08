@@ -138,7 +138,7 @@ export default function LoginPage() {
       <footer className="w-full py-6 bg-white dark:bg-[#131b2e] border-t border-[#c2c6d9]/20 dark:border-white/5 transition-colors">
         <div className="max-w-[1440px] mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-2">
           <span className="text-[13px] text-[#424656] dark:text-[#c2c6d9]/70">
-            © 2026 Nexus Verify Systems. All rights reserved.
+            © 2026 Trust Pay Systems. All rights reserved.
           </span>
           <div className="flex gap-6 text-[13px] text-[#424656] dark:text-[#c2c6d9]/70">
             <a className="hover:text-[#004bca] transition-colors" href="#">System Guidelines</a>

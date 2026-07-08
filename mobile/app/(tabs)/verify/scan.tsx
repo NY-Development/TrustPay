@@ -1,15 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
+  StyleSheet,
   Text,
+  View,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
+  Image,
   ScrollView,
   TextInput,
-  StyleSheet,
 } from 'react-native';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,23 +21,17 @@ import { StatusModal } from '@/src/components/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 
-import { runOCR } from '@/src/ocr/ocr-processor';
-import { runHeuristics } from '@/src/ocr/ai-organizer';
+import { extractText } from '@/src/ai/ocr-processor';
+import { useAI } from '@/src/ai/AIProvider';
+import { AI_MODELS, isDownloaded, deleteModel } from '@/src/ai/model-download-manager';
+import { useGlobalDownload } from '@/src/context/DownloadContext';
 import { normalizeVerificationResponse } from '@/src/mappers/verification.mapper';
 import { detectProvider } from '@/src/utils/provider-detector';
-import { AIOrganizer, AIOrganizerHandle, AI_MODELS } from '@/src/ocr/AIOrganizer';
-import {
-  AIModelId,
-  isModelDownloaded,
-  getModelLocalPath,
-  deleteModel,
-} from '@/src/ocr/model-download-manager';
-import { startModelServer, stopModelServer } from '@/src/ocr/local-model-server';
-import { useGlobalDownload } from '@/src/context/DownloadContext';
+import type { AIModelId } from '@/src/ai/ai-types';
 
 const MODEL_STORAGE_KEY = 'trustpay_selected_ai_model';
 
-type AppPhase = 'checking' | 'selecting' | 'downloading' | 'starting_server' | 'compiling' | 'ready';
+type AppPhase = 'checking' | 'selecting' | 'downloading' | 'ready';
 
 export default function UnifiedScanner() {
   const { colorScheme } = useColorScheme();
@@ -46,7 +39,7 @@ export default function UnifiedScanner() {
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const cameraRef = useRef<any>(null);
-  const aiRef = useRef<AIOrganizerHandle>(null);
+  const { organizer, status: aiStatus } = useAI();
   const { downloadingModelId, progress: dlProgress, startGlobalDownload } = useGlobalDownload();
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -61,10 +54,6 @@ export default function UnifiedScanner() {
 
   const [phase, setPhase] = useState<AppPhase>('checking');
   const [selectedModel, setSelectedModel] = useState<AIModelId | null>(null);
-  const [localBaseUrl, setLocalBaseUrl] = useState<string | null>(null);
-  const [useWebViewAi, setUseWebViewAi] = useState(true);
-  const [compileProgress, setCompileProgress] = useState(0);
-  const [compileStatus, setCompileStatus] = useState('');
 
   const [modal, setModal] = useState({
     visible: false,
@@ -93,7 +82,8 @@ export default function UnifiedScanner() {
           setSelectedModel(saved as AIModelId);
           await initializeModel(saved as AIModelId);
         } else {
-          setPhase('selecting');
+          // Default to receipt-parser auto-initialize
+          await initializeModel('receipt-parser');
         }
       } catch (err) {
         console.warn('[Unified Scan Storage Load Catch]', err);
@@ -101,75 +91,34 @@ export default function UnifiedScanner() {
       }
     };
     load();
-
-    return () => {
-      stopModelServer().catch(() => {});
-    };
   }, []);
 
   useEffect(() => {
     if (phase === 'downloading' && !downloadingModelId && selectedModel) {
-      verifyAndBootServer(selectedModel);
+      setPhase('ready');
     }
   }, [downloadingModelId, phase, selectedModel]);
 
-  const verifyAndBootServer = async (modelId: AIModelId) => {
-    try {
-      setPhase('starting_server');
-      const modelPath = getModelLocalPath(modelId);
-      const serverUrl = await startModelServer(modelPath);
-      setLocalBaseUrl(serverUrl);
-      setPhase('compiling');
-    } catch (err) {
-      handleGracefulFailure(modelId, err);
-    }
-  };
-
-  const handleGracefulFailure = async (modelId: AIModelId, err: any) => {
-    console.error('[Scan Init Error Gracefully Managed]', err);
-    try {
-      await AsyncStorage.removeItem(MODEL_STORAGE_KEY);
-      await deleteModel(modelId);
-    } catch (cleanupErr) {
-      console.warn('Could not reset local model folders', cleanupErr);
-    }
-    setSelectedModel(null);
-    setPhase('selecting');
-  };
-
   const initializeModel = async (modelId: AIModelId) => {
     try {
-      const alreadyDownloaded = await isModelDownloaded(modelId);
+      const alreadyDownloaded = await isDownloaded(modelId);
       if (!alreadyDownloaded) {
         setPhase('downloading');
         await startGlobalDownload(modelId);
         return;
       }
-      await verifyAndBootServer(modelId);
+      setSelectedModel(modelId);
+      await AsyncStorage.setItem(MODEL_STORAGE_KEY, modelId);
+      setPhase('ready');
     } catch (err) {
-      await handleGracefulFailure(modelId, err);
+      console.error('[Scan Init Error]', err);
+      setPhase('selecting');
     }
   };
 
   const handleSelectModel = async (modelId: AIModelId) => {
-    await AsyncStorage.setItem(MODEL_STORAGE_KEY, modelId);
     setSelectedModel(modelId);
     await initializeModel(modelId);
-  };
-
-  const handleCompileProgress = (progress: number, text: string) => {
-    setCompileProgress(progress);
-    setCompileStatus(text);
-  };
-
-  const handleReady = () => {
-    setPhase('ready');
-  };
-
-  const handleError = (message: string) => {
-    console.warn("[AI WebView Error]", message);
-    setUseWebViewAi(false);
-    setPhase('ready');
   };
 
   const handleVerification = (ai: any) => {
@@ -214,13 +163,13 @@ export default function UnifiedScanner() {
             isVerificationFailure: false,
           });
         },
-        onError: () => {
+        onError: (err : any) => {
           setProcessing(false);
           setModal({
             visible: true,
             type: 'error',
             title: 'Verification Failed',
-            message: `Could not verify transaction reference: ${extractedRef}.\n\nWould you like to try manual confirmation?`,
+            message: err.response?.data?.message || `Could not verify transaction reference: ${extractedRef}.\n\nWould you like to try manual confirmation?`,
             isVerificationFailure: true,
           });
         },
@@ -282,23 +231,19 @@ export default function UnifiedScanner() {
 
   const takeReceiptSnapshot = async () => {
     if (!cameraRef.current || processing) return;
-    
+
     try {
       setProcessing(true);
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.85, skipProcessing: false });
       if (photo?.uri) {
         setImageUri(photo.uri);
-        
-        const ocr = await runOCR(photo.uri);
-        const rawText = ocr.text || '';
+
+        const rawText = await extractText(photo.uri);
         setOcrText(rawText);
 
-        if (useWebViewAi) {
-          aiRef.current?.processText(rawText);
-        } else {
-          const ai = runHeuristics(rawText);
-          handleVerification(ai);
-        }
+        // Run extraction using AIOrganizer (automatically runs heuristics fallback if models not loaded)
+        const extracted = await organizer.extractReceiptData(rawText);
+        handleVerification(extracted);
       }
     } catch (err: any) {
       setProcessing(false);
@@ -312,30 +257,6 @@ export default function UnifiedScanner() {
     }
   };
 
-  const handleResult = (resultText: string) => {
-    try {
-      const start = resultText.indexOf('{');
-      const end = resultText.lastIndexOf('}');
-      if (start !== -1 && end !== -1 && end > start) {
-        const jsonStr = resultText.slice(start, end + 1);
-        const parsed = JSON.parse(jsonStr);
-        handleVerification({
-          bank: parsed.bank || 'unknown',
-          referenceNumber: parsed.referenceNumber || parsed.transactionNumber || null,
-          transactionNumber: parsed.transactionNumber || parsed.referenceNumber || null,
-          amount: parsed.amount ? parseFloat(parsed.amount) : null,
-          currency: parsed.currency || 'ETB',
-        });
-      } else {
-        throw new Error("Formatting variance detected");
-      }
-    } catch {
-      const fallback = runHeuristics(ocrText || '');
-      handleVerification(fallback);
-    }
-  };
-
-  // 🛠️ FIXED: Centered setup and engine building interfaces completely
   if (phase === 'checking' || phase === 'selecting') {
     return (
       <View className="flex-1 bg-background justify-center items-center px-6 relative">
@@ -379,8 +300,7 @@ export default function UnifiedScanner() {
     );
   }
 
-  // 🛠️ FIXED: Centered the Compiling Engine state layout components perfectly inside viewport
-  if (phase === 'downloading' || phase === 'starting_server' || phase === 'compiling') {
+  if (phase === 'downloading') {
     return (
       <View className="flex-1 bg-background justify-center items-center px-6 relative">
         <SafeAreaView className="w-full absolute top-4 left-6 flex-row items-center z-10">
@@ -391,24 +311,11 @@ export default function UnifiedScanner() {
 
         <View className="bg-card border border-border/80 rounded-[32px] p-8 items-center justify-center shadow-2xl w-full max-w-sm">
           <ActivityIndicator color={themePrimary} size="large" className="mb-4" />
-          <Text className="text-foreground text-lg font-black tracking-tight text-center">Compiling Engines...</Text>
+          <Text className="text-foreground text-lg font-black tracking-tight text-center">Downloading Models...</Text>
           <Text className="text-muted-foreground text-center text-sm mt-2 leading-5 px-2">
-            {phase === 'downloading' 
-              ? `Downloading neural pathways: ${(dlProgress?.percent ? dlProgress.percent * 100 : 0).toFixed(0)}%` 
-              : 'Mounting local node nodes...'}
+            Downloading neural pathways: {(dlProgress?.percent ? dlProgress.percent * 100 : 0).toFixed(0)}%
           </Text>
         </View>
-        {selectedModel && (
-          <AIOrganizer
-            ref={aiRef}
-            modelId={selectedModel}
-            localBaseUrl={localBaseUrl || undefined}
-            onProgress={handleCompileProgress}
-            onReady={handleReady}
-            onResult={handleResult}
-            onError={handleError}
-          />
-        )}
       </View>
     );
   }
@@ -440,7 +347,7 @@ export default function UnifiedScanner() {
             onBarcodeScanned={processing ? undefined : handleBarCodeScanned}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           />
-          
+
           {/* Full Screen Immersive HUD Overlay */}
           <SafeAreaView style={StyleSheet.absoluteFillObject} className="justify-between p-6 bg-black/30">
             {/* Header Toolbar floating on canvas */}
@@ -448,10 +355,18 @@ export default function UnifiedScanner() {
               <TouchableOpacity onPress={() => router.back()} className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-2xl items-center justify-center border border-white/10 active:scale-95">
                 <Ionicons name="chevron-back" size={24} color="white" />
               </TouchableOpacity>
-              <View className="bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10">
-                <Text className="text-white text-xs font-bold uppercase tracking-widest">Live Matrix View</Text>
+              <View className="bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 flex-row items-center">
+                <View className={`w-2 h-2 rounded-full mr-2 ${aiStatus === 'ready' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <Text className="text-white text-xs font-bold uppercase tracking-widest">
+                  AI: {aiStatus.toUpperCase()}
+                </Text>
               </View>
-              <View className="w-12" />
+              <TouchableOpacity
+                onPress={() => setPhase('selecting')}
+                className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-2xl items-center justify-center border border-white/10 active:scale-95"
+              >
+                <Ionicons name="settings-outline" size={20} color="white" />
+              </TouchableOpacity>
             </View>
 
             {/* Central Target Alignment Area */}
@@ -461,7 +376,7 @@ export default function UnifiedScanner() {
                 <View className="absolute top-6 right-6 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-md" />
                 <View className="absolute bottom-6 left-6 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-md" />
                 <View className="absolute bottom-6 right-6 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-md" />
-                
+
                 {processing ? (
                   <ActivityIndicator size="large" color="#FFFFFF" />
                 ) : (
@@ -470,7 +385,7 @@ export default function UnifiedScanner() {
               </View>
               <View className="bg-black/60 backdrop-blur-md px-5 py-2 rounded-full mt-6 border border-white/5 max-w-[280px]">
                 <Text className="text-white/90 text-xs font-medium tracking-wide text-center leading-5">
-                  Align QR within boundaries or capture text document
+                  Align QR within boundaries or capture receipt photo
                 </Text>
               </View>
             </View>
@@ -493,7 +408,7 @@ export default function UnifiedScanner() {
           <SafeAreaView className="flex-1 px-6 pb-6">
             <View className="flex-row items-center justify-between my-4">
               <Text className="text-foreground text-2xl font-black tracking-tight">Analysis Phase</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => { setImageUri(null); setOcrText(null); setProcessing(false); }}
                 className="bg-muted px-4 h-10 rounded-xl items-center justify-center flex-row border border-border active:scale-95"
               >
@@ -515,11 +430,11 @@ export default function UnifiedScanner() {
               {ocrText && (
                 <View className="bg-card p-5 rounded-3xl border border-border/80 shadow-sm">
                   <Text className="text-foreground font-bold mb-3 tracking-wide text-md">Parsed Content Stream</Text>
-                  <TextInput 
-                    value={ocrText} 
-                    multiline 
-                    editable={false} 
-                    className="text-muted-foreground text-xs leading-6 bg-muted/30 p-4 rounded-2xl border border-border/40 font-mono" 
+                  <TextInput
+                    value={ocrText}
+                    multiline
+                    editable={false}
+                    className="text-muted-foreground text-xs leading-6 bg-muted/30 p-4 rounded-2xl border border-border/40 font-mono"
                   />
                   <TouchableOpacity
                     className="mt-4 flex-row items-center bg-primary/10 p-3 rounded-xl border border-primary/20 self-start active:opacity-80"
@@ -530,7 +445,7 @@ export default function UnifiedScanner() {
                   >
                     <Ionicons name="copy-outline" size={16} color={themePrimary} />
                     <Text className="text-primary font-bold text-sm ml-2 tracking-wide">
-                      {copied ? 'Payload Cached!' : 'Copy Matrix Reference'}
+                      {copied ? 'Payload Cached!' : 'Copy Reference'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -554,19 +469,6 @@ export default function UnifiedScanner() {
           }
         }}
       />
-
-      {/* Neural Core Bridge Container */}
-      {selectedModel && (
-        <AIOrganizer
-          ref={aiRef}
-          modelId={selectedModel}
-          localBaseUrl={localBaseUrl || undefined}
-          onProgress={handleCompileProgress}
-          onReady={handleReady}
-          onResult={handleResult}
-          onError={handleError}
-        />
-      )}
     </View>
   );
 }

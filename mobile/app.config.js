@@ -3,7 +3,7 @@ import packageJson from './package.json';
 export default {
   expo: {
     name: "TrustPay",
-    slug: "trust-pay",
+    slug: "TrustPay",
     version: packageJson.version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -31,7 +31,8 @@ export default {
       package: "com.negyam.trustpay",
       versionCode: 1,
       minSdkVersion: 26,
-      googleServicesFile: "./google-services.json"
+      googleServicesFile: "./google-services.json",
+      usesCleartextTraffic: true,
     },
     web: {
       "bundler": "metro",
@@ -42,6 +43,35 @@ export default {
       "expo-router",
       "expo-secure-store",
       "expo-camera",
+      "expo-asset",
+      "expo-sharing",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "https://www.jitpack.io",
+              "https://oss.sonatype.org/content/repositories/snapshots/"
+            ]
+          }
+        }
+      ],
+      [
+      "react-native-audio-api",
+      {
+        "iosBackgroundMode": true,
+        "iosMicrophonePermission": "This app requires access to the microphone to record audio.",
+        "androidPermissions" : [
+          "android.permission.MODIFY_AUDIO_SETTINGS",
+          "android.permission.FOREGROUND_SERVICE",
+          "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        ],
+        "androidForegroundService": true,
+        "androidFSTypes": [
+          "mediaPlayback"
+        ]
+      }
+    ],
       [
         "expo-notifications",
         {
@@ -71,11 +101,11 @@ export default {
     },
     extra: {
       eas: {
-        projectId: "dfda12ef-52b6-4549-8d2a-0496c2dafb92"
+        projectId: "a881255d-2e57-4c05-85f7-5d1e031fd71f"
       }
     },
     updates: {
-      url: "https://u.expo.dev/dfda12ef-52b6-4549-8d2a-0496c2dafb92"
+      url: "https://u.expo.dev/a881255d-2e57-4c05-85f7-5d1e031fd71f"
     },
     runtimeVersion: {
       policy: "appVersion"

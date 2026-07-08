@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
+import { useAI } from '@/src/ai/AIProvider';
+import type { ReceiptData, AuditReport } from '@/src/ai/ai-types';
 
 type FilterPeriod = 'all' | 'today' | 'week' | 'month' | '3month' | '6month' | 'year';
 
@@ -18,13 +20,18 @@ export default function Audit() {
   const isDark = colorScheme === 'dark';
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
+  const { organizer, status: aiStatus } = useAI();
   const { data: historyRes, isLoading, refetch } = useVerificationHistory();
-  
-  // Safely flatten multi-page infinite dataset chunks instead of reading historyRes.data directly
-  const history = historyRes?.pages?.flatMap(page => page.data) || [];
+
+  // Safely flatten multi-page infinite dataset chunks
+  const history = useMemo(() => {
+    return historyRes?.pages?.flatMap(page => page.data) || [];
+  }, [historyRes]);
 
   // Active filter state
-  const [activeFilter, setActiveFilter] = React.useState<FilterPeriod>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterPeriod>('all');
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiReport, setAiReport] = useState<AuditReport | null>(null);
 
   const filterOptions: FilterOption[] = [
     { id: 'all', label: 'All Time' },
@@ -36,8 +43,48 @@ export default function Audit() {
     { id: 'year', label: 'Year' },
   ];
 
+  // Convert history items to unified ReceiptData type
+  const receiptDataItems = useMemo((): ReceiptData[] => {
+    return history.map((item: any) => ({
+      merchant: item.provider || item.bank || 'Unknown',
+      date: item.paymentDate || item.createdAt || new Date().toISOString(),
+      subtotal: Number(item.amount) || 0,
+      tax: null,
+      vat: null,
+      total: Number(item.amount) || 0,
+      currency: item.currency || 'ETB',
+      paymentMethod: 'transfer',
+      items: [],
+      category: 'other',
+      confidence: 1.0,
+      referenceNumber: item.referenceNumber || null,
+      transactionNumber: item.referenceNumber || null,
+      bank: item.provider || item.bank || 'Unknown',
+      senderName: item.rawResponse?.senderName || null,
+      receiverName: item.rawResponse?.receiverName || null,
+    }));
+  }, [history]);
+
+  // Load AI audit when receipt data is loaded
+  useEffect(() => {
+    if (receiptDataItems.length > 0 && aiStatus === 'ready') {
+      const getAiAudit = async () => {
+        setGeneratingAi(true);
+        try {
+          const report = await organizer.generateAudit(receiptDataItems);
+          setAiReport(report);
+        } catch (err) {
+          console.warn('[AI Audit Error]', err);
+        } finally {
+          setGeneratingAi(false);
+        }
+      };
+      getAiAudit();
+    }
+  }, [receiptDataItems, aiStatus]);
+
   // Compute metrics with time-based filtering applied
-  const metrics = React.useMemo(() => {
+  const metrics = useMemo(() => {
     let totalMoney = 0;
     let successCount = 0;
     let fraudCount = 0;
@@ -45,17 +92,14 @@ export default function Audit() {
     let failedCount = 0;
 
     const providerStats: Record<string, { totalAmount: number; verifiedCount: number; fraudCount: number }> = {};
-    
-    // Calculate timestamp bounds based on current date (2026)
     const now = new Date();
-    
+
     const filteredHistory = history.filter((record) => {
       if (activeFilter === 'all') return true;
 
-      // Handle custom or standard backend timestamp fields safely
-      const recordDateStr = record.createdAt || record.createdAt;
+      const recordDateStr = record.createdAt;
       if (!recordDateStr) return false;
-      
+
       const recordDate = new Date(recordDateStr);
       const diffTime = now.getTime() - recordDate.getTime();
       const diffDays = diffTime / (1000 * 60 * 60 * 24);
@@ -86,11 +130,11 @@ export default function Audit() {
 
       const isFailed = record.verified === false || record.status === 'failed' || record.verificationSummary?.severity === 'error';
       const isFraud = record.verificationSummary?.severity === 'fraud_risk';
-      const isDuplicate = record.verificationSummary?.severity === 'duplicate' || 
-                          (record.rawResponse?.confirmationHistory && 
-                            (record.rawResponse.confirmationHistory.confirmationCount > 1 || 
+      const isDuplicate = record.verificationSummary?.severity === 'duplicate' ||
+                          (record.rawResponse?.confirmationHistory &&
+                            (record.rawResponse.confirmationHistory.confirmationCount > 1 ||
                              record.rawResponse.confirmationHistory.confirmedBefore === true));
-      
+
       const isSuccess = record.verified === true && record.status !== 'failed' && !isFraud && !isDuplicate;
 
       if (isFailed) {
@@ -119,6 +163,10 @@ export default function Audit() {
     };
   }, [history, activeFilter]);
 
+  const handleRefresh = async () => {
+    await refetch();
+  };
+
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top']}>
@@ -131,7 +179,7 @@ export default function Audit() {
             <Text className="text-foreground text-2xl font-bold">Audit Hub</Text>
           </View>
           <TouchableOpacity
-            onPress={() => refetch()}
+            onPress={handleRefresh}
             className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border"
           >
             <Ionicons name="refresh" size={18} color={isDark ? 'white' : 'black'} />
@@ -140,8 +188,8 @@ export default function Audit() {
 
         {/* Scrollable Filter Badges Container */}
         <View className="border-b border-border bg-card/50 py-3">
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 24 }}
           >
@@ -152,12 +200,12 @@ export default function Audit() {
                   key={option.id}
                   onPress={() => setActiveFilter(option.id)}
                   className={`mr-2 px-4 py-2 rounded-full border transition-all ${
-                    isSelected 
-                      ? 'bg-primary border-primary' 
+                    isSelected
+                      ? 'bg-primary border-primary'
                       : 'bg-card border-border active:bg-muted'
                   }`}
                 >
-                  <Text 
+                  <Text
                     className={`text-xs font-semibold ${
                       isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                     }`}
@@ -177,7 +225,7 @@ export default function Audit() {
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
-              onRefresh={refetch}
+              onRefresh={handleRefresh}
               tintColor={themePrimary}
             />
           }
@@ -200,7 +248,7 @@ export default function Audit() {
 
           {/* Counts Grid section */}
           <Text className="text-foreground font-bold text-lg mb-3">Verification Summary</Text>
-          
+
           <View className="flex-row flex-wrap justify-between mb-6">
             {/* Success (Verified) */}
             <View className="w-[48%] bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
@@ -251,8 +299,94 @@ export default function Audit() {
             </View>
           </View>
 
+          {/* AI Auditing Hub Panel */}
+          <View className="mb-6">
+            <View className="flex-row items-center mb-3">
+              <Text className="text-foreground font-bold text-lg tracking-tight">AI Fraud & Security Hub</Text>
+              <View className="bg-primary/20 px-2 py-0.5 rounded-md ml-2 border border-primary/20 flex-row items-center">
+                <Ionicons name="shield-checkmark" size={10} color={themePrimary} />
+                <Text className="text-primary text-[10px] font-bold uppercase ml-1">ExecuTorch</Text>
+              </View>
+            </View>
+
+            {generatingAi ? (
+              <View className="bg-card border border-border rounded-3xl p-6 items-center justify-center shadow-sm">
+                <ActivityIndicator color={themePrimary} size="small" />
+                <Text className="text-muted-foreground text-xs mt-3">Compiling fraud/risk markers...</Text>
+              </View>
+            ) : aiReport ? (
+              <View className="space-y-4 gap-4">
+                {/* AI Auditing Summary Card */}
+                <View className="bg-card border border-border rounded-3xl p-5 shadow-sm">
+                  <View className="flex-row justify-between items-center mb-3">
+                    <Text className="text-foreground font-bold text-sm">Security Audit Summary</Text>
+                    <View className="flex-row items-center bg-primary/10 px-2.5 py-1 rounded-lg">
+                      <Text className="text-primary text-[11px] font-black mr-1">Trust Score:</Text>
+                      <Text className="text-primary text-[11px] font-extrabold font-mono">
+                        {(aiReport.overallConfidence * 100).toFixed(0)}%
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-muted-foreground text-xs leading-5">{aiReport.summary}</Text>
+                </View>
+
+                {/* Audit Detections */}
+                {aiReport.suspiciousTransactions.length > 0 ? (
+                  aiReport.suspiciousTransactions.map((tx, idx) => (
+                    <View
+                      key={idx}
+                      className={`border rounded-3xl p-5 shadow-sm flex-row items-start bg-card ${
+                        tx.severity === 'critical' || tx.severity === 'high'
+                          ? 'border-red-500/20'
+                          : 'border-border'
+                      }`}
+                    >
+                      <View
+                        className={`p-2.5 rounded-xl mr-4 ${
+                          tx.severity === 'critical' || tx.severity === 'high'
+                            ? 'bg-red-500/10'
+                            : 'bg-amber-500/10'
+                        }`}
+                      >
+                        <Ionicons
+                          name="warning"
+                          size={20}
+                          color={tx.severity === 'critical' || tx.severity === 'high' ? '#ef4444' : '#f59e0b'}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-foreground font-bold text-sm">
+                          Flagged Txn: {tx.referenceNumber}
+                        </Text>
+                        <Text className="text-muted-foreground text-xs leading-5 mt-1">
+                          {tx.reason} (Severity: {tx.severity.toUpperCase()})
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <View className="bg-card border border-border rounded-3xl p-5 flex-row items-center shadow-sm">
+                    <View className="bg-green-500/10 p-2.5 rounded-xl mr-4">
+                      <Ionicons name="checkmark-shield-outline" size={20} color="#22c55e" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-foreground font-bold text-sm">Clear Check Profile</Text>
+                      <Text className="text-muted-foreground text-xs mt-0.5">
+                        Deep learning validation has not flagged any suspicious transactions.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View className="bg-card border border-border rounded-3xl p-5 items-center justify-center shadow-sm">
+                <Text className="text-muted-foreground text-xs">Run verification scanning to populate security audit markers.</Text>
+              </View>
+            )}
+          </View>
+
           {/* Visual Distribution Progress Bar Chart */}
-          {metrics.totalCount > 0 ? (
+          {metrics.totalCount > 0 && (
             <View className="bg-card border border-border rounded-2xl p-5 mb-6 shadow-sm">
               <Text className="text-foreground font-bold text-sm mb-3">Verification Ratio</Text>
               <View className="h-4 bg-muted rounded-full overflow-hidden flex-row">
@@ -279,10 +413,6 @@ export default function Audit() {
                   <Text className="text-muted-foreground text-xs">Failed: {((metrics.failedCount / metrics.totalCount) * 100).toFixed(0)}%</Text>
                 </View>
               </View>
-            </View>
-          ) : (
-            <View className="bg-card border border-border border-dashed rounded-2xl p-6 mb-6 items-center justify-center">
-              <Text className="text-muted-foreground text-sm text-center">No transaction distribution ratios to compute for this timeline.</Text>
             </View>
           )}
 

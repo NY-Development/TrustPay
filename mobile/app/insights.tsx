@@ -1,22 +1,25 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
+import { useAI } from '@/src/ai/AIProvider';
+import type { ReceiptData, InsightReport } from '@/src/ai/ai-types';
 
 export default function Insights() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
+  const { organizer, status: aiStatus } = useAI();
   const { data: historyRes, isLoading, refetch } = useVerificationHistory();
-  
-  // Safely flatten multi-page infinite dataset chunks instead of reading historyRes.data directly
-  const history = React.useMemo(() => {
+
+  // Safely flatten multi-page infinite dataset chunks
+  const history = useMemo(() => {
     if (!historyRes?.pages) return [];
     return historyRes.pages.flatMap((page: any) => {
       if (!page) return [];
@@ -26,10 +29,57 @@ export default function Insights() {
     });
   }, [historyRes]);
 
-  const [isExporting, setIsExporting] = React.useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiReport, setAiReport] = useState<InsightReport | null>(null);
+
+  // Convert history items to unified ReceiptData type
+  const receiptDataItems = useMemo((): ReceiptData[] => {
+    return history.map((item: any) => ({
+      merchant: item.provider || item.bank || 'Unknown',
+      date: item.paymentDate || item.createdAt || new Date().toISOString(),
+      subtotal: Number(item.amount) || 0,
+      tax: null,
+      vat: null,
+      total: Number(item.amount) || 0,
+      currency: item.currency || 'ETB',
+      paymentMethod: 'transfer',
+      items: [],
+      category: 'other',
+      confidence: 1.0,
+      referenceNumber: item.referenceNumber || null,
+      transactionNumber: item.referenceNumber || null,
+      bank: item.provider || item.bank || 'Unknown',
+      senderName: item.rawResponse?.senderName || null,
+      receiverName: item.rawResponse?.receiverName || null,
+    }));
+  }, [history]);
+
+  // Load AI insights when receipt data is loaded
+  useEffect(() => {
+    if (receiptDataItems.length > 0 && aiStatus === 'ready') {
+      const getAiInsights = async () => {
+        setGeneratingAi(true);
+        try {
+          const report = await organizer.generateInsights(receiptDataItems);
+          setAiReport(report);
+        } catch (err) {
+          console.warn('[AI Insights Error]', err);
+        } finally {
+          setGeneratingAi(false);
+        }
+      };
+      getAiInsights();
+    }
+  }, [receiptDataItems, aiStatus]);
+
+  // Combined manual refresh that updates history and triggers AI reload
+  const handleRefresh = async () => {
+    await refetch();
+  };
 
   // Advanced Analytical derivations drawing inspiration from the admin suite layout
-  const analytics = React.useMemo(() => {
+  const analytics = useMemo(() => {
     const hourCounts: Record<number, number> = {};
     const providerRisks: Record<string, { total: number; bad: number }> = {};
     const providerShares: Record<string, number> = {};
@@ -42,7 +92,6 @@ export default function Insights() {
     history.forEach((record: any) => {
       if (!record) return;
 
-      // Track Amounts and Volumetrics
       const amt = Number(record.amount) || 0;
       totalVolume += amt;
 
@@ -50,14 +99,12 @@ export default function Insights() {
         completedCount++;
       }
 
-      // Time Distribution Calculation
       try {
         const date = record.paymentDate ? new Date(record.paymentDate) : new Date(record.createdAt);
         const hour = date.getHours();
         hourCounts[hour] = (hourCounts[hour] || 0) + 1;
       } catch (e) {}
 
-      // Provider Aggregations
       const provider = (record.provider || record.bank || 'unknown').toLowerCase();
       providerShares[provider] = (providerShares[provider] || 0) + 1;
 
@@ -66,15 +113,13 @@ export default function Insights() {
       }
       providerRisks[provider].total++;
 
-      // Mock Branch distribution based on device/source properties for deeper realistic data metrics
       const branchName = record.source === 'qr' ? 'Airport Terminal B' : record.source === 'screenshot' ? 'Downtown Location' : 'Westside Plaza';
       branchVolume[branchName] = (branchVolume[branchName] || 0) + 1;
 
-      // Risk Vectors
       const isFraud = record.verificationSummary?.severity === 'fraud_risk';
-      const isDuplicate = record.verificationSummary?.severity === 'duplicate' || 
-                          (record.rawResponse?.confirmationHistory && 
-                            (record.rawResponse.confirmationHistory.confirmationCount > 1 || 
+      const isDuplicate = record.verificationSummary?.severity === 'duplicate' ||
+                          (record.rawResponse?.confirmationHistory &&
+                            (record.rawResponse.confirmationHistory.confirmationCount > 1 ||
                              record.rawResponse.confirmationHistory.confirmedBefore === true));
 
       if (isFraud || isDuplicate) {
@@ -83,7 +128,6 @@ export default function Insights() {
       }
     });
 
-    // Extract Peak Operational Hours
     let peakHour = -1;
     let peakCount = 0;
     Object.entries(hourCounts).forEach(([h, count]) => {
@@ -103,7 +147,6 @@ export default function Insights() {
       peakHourStr = `${formatTime(peakHour)} - ${formatTime((peakHour + 2) % 24)}`;
     }
 
-    // Risk hotspots
     let worstProvider = 'None';
     let maxRiskRate = 0;
     Object.entries(providerRisks).forEach(([p, stats]) => {
@@ -114,7 +157,6 @@ export default function Insights() {
       }
     });
 
-    // Top Growth Channels
     let topProvider = 'CBE';
     let maxShare = 0;
     Object.entries(providerShares).forEach(([p, count]) => {
@@ -124,7 +166,6 @@ export default function Insights() {
       }
     });
 
-    // Dynamic Context-Aware Insights Formulation
     const suggestions: Array<{ title: string; desc: string; type: 'info' | 'warning' | 'security' }> = [];
 
     if (peakHour !== -1) {
@@ -149,27 +190,22 @@ export default function Insights() {
       });
     }
 
-    // Realistic Math Fallbacks when history is building up
     const avgTransaction = history.length > 0 ? (totalVolume / history.length) : 2450.75;
     const branchSummary = Object.entries(branchVolume).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count);
 
-    return { 
-      peakHourStr, 
-      worstProvider, 
-      topProvider, 
-      maxRiskRate, 
-      suggestions, 
-      totalSecIssues, 
-      avgTransaction, 
+    return {
+      peakHourStr,
+      worstProvider,
+      topProvider,
+      maxRiskRate,
+      suggestions,
+      totalSecIssues,
+      avgTransaction,
       totalVolume,
       branchSummary
     };
   }, [history]);
 
-  /* =========================================================
-     EXPORT UTILITIES FIXED (EXCEL / CSV MATRIX & NATIVE PDF PRINT)
-  ========================================================= */
-  
   const executeExcelExport = async (fileName: string) => {
     setIsExporting(true);
     try {
@@ -192,8 +228,7 @@ export default function Insights() {
       const BOM = '\uFEFF';
       const safeName = fileName.replace(/[/\\?%*:|"<>\s]/g, '_');
       const fileUri = `${FileSystem.documentDirectory}${safeName}.csv`;
-      
-      // Fixed: Core export write operation utilizing correct FileSystem string drivers
+
       await FileSystem.writeAsStringAsync(fileUri, BOM + csvContent, { encoding: FileSystem.EncodingType.UTF8 });
       await Share.share({ url: fileUri, title: 'Export Audit Ledger' });
     } catch (err: any) {
@@ -214,8 +249,8 @@ export default function Insights() {
       'Enter a name for your CSV report:',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Export', 
+        {
+          text: 'Export',
           onPress: (name: any) => {
             const finalName = name && name.trim().length > 0 ? name.trim() : `TrustPay_Insights_${Date.now()}`;
             executeExcelExport(finalName);
@@ -293,8 +328,7 @@ export default function Insights() {
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       const safeName = fileName.replace(/[/\\?%*:|"<>\s]/g, '_');
       const targetUri = `${FileSystem.documentDirectory}${safeName}.pdf`;
-      
-      // Fixed: Native bridging alignment using clean Expo system file replacement routines
+
       await FileSystem.moveAsync({ from: uri, to: targetUri });
       await Share.share({ url: targetUri, title: 'Export Business PDF Summary' });
     } catch (err: any) {
@@ -315,8 +349,8 @@ export default function Insights() {
       'Enter a name for your PDF report:',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Export', 
+        {
+          text: 'Export',
           onPress: (name: any) => {
             const finalName = name && name.trim().length > 0 ? name.trim() : `TrustPay_Report_${Date.now()}`;
             executePdfExport(finalName);
@@ -343,7 +377,7 @@ export default function Insights() {
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => refetch()}
+            onPress={handleRefresh}
             className="w-10 h-10 rounded-xl bg-muted items-center justify-center border border-border active:scale-95"
           >
             <Ionicons name="refresh" size={18} color={isDark ? 'white' : 'black'} />
@@ -355,7 +389,7 @@ export default function Insights() {
           contentContainerStyle={{ paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={themePrimary} />
+            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={themePrimary} />
           }
         >
           {/* Action Header Panels from inspiration toolkit */}
@@ -372,7 +406,7 @@ export default function Insights() {
               >
                 <Ionicons name="document-text" size={22} color="#22c55e" />
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 onPress={exportToPdf}
                 disabled={isExporting}
@@ -386,7 +420,7 @@ export default function Insights() {
           {/* Bento-Inspired Analytics Value Cells Dashboard Grid */}
           <Text className="text-foreground font-bold text-lg mb-3 tracking-tight">Growth Core Metrics</Text>
           <View className="flex-row flex-wrap justify-between mb-2">
-            
+
             {/* Cell 1: WoW Growth Simulation mapping */}
             <View className="w-[48%] bg-card border border-border rounded-3xl p-4 mb-4 shadow-sm">
               <View className="flex-row justify-between items-center mb-2">
@@ -432,7 +466,54 @@ export default function Insights() {
             </View>
           </View>
 
+          {/* AI-powered Insights Section */}
+          <View className="mb-6">
+            <View className="flex-row items-center mb-3">
+              <Text className="text-foreground font-bold text-lg tracking-tight">AI Insights & Trends</Text>
+              <View className="bg-primary/20 px-2 py-0.5 rounded-md ml-2 border border-primary/20 flex-row items-center">
+                <Ionicons name="sparkles" size={10} color={themePrimary} />
+                <Text className="text-primary text-[10px] font-bold uppercase ml-1">ExecuTorch</Text>
+              </View>
+            </View>
+
+            {generatingAi ? (
+              <View className="bg-card border border-border rounded-3xl p-6 items-center justify-center shadow-sm">
+                <ActivityIndicator color={themePrimary} size="small" />
+                <Text className="text-muted-foreground text-xs mt-3">Analyzing settlement datasets...</Text>
+              </View>
+            ) : aiReport ? (
+              <View className="space-y-4 gap-4">
+                {/* AI Summary Card */}
+                <View className="bg-primary/5 border border-primary/10 rounded-3xl p-5 shadow-sm">
+                  <View className="flex-row items-center mb-2">
+                    <Ionicons name="analytics" size={18} color={themePrimary} />
+                    <Text className="text-primary font-bold text-sm ml-2">Executive Summary</Text>
+                  </View>
+                  <Text className="text-foreground text-sm leading-6">{aiReport.monthlySummary}</Text>
+                </View>
+
+                {/* Recommendations */}
+                {aiReport.recommendations.map((rec, idx) => (
+                  <View key={idx} className="bg-card border border-border rounded-3xl p-5 shadow-sm flex-row items-start">
+                    <View className="bg-emerald-500/10 p-2.5 rounded-xl mr-4">
+                      <Ionicons name="bulb-outline" size={20} color="#22c55e" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-foreground font-bold text-sm">Strategic Recom #{idx + 1}</Text>
+                      <Text className="text-muted-foreground text-xs leading-5 mt-1">{rec}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className="bg-card border border-border rounded-3xl p-5 items-center justify-center shadow-sm">
+                <Text className="text-muted-foreground text-xs">Run verification scanning to populate local smart insights.</Text>
+              </View>
+            )}
+          </View>
+
           {/* Risk Focus Hotspot Warning Cell */}
+          <Text className="text-foreground font-bold text-lg mb-3 tracking-tight">Security Vectors</Text>
           <View className="w-full bg-card border border-border rounded-3xl p-5 mb-6 shadow-sm">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1 pr-2">
@@ -446,8 +527,8 @@ export default function Insights() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity 
-                onPress={() => router.push('/disputes')} 
+              <TouchableOpacity
+                onPress={() => router.push('/disputes')}
                 className="bg-red-500/10 px-3 py-1.5 rounded-xl active:opacity-75"
               >
                 <Text className="text-red-500 text-xs font-black">Disputes ({analytics.totalSecIssues})</Text>
@@ -466,7 +547,7 @@ export default function Insights() {
               ]).map((branch, idx) => {
                 const maxCount = Math.max(...(analytics.branchSummary.map(b => b.count) || [42]));
                 const fillWidth = maxCount > 0 ? (branch.count / maxCount) * 100 : 70;
-                
+
                 return (
                   <View key={idx}>
                     <View className="flex-row justify-between items-center mb-1.5">
@@ -474,9 +555,9 @@ export default function Insights() {
                       <Text className="text-muted-foreground font-mono text-xs">{branch.count} txns</Text>
                     </View>
                     <View className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                      <View 
-                        className="bg-primary h-full rounded-full" 
-                        style={{ width: `${Math.max(15, fillWidth)}%` }} 
+                      <View
+                        className="bg-primary h-full rounded-full"
+                        style={{ width: `${Math.max(15, fillWidth)}%` }}
                       />
                     </View>
                   </View>
@@ -490,15 +571,13 @@ export default function Insights() {
           <View className="bg-card border border-border rounded-3xl mb-6 overflow-hidden shadow-sm">
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               <View>
-                {/* Table Header Row */}
                 <View className="bg-muted flex-row border-b border-border py-3 px-4">
                   <Text className="text-muted-foreground font-bold text-xs w-28">Reference ID</Text>
                   <Text className="text-muted-foreground font-bold text-xs w-20">Channel</Text>
                   <Text className="text-muted-foreground font-bold text-xs w-24">Amount</Text>
                   <Text className="text-muted-foreground font-bold text-xs w-20">Status</Text>
                 </View>
-                
-                {/* Table Data Populate Mapping */}
+
                 {history.length === 0 ? (
                   <View className="py-8 items-center justify-center w-[360px]">
                     <Text className="text-muted-foreground text-xs">No transactions compiled yet.</Text>
@@ -531,7 +610,7 @@ export default function Insights() {
           </View>
 
           {/* Strategic Predictive Recommendations Panels */}
-          <Text className="text-foreground font-bold text-lg mb-3 tracking-tight">Key Drivers & Forecasts</Text>
+          <Text className="text-foreground font-bold text-lg mb-3 tracking-tight">Key Drivers & Forecasts (Local)</Text>
           <View className="space-y-4 gap-4 mb-10">
             {analytics.suggestions.map((sug, i) => (
               <View
@@ -542,9 +621,9 @@ export default function Insights() {
               >
                 <View className={`p-2.5 rounded-xl mr-4 ${sug.type === 'security' ? 'bg-red-500/10' : 'bg-primary/10'}`}>
                   <Ionicons
-                    name={sug.type === 'security' ? 'shield-outline' : 'bulb-outline'}
-                    size={22}
-                    color={sug.type === 'security' ? '#ef4444' : themePrimary}
+                     name={sug.type === 'security' ? 'shield-outline' : 'bulb-outline'}
+                     size={22}
+                     color={sug.type === 'security' ? '#ef4444' : themePrimary}
                   />
                 </View>
                 <View className="flex-1">

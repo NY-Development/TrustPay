@@ -17,6 +17,7 @@ import { AuthProvider } from '@/src/providers/AuthProvider';
 import { OTAProvider } from '@/src/providers/OTAProvider';
 import { LanguageProvider } from '@/src/providers/LanguageProvider';
 import { DownloadProvider } from '@/src/context/DownloadContext';
+import { AIProvider } from '@/src/ai/AIProvider'; // 👈 IMPORTED
 
 import { FloatingThemeToggle } from '@/src/components/FloatingThemeToggle';
 
@@ -73,38 +74,40 @@ export default function RootLayout() {
         <OTAProvider>
           <AppBootstrapProvider>
             <DownloadProvider>
-              <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
-                <SafeAreaProvider>
-                  <QueryProvider>
-                    <NotificationProvider>
-                      
-                      {/* 
-                        👉 FIXED: AuthProvider moved here. 
-                        It now sits inside Theme/SafeArea/Query/Notification providers, 
-                        giving it direct access to the active navigation context.
-                      */}
-                      <AuthProvider>
+              <AIProvider>
+                <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
+                  <SafeAreaProvider>
+                    <QueryProvider>
+                      <NotificationProvider>
                         
-                        {/* ROOT CLASS FOR NATIVEWIND COLOR THEME */}
-                        <View className={colorScheme === 'dark' ? 'dark' : ''} style={{ flex: 1 }}>
+                        {/* 
+                          👉 FIXED: AuthProvider moved here. 
+                          It now sits inside Theme/SafeArea/Query/Notification providers, 
+                          giving it direct access to the active navigation context.
+                        */}
+                        <AuthProvider>
                           
-                          {/* STATUS BAR */}
-                          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                          {/* ROOT CLASS FOR NATIVEWIND COLOR THEME */}
+                          <View className={colorScheme === 'dark' ? 'dark' : ''} style={{ flex: 1 }}>
+                            
+                            {/* STATUS BAR */}
+                            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-                          {/* NAVIGATION */}
-                          <RootNavigator />
+                            {/* NAVIGATION */}
+                            <RootNavigator />
 
-                          {/* GLOBAL OVERLAY UI */}
-                          <FloatingThemeToggle />
+                            {/* GLOBAL OVERLAY UI */}
+                            <FloatingThemeToggle />
 
-                        </View>
+                          </View>
 
-                      </AuthProvider>
+                        </AuthProvider>
 
-                    </NotificationProvider>
-                  </QueryProvider>
-                </SafeAreaProvider>
-              </ThemeProvider>
+                      </NotificationProvider>
+                    </QueryProvider>
+                  </SafeAreaProvider>
+                </ThemeProvider>
+              </AIProvider>
             </DownloadProvider>
           </AppBootstrapProvider>
         </OTAProvider>

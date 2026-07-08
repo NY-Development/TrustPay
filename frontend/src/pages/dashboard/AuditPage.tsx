@@ -1,14 +1,19 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, Layers } from 'lucide-react';
+import { useAI } from '@/src/ai/AIProvider';
+import type { ReceiptData, AuditReport } from '@/src/ai/ai-types';
 
 type FilterPeriod = 'all' | 'today' | 'week' | 'month' | 'year';
 
 export default function AuditPage() {
+  const { organizer, status: aiStatus } = useAI();
   const { data: historyRes, isLoading, refetch } = useVerificationHistory();
   const history = historyRes?.pages?.flatMap(page => page.data) || [];
 
   const [activeFilter, setActiveFilter] = useState<FilterPeriod>('all');
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiReport, setAiReport] = useState<AuditReport | null>(null);
 
   const filterOptions = [
     { id: 'all', label: 'All Time' },
@@ -17,6 +22,45 @@ export default function AuditPage() {
     { id: 'month', label: 'This Month' },
     { id: 'year', label: 'This Year' },
   ] as const;
+
+  // Convert histories into unified structure for audit checking
+  const receiptDataItems = useMemo((): ReceiptData[] => {
+    return history.map((item: any) => ({
+      merchant: item.provider || item.bank || 'Unknown',
+      date: item.paymentDate || item.createdAt || new Date().toISOString(),
+      subtotal: Number(item.amount) || 0,
+      tax: null,
+      vat: null,
+      total: Number(item.amount) || 0,
+      currency: item.currency || 'ETB',
+      paymentMethod: 'transfer',
+      items: [],
+      category: 'other',
+      confidence: 1.0,
+      referenceNumber: item.referenceNumber || null,
+      transactionNumber: item.referenceNumber || null,
+      bank: item.provider || item.bank || 'Unknown',
+      senderName: item.rawResponse?.senderName || null,
+      receiverName: item.rawResponse?.receiverName || null,
+    }));
+  }, [history]);
+
+  useEffect(() => {
+    if (receiptDataItems.length > 0 && aiStatus === 'ready') {
+      const getAiAudit = async () => {
+        setGeneratingAi(true);
+        try {
+          const report = await organizer.generateAudit(receiptDataItems);
+          setAiReport(report);
+        } catch (err) {
+          console.warn('[AI Web Audit Error]', err);
+        } finally {
+          setGeneratingAi(false);
+        }
+      };
+      getAiAudit();
+    }
+  }, [receiptDataItems, aiStatus]);
 
   const metrics = useMemo(() => {
     let totalMoney = 0;
@@ -173,6 +217,73 @@ export default function AuditPage() {
           <span className="text-2xl font-bold text-[#131b2e] dark:text-white block">{metrics.failedCount}</span>
           <span className="text-[10px] text-gray-400 mt-1 block">Verification errors</span>
         </div>
+      </div>
+
+      {/* AI Auditing Hub Panel */}
+      <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-[28px] overflow-hidden p-6 shadow-xs">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-[#131b2e] dark:text-white">AI Fraud & Security Hub</h3>
+            <p className="text-xs text-[#54647a]">Deep learning verification and transaction safety analysis</p>
+          </div>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#004bca]/10 text-[#004bca] border border-[#004bca]/10">
+            Cloud Gemma AI
+          </span>
+        </div>
+
+        {generatingAi ? (
+          <div className="flex items-center justify-center p-8 gap-2 text-xs text-muted-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#004bca]" />
+            Analyzing verification log patterns for anomalies...
+          </div>
+        ) : aiReport ? (
+          <div className="space-y-6">
+            <div className="p-5 rounded-2xl bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/20 flex flex-wrap justify-between items-center gap-4">
+              <div className="flex-1 min-w-[240px]">
+                <h4 className="font-semibold text-sm mb-1 text-[#131b2e] dark:text-white">Security Audit Summary</h4>
+                <p className="text-xs text-muted-foreground leading-5">{aiReport.summary}</p>
+              </div>
+              <div className="shrink-0 flex items-center bg-[#004bca]/10 text-[#004bca] px-3 py-1.5 rounded-lg border border-[#004bca]/20 font-bold text-xs select-none">
+                Risk Confidence Level: <span className="font-mono ml-1">{(aiReport.overallConfidence * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+
+            {aiReport.suspiciousTransactions.length > 0 ? (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-xs text-[#54647a] tracking-wider uppercase">Detections Required Action</h4>
+                {aiReport.suspiciousTransactions.map((tx, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-4 p-4 rounded-xl border ${
+                      tx.severity === 'critical' || tx.severity === 'high'
+                        ? 'border-red-500/20 bg-red-500/5'
+                        : 'border-amber-500/20 bg-amber-500/5'
+                    }`}
+                  >
+                    <ShieldAlert size={20} className={tx.severity === 'critical' || tx.severity === 'high' ? 'text-red-500 mt-0.5' : 'text-amber-500 mt-0.5'} />
+                    <div>
+                      <h5 className="font-bold text-xs text-[#131b2e] dark:text-white uppercase">Reference ID: {tx.referenceNumber}</h5>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{tx.reason}</p>
+                      <span className="inline-block mt-2 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#505f76]/10 text-slate-500">
+                        Severity: {tx.severity}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck size={24} />
+                <div>
+                  <h5 className="font-bold text-xs uppercase">Platform Check Complete</h5>
+                  <p className="text-[11px] mt-0.5 opacity-90">Verification logs show no high-severity risk indicators. System health is stable.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-8 text-center text-xs text-muted-foreground">Verify more transaction slips to compile Deep AI audits.</div>
+        )}
       </div>
 
       {/* Provider Details breakdown */}

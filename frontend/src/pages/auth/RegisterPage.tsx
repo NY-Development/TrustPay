@@ -71,7 +71,7 @@ export default function RegisterPage() {
             visible: true,
             type: 'success',
             title: 'Account Created',
-            message: 'Your account has been created successfully. Welcome to Nexus Verify!',
+            message: 'Your account has been created successfully. Welcome to Trust Pay!',
           });
         },
         onError: (err: any) => {
@@ -94,7 +94,7 @@ export default function RegisterPage() {
           <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground">
             <span className="material-symbols-outlined text-[20px]">shield</span>
           </div>
-          <span className="font-heading text-2xl font-medium text-foreground">Nexus Verify</span>
+          <span className="font-heading text-2xl font-medium text-foreground">Trust Pay</span>
         </Link>
         <div className="text-[13px] font-medium text-muted-foreground flex items-center gap-1">
           <span className="material-symbols-outlined text-[16px]">lock</span>
@@ -278,7 +278,7 @@ export default function RegisterPage() {
       <footer className="w-full py-6 bg-card border-t border-border mt-auto">
         <div className="max-w-[1440px] mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-2">
           <span className="text-muted-foreground text-[13px]">
-            © 2026 Nexus Verify Systems. Secure environment framework runtime active.
+            © 2026 Trust Pay Systems. Secure environment framework runtime active.
           </span>
           <div className="flex gap-6 text-muted-foreground text-[13px]">
             <a className="hover:text-primary transition-colors" href="#">Help Center</a>

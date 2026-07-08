@@ -120,7 +120,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
           <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider block">Terminal Plan</span>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-2xl font-bold text-[#131b2e] dark:text-white">{subData?.data?.active ? 'Premium' : (user?.trial?.hasUsedTrial ? 'Trial Expired' : 'Trial Active')}</span>
+            <span className="text-2xl font-bold text-[#131b2e] dark:text-white">{subData?.data?.active ? 'Premium' : (user?.trial?.hasUsedTrial ? 'Trial Active' : 'Trial Expired')}</span>
             <span className="material-symbols-outlined text-[#004bca]">card_membership</span>
           </div>
         </div>

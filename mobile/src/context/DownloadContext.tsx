@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { downloadModel, DownloadProgress, AIModelId } from '@/src/ocr/model-download-manager';
+import { downloadModel, DownloadProgress, AIModelId } from '@/src/ai';
 
 type DownloadContextType = {
   downloadingModelId: AIModelId | null;

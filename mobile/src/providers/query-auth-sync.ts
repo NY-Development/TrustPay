@@ -1,5 +1,4 @@
 import { QueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '@/src/store/authStore';
 
 let queryClientRef: QueryClient | null = null;
 
@@ -18,6 +17,8 @@ export function clearAuthCache() {
  * Prefetch user data after login
  */
 export async function hydrateAuthCache() {
+  // Lazily import useAuthStore to avoid circular dependency at initialization time
+  const { useAuthStore } = require('../store/authStore');
   const user = useAuthStore.getState().user;
 
   if (!user) return;

@@ -114,7 +114,7 @@ export default function AboutPage() {
             <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 dark:border-white/10 rounded-[24px] col-span-1 md:col-span-7 p-8 shadow-sm">
               <h3 className="font-['Geist'] text-lg font-bold text-[#131b2e] dark:text-white mb-3">Our Context</h3>
               <p className="text-xs text-[#54647a] dark:text-[#c2c6d9] leading-relaxed mb-3">
-                Founded in 2024 by security engineers to support a rapidly migrating cash-to-digital landscape, Nexus Verify targets structural vulnerabilities in accounting pipelines.
+                Founded in 2024 by security engineers to support a rapidly migrating cash-to-digital landscape, Trust Pay targets structural vulnerabilities in accounting pipelines.
               </p>
               <p className="text-xs text-[#54647a] dark:text-[#c2c6d9] leading-relaxed">
                 By maintaining persistent sync matrix architectures over transactional networks, we offer accurate settlement pipelines running underneath top-tier business applications.
@@ -204,14 +204,14 @@ export default function AboutPage() {
                 <div className="w-6 h-6 rounded bg-[#004bca] flex items-center justify-center text-white">
                   <span className="material-symbols-outlined text-[14px]">shield</span>
                 </div>
-                <span className="font-['Geist'] font-bold text-sm text-[#131b2e] dark:text-white">Nexus Verify System</span>
+                <span className="font-['Geist'] font-bold text-sm text-[#131b2e] dark:text-white">Trust Pay System</span>
               </div>
               <p className="text-xs text-[#54647a] dark:text-[#c2c6d9]/70 max-w-sm leading-relaxed">
                 Automated transactional verification endpoints mapping parameters securely across checking infrastructures.
               </p>
             </div>
             <span className="text-[11px] text-[#54647a] dark:text-[#c2c6d9]/50 mt-6 md:mt-0">
-              © 2026 Nexus Verify Systems. All rights reserved.
+              © 2026 Trust Pay Systems. All rights reserved.
             </span>
           </div>
 
