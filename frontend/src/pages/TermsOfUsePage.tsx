@@ -34,8 +34,8 @@ const sections: Section[] = [
     bullets: [
       'Be at least 18 years of age or the legal majority in your jurisdiction.',
       'Be a registered business entity or authorized representative operating within the Ethiopian financial ecosystem.',
-      'Provide accurate, truthful registration information, including your full legal name exactly as it appears on your settlement bank account(s).',
-      'Maintain the security of your account credentials. You are solely responsible for all activities under your account.',
+      'Provide accurate, truthful registration information, including your full legal name, business TIN, and a valid trading license document for owner verification.',
+      'Maintain the security of your account credentials. You are solely responsible for all activities under your account, including those of your invited employees.',
     ],
   },
   {
@@ -45,8 +45,9 @@ const sections: Section[] = [
     paragraphs: [`${APP_NAME} provides:`],
     bullets: [
       'Transaction Reference Verification: Validating payment references against banking records via Verify.ET API.',
-      'On-Device AI Receipt Processing: Local ML models (ExecuTorch, ML Kit) for reference extraction — processed entirely on-device.',
-      'Subscription Access Control: Monthly (100 ETB) and Yearly (1,000 ETB) plans with premium feature gating.',
+      'On-Device AI Receipt Processing: Local ML models (ExecuTorch, Google ML Kit) for reference extraction — processed entirely on-device.',
+      'Subscription Access Control: Managing branch-level subscriptions (each branch is billed individually) with access gating for premium features.',
+      'Multi-Branch & Employee Features: Support for configuring multiple physical or digital branches under a single owner account, inviting employees, allocating branch access permissions, and viewing isolated verification records.',
       'Business Analytics & Audit: AI-driven financial insights, spending trends, and anomaly detection.',
       'Push Notifications: Critical alerts, verification results, and subscription reminders.',
     ],
@@ -70,6 +71,8 @@ const sections: Section[] = [
     paragraphs: ['Your registration name must exactly match your banking settlement accounts because:'],
     bullets: [
       'Verification results compare receiver names against your registered identity. Name mismatches cause failures.',
+      'Organization Roles: Owners are fully responsible for the operation and permissions of all sub-accounts (Cashier, Manager, etc.) created underneath their organization business profile.',
+      'Branch Account Allocation: Settlement accounts can be registered and tied to specific branches to allow correct verification checking.',
       'You may register multiple accounts across CBE, BOA, Telebirr, Dashen, Awash, M-Pesa, and CBE Birr.',
       'You are responsible for keeping settlement account information current.',
       'Account sharing is strictly prohibited. Each account = one identifiable merchant entity.',
@@ -83,6 +86,7 @@ const sections: Section[] = [
     paragraphs: ['Key billing terms:'],
     bullets: [
       'Plans: Monthly (100 ETB) and Yearly (1,000 ETB). Pricing subject to change with 30 days notice.',
+      'Branch Billing: TrustPay plans are charged per branch. Owners must maintain an active subscription for each configured branch to allow employees at that branch to run verifications.',
       'Auto-Renewal: Subscriptions renew automatically unless cancelled before the renewal date.',
       'Refund Policy: Active subscription charges are non-refundable due to verification API polling costs. Cancel anytime to prevent future charges.',
       'Grace Period: 3-day read-only access after expiration before access gating activates.',
@@ -97,6 +101,8 @@ const sections: Section[] = [
       'Submit fabricated or fraudulent transaction references.',
       'Reverse-engineer, decompile, or extract proprietary algorithms or AI models.',
       'Circumvent subscription controls, rate limits, or security mechanisms.',
+      'Allow unauthorized employees or third parties to access branch dashboards or verification history.',
+      'Provide fake, expired, or third-party trading licenses or business details during organization onboarding.',
       'Use bots, scrapers, or automated tools without written permission.',
       'Impersonate another person, business, or entity.',
       'Transmit malware or code designed to disrupt our systems.',
