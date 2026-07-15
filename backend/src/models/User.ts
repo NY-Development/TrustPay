@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { ALL_ROLES, ALL_PROVIDERS, Role, Provider } from '../constants';
+import { ALL_ROLES, ALL_PROVIDERS, Role, Provider, OWNER_STATUS, COMPANY_TYPES } from '../constants';
 
 /* =========================================================
    INTERFACE
@@ -17,8 +17,19 @@ export interface IUser extends Document {
     accountProvider: Provider;
   }[];
 
-  businessId?: mongoose.Types.ObjectId;
-  branchId?: mongoose.Types.ObjectId;
+  ownerStatus: string;
+
+  companyInfo?: {
+    companyName: string;
+    companyType: string;
+    website?: string;
+    country: string;
+    region: string;
+    city: string;
+    address: string;
+  };
+
+  branches: mongoose.Types.ObjectId[];
 
   refreshToken?: string;
   tokenVersion: number;
@@ -74,7 +85,7 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       enum: ALL_ROLES,
-      default: 'VERIFIER',
+      default: 'OWNER',
     },
 
     accounts: [
@@ -84,8 +95,28 @@ const userSchema = new Schema<IUser>(
       },
     ],
 
-    businessId: { type: Schema.Types.ObjectId, ref: 'Business', default: null },
-    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null },
+    ownerStatus: {
+      type: String,
+      enum: Object.values(OWNER_STATUS),
+      default: 'PENDING_LICENSE',
+    },
+
+    companyInfo: {
+      companyName: { type: String },
+      companyType: { type: String, enum: Object.values(COMPANY_TYPES) },
+      website: { type: String },
+      country: { type: String },
+      region: { type: String },
+      city: { type: String },
+      address: { type: String },
+    },
+
+    branches: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Branch',
+      },
+    ],
 
     refreshToken: { type: String, select: false },
     tokenVersion: { type: Number, default: 0 },
@@ -121,7 +152,8 @@ const userSchema = new Schema<IUser>(
    INDEXES
 ========================================================= */
 
-userSchema.index({ businessId: 1, role: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ ownerStatus: 1 });
 
 /* =========================================================
    TRIAL CALCULATION (REAL FIELD UPDATE)

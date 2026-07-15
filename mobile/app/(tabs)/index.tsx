@@ -17,6 +17,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/src/providers/LanguageProvider';
 import SubscriptionModal from '@/src/components/SubscriptionModal';
+import BranchSelector from '@/src/components/BranchSelector';
+
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -100,9 +102,12 @@ export default function Dashboard() {
                 <Text className="text-foreground text-2xl font-black tracking-tight truncate">{user?.name || 'TrustPay Hub'}</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={() => router.push('/notification-center')} className="w-12 h-12 bg-card rounded-2xl items-center justify-center border border-border shadow-sm active:opacity-80">
-              <Ionicons name="notifications" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />
-            </TouchableOpacity>
+            <View className="flex-row items-center">
+              <BranchSelector />
+              <TouchableOpacity onPress={() => router.push('/notification-center')} className="w-12 h-12 bg-card rounded-2xl items-center justify-center border border-border shadow-sm active:opacity-80 ml-2">
+                <Ionicons name="notifications" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View className="flex-row gap-4 mb-8">

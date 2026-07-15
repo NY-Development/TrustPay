@@ -75,8 +75,8 @@ ${request.message}
   Email: ${user.email}
   Role: ${user.role}
   Account Active: ${user.isActive ? 'Yes' : 'No'}
-  Business ID: ${user.businessId || 'N/A'}
-  Branch ID: ${user.branchId || 'N/A'}
+  Owner Status: ${user.ownerStatus || 'N/A'}
+  Branches: ${user.branches?.join(', ') || 'None'}
   Push Token: ${user.pushToken || 'Not registered'}
   Registered: ${user.createdAt?.toISOString() || 'N/A'}
   Last Updated: ${user.updatedAt?.toISOString() || 'N/A'}

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import type { User } from '../types';
+import type { User, Branch } from '../types';
 import { Storage, STORAGE_KEYS } from '../utils/storage';
 import { authApi } from '../api/auth.api';
+import { listBranchesApi } from '../api/branch.api';
 
 import { TokenService } from '@/src/services/token.service';
 import { clearAuthCache } from '@/src/providers/query-auth-sync';
@@ -13,6 +14,11 @@ import { onUnauthorized } from '@/src/api/auth-events';
 
 interface AuthState {
   user: User | null;
+
+  // Multi-branch state
+  actorType: 'owner' | 'employee' | null;
+  selectedBranch: Branch | null;
+  branches: Branch[];
 
   isAuthenticated: boolean;
   isHydrated: boolean;
@@ -26,8 +32,16 @@ interface AuthState {
     tokens?: {
       accessToken?: string;
       refreshToken?: string;
+    },
+    extras?: {
+      actorType?: 'owner' | 'employee';
+      selectedBranch?: Branch;
+      branches?: Branch[];
     }
   ) => Promise<void>;
+
+  switchBranch: (branch: Branch) => void;
+  loadBranches: () => Promise<void>;
 
   logout: (reason?: 'manual' | 'expired') => Promise<void>;
 
@@ -44,16 +58,18 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  actorType: null,
+  selectedBranch: null,
+  branches: [],
   isAuthenticated: false,
   isHydrated: false,
   hasSeenOnboarding: false,
   isLoggingOut: false,
-      
 
   /* =========================================================
      SET USER (LOGIN/REGISTER)
   ========================================================= */
-  setUser: async (user, tokens) => {
+  setUser: async (user, tokens, extras) => {
     if (tokens?.accessToken) {
       await TokenService.saveAccessToken(tokens.accessToken);
     }
@@ -62,11 +78,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await TokenService.saveRefreshToken(tokens.refreshToken);
     }
 
-    // User object now contains the trial data structure[cite: 11]
     set({
       user,
       isAuthenticated: !!user,
+      ...(extras?.actorType && { actorType: extras.actorType }),
+      ...(extras?.selectedBranch && { selectedBranch: extras.selectedBranch }),
+      ...(extras?.branches && { branches: extras.branches }),
     });
+  },
+
+  /* =========================================================
+     SWITCH BRANCH
+  ========================================================= */
+  switchBranch: (branch) => {
+    set({ selectedBranch: branch });
+  },
+
+  /* =========================================================
+     LOAD BRANCHES
+  ========================================================= */
+  loadBranches: async () => {
+    try {
+      const response = await listBranchesApi();
+      if (response?.data) {
+        set({ branches: response.data });
+      }
+    } catch (err) {
+      console.error('Failed to load branches', err);
+    }
   },
 
   /* =========================================================
@@ -87,6 +126,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         user: null,
         isAuthenticated: false,
+        actorType: null,
+        selectedBranch: null,
+        branches: [],
       });
     } finally {
       set({ isLoggingOut: false });
@@ -105,14 +147,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       );
 
       let user: User | null = null;
+      let branches: Branch[] = [];
+      let selectedBranch: Branch | null = null;
+      let actorType: 'owner' | 'employee' | null = null;
 
       if (accessToken) {
         try {
           const response = await authApi.getMe();
+          const resData: any = response?.data;
 
-          // User object populated via API includes trial information[cite: 11]
-          if (response?.data?.user) {
-            user = response.data.user;
+          if (resData?.user) {
+            user = resData.user;
+            const ownerRoles = ['OWNER', 'SUPER_ADMIN', 'ADMIN'];
+            actorType = resData.actorType || (user && ownerRoles.includes(user.role) ? 'owner' : 'employee');
+
+            if (actorType === 'owner') {
+              // Owners can access all their branches — load the full list.
+              try {
+                const branchRes = await listBranchesApi();
+                branches = branchRes?.data || [];
+                selectedBranch = branches[0] || null;
+              } catch {
+                // Branch loading failure is non-fatal
+              }
+            } else {
+              // Employees are scoped to their single assigned branch.
+              selectedBranch = resData.branch || null;
+              branches = resData.branch ? [resData.branch] : [];
+            }
           }
         } catch {
           await TokenService.clearTokens();
@@ -124,6 +186,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: !!user,
         hasSeenOnboarding: !!onboarded,
         isHydrated: true,
+        actorType,
+        branches,
+        selectedBranch,
       });
     } catch (err) {
       console.error('Hydration error:', err);

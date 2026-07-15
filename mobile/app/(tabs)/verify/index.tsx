@@ -44,15 +44,15 @@ export default function VerifyEntry() {
       route: '/(tabs)/verify/ocr',
       isAvailable: true,
     },
-    {
-      id: 'qr',
-      title: 'Scan QR Code',
-      description: 'Verify payments by scanning QR codes.',
-      icon: 'qr-code-outline',
-      color: '#00C853',
-      route: '/(tabs)/verify/scan',
-      isAvailable: true,
-    },
+    // {
+    //   id: 'qr',
+    //   title: 'Scan QR Code',
+    //   description: 'Verify payments by scanning QR codes.',
+    //   icon: 'qr-code-outline',
+    //   color: '#00C853',
+    //   route: '/(tabs)/verify/scan',
+    //   isAvailable: true,
+    // },
   ];
 
   const handleOptionPress = (option: VerifyOption) => {

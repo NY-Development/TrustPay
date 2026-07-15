@@ -8,7 +8,7 @@ import { useColorScheme } from 'nativewind';
 const EFFECTIVE_DATE = 'July 8, 2026';
 const COMPANY = 'NY-Development';
 const APP_NAME = 'TrustPay';
-const SUPPORT_EMAIL = 'privacy@trustpay.app';
+const SUPPORT_EMAIL = 'yamlaknegash96@gmail.com';
 const JURISDICTION = 'Federal Democratic Republic of Ethiopia';
 
 // ─── Section Data ──────────────────────────────────────────────────────
@@ -36,16 +36,17 @@ const sections: SectionItem[] = [
     icon: 'document-text-outline',
     title: '1. Information We Collect',
     paragraphs: [
-      'We collect information you provide directly, information generated through your usage, and limited information from third-party payment verification partners.',
+      'We collect information you provide directly (such as when setting up your business, branches, and employees), information generated through your usage, and limited information from third-party payment verification partners.',
     ],
     bullets: [
-      'Account Registration Data: Full legal name (must match banking records), email address, and hashed password credentials.',
-      'Settlement Account Data: Bank account numbers and wallet identifiers you register for verification matching (e.g., CBE, BOA, Telebirr, Dashen, Awash, M-Pesa account numbers).',
+      'Account & Business Registration Data: Business owner full legal name, email address, password, and company info (name, type, address).',
+      'Branch and Employee Data: Branch names, physical locations, branch codes, phone numbers, and employee names, emails, roles, and branch assignments managed by the Owner.',
+      'Settlement Account Data: Bank account numbers and wallet identifiers registered for verification matching (e.g., CBE, BOA, Telebirr, Dashen, Awash, M-Pesa account numbers), which can be managed at a branch level.',
       'Transaction Verification Data: Payment reference numbers, transaction IDs, verification request timestamps, provider responses including payer name, receiver name, and amounts.',
       'Device & Usage Data: Device model, operating system version, app version, IP address, session duration, feature usage patterns, and crash reports.',
-      'OCR & AI Processing Data: Receipt images you upload are processed locally on your device using on-device AI (ExecuTorch / ML Kit). Raw images are NOT transmitted to our servers unless you explicitly initiate a cloud verification.',
-      'Communication Data: Support messages, feedback submissions, and email correspondence you send to us.',
-      'Subscription & Billing Data: Subscription plan type, payment status, renewal dates, and transaction records for subscription purchases.',
+      'OCR & AI Processing Data: Receipt images you upload are processed locally on your device using on-device AI.',
+      'Communication Data: Support messages, feedback submissions, and system-level communications between owners and branch employees (e.g., announcements, task alerts).',
+      'Subscription & Billing Data: Subscription plan type, payment status, renewal dates, and transaction records for branch-level subscription purchases.',
     ],
   },
   {
@@ -56,12 +57,12 @@ const sections: SectionItem[] = [
       'We process your personal information only for legitimate business purposes directly related to providing and improving the Service:',
     ],
     bullets: [
-      'Transaction Verification: Matching payment references against banking settlement records via Verify.ET API to confirm payer identity, amounts, and receiver account details.',
-      'Account Management: Authenticating your identity, managing your subscription, and maintaining your settlement account registry.',
+      'Transaction Verification: Matching payment references against banking settlement records via Verify.ET API to confirm payer identity, amounts, and receiver account details, isolated for each respective branch.',
+      'Multi-Actor Authentication & Management: Enforcing separate login flows for Owners vs. Employees and providing management tools for owners to invite, update, and manage employee accounts and branch assignments.',
       'On-Device AI Processing: Running local inference models (Llama 3.2 via ExecuTorch) to extract reference numbers, categorize transactions, and generate business insights — entirely on your device.',
-      'Fraud Prevention: Detecting duplicate submissions, anomalous transaction patterns, and potential reference manipulation.',
+      'Fraud Prevention & Audit: Detecting duplicate submissions, anomaly detection, and keeping immutable logs of actions taken by users and employees.',
       'Service Improvement: Analyzing aggregated, anonymized usage patterns to improve user experience, optimize verification speed, and develop new features.',
-      'Legal Compliance: Fulfilling obligations under Ethiopian financial regulations, anti-money laundering (AML) directives, and responding to lawful government requests.',
+      'Legal Compliance: Fulfilling obligations under Ethiopian financial regulations and anti-money laundering (AML) directives.',
       'Communication: Sending critical account alerts, security notifications, subscription reminders, and support responses. We will never send marketing communications without your explicit opt-in consent.',
     ],
   },
@@ -74,7 +75,7 @@ const sections: SectionItem[] = [
     ],
     bullets: [
       'Payment Verification Partners: When you initiate a verification, we transmit the reference number and provider identifier to the Verify.ET API gateway to retrieve settlement status. Only the minimum data necessary for verification is shared.',
-      'SMTP Email Service: We use Brevo (Sendinblue) SMTP relay for transactional emails (OTP codes, password resets, account alerts). Your email address is shared with Brevo solely for delivery.',
+      'SMTP Email Service: We use Brevo (Sendinblue) SMTP relay for transactional emails (OTP codes, password resets, employee invitations). Your email address is shared with Brevo solely for delivery.',
       'Legal Obligations: We may disclose information if required by law, court order, or governmental regulation, or if we believe disclosure is necessary to protect national security, enforce our Terms of Use, or protect the rights and safety of any person.',
       'Business Transfers: In the event of a merger, acquisition, or asset sale, your personal data may be transferred to the acquiring entity, subject to this Privacy Policy.',
       'Aggregated Analytics: We may share anonymized, aggregated statistics (e.g., total verifications processed, average verification time) that cannot reasonably identify any individual user.',
@@ -88,12 +89,11 @@ const sections: SectionItem[] = [
       'We retain your personal information only as long as necessary to fulfill the purposes outlined in this policy:',
     ],
     bullets: [
-      'Account Data: Retained for the lifetime of your account plus 30 days after deletion request to allow recovery.',
-      'Verification Records: Transaction verification results are retained for 3 years to support dispute resolution and regulatory audits.',
+      'Account, Branch, and Employee Data: Retained for the lifetime of your organization account plus 30 days after deletion request to allow recovery. When an employee or copy of a branch is deleted by the owner, associated employee credentials and roles are immediately deactivated.',
+      'Verification Records & Audit Logs: Transaction verification results and employee audit history are retained for 3 years to support dispute resolution, branch analytics, and regulatory audits.',
       'OTP Codes: Automatically purged via MongoDB TTL indexes within 10 minutes of generation.',
       'Session Tokens: JWT tokens expire after 7 days. Refresh tokens are rotated and old tokens are invalidated immediately.',
       'AI-Processed Data: Receipt images processed by on-device AI are never stored on our servers. Local model inference data remains exclusively on your device.',
-      'Support Correspondence: Retained for 2 years after ticket resolution for quality assurance purposes.',
     ],
   },
   {
@@ -105,8 +105,8 @@ const sections: SectionItem[] = [
     ],
     bullets: [
       'Encryption in Transit: All network communications use TLS 1.3 encryption. API endpoints enforce HTTPS exclusively.',
-      'Encryption at Rest: Sensitive database fields (passwords, settlement account numbers) are hashed using bcrypt with per-user salts.',
-      'Access Control: Role-based access control (RBAC) ensures only authorized personnel can access production databases. Admin actions are logged in immutable audit trails.',
+      'Encryption at Rest: Sensitive database fields (passwords, settlement account numbers) are hashed or encrypted using industry-standard patterns.',
+      'Access Control & Branch Scoping: Multi-actor role-based access control (RBAC) ensures employees can only access data scoped to their assigned branch. Admin actions and employee operations are logged in immutable audit trails.',
       'Infrastructure: MongoDB Atlas with encryption at rest, automated backups, and network isolation via VPC peering.',
       'On-Device Security: AI models run entirely within the device sandbox. Biometric authentication (fingerprint/face) is handled natively and never transmitted to our servers.',
       'Vulnerability Management: We conduct periodic security reviews and apply dependency patches promptly.',

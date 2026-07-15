@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISubscription extends Document {
-  userId: mongoose.Types.ObjectId;
+  branchId: mongoose.Types.ObjectId;
+  ownerId: mongoose.Types.ObjectId;
   plan: 'monthly' | 'yearly';
   amount: number;
   currency: string;
@@ -22,7 +23,12 @@ export interface ISubscription extends Document {
 
 const subscriptionSchema = new Schema<ISubscription>(
   {
-    userId: {
+    branchId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Branch',
+      required: true,
+    },
+    ownerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -97,7 +103,8 @@ const subscriptionSchema = new Schema<ISubscription>(
   }
 );
 
-subscriptionSchema.index({ userId: 1, status: 1 });
+subscriptionSchema.index({ branchId: 1, status: 1 });
+subscriptionSchema.index({ ownerId: 1 });
 subscriptionSchema.index({ transactionId: 1 }, { unique: true });
 
 export const Subscription = mongoose.model<ISubscription>('Subscription', subscriptionSchema);

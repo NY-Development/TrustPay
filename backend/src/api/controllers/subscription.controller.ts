@@ -6,37 +6,39 @@ import { AuditLog } from '../../models/AuditLog';
 import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
 
-import { getUserAccessStatus } from '../../utils/subscriptionAccess';
+import { getBranchAccessStatus } from '../../utils/subscriptionAccess';
 import { User } from '../../models/User';
 
 /**
- * @desc    Get subscription status of the authenticated user
+ * @desc    Get subscription status of the active branch context
  * @route   GET /api/v1/subscriptions/status
  * @access  Private
  */
 export const getSubscriptionStatus = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    throw new BadRequestError('User ID missing from Request.');
+  const branchId = req.user?.branchId;
+  const ownerId = req.user?.actorType === 'owner' ? req.user.userId : req.user?.ownerId;
+
+  if (!branchId) {
+    throw new BadRequestError('Branch context missing from request.');
   }
 
-  const sub = await SubscriptionService.checkActiveSubscription(userId);
+  const sub = await SubscriptionService.checkActiveSubscription(branchId);
 
   // If there's a partial_payment subscription, include remaining amount info
   const isActive = !!sub && sub.status === 'active' && sub.fullyPaid;
   const isPartialPayment = !!sub && sub.status === 'partial_payment';
 
-  const user = await User.findById(userId);
-  if (!user) throw new BadRequestError('User not found');
+  const owner = await User.findById(ownerId);
+  if (!owner) throw new BadRequestError('Owner account not found.');
 
   const now = new Date();
 
   // If still in trial → block unnecessary payment
-  if (user.trialEndDate && now < user.trialEndDate) {
-    throw new BadRequestError('You are still in free trial period');
+  if (owner.trialEndDate && now < owner.trialEndDate) {
+    throw new BadRequestError('You are still in the free trial period.');
   }
 
-  const access = await getUserAccessStatus(userId);
+  const access = await getBranchAccessStatus(branchId);
 
   res.status(200).json({
     success: true,
@@ -54,16 +56,17 @@ export const getSubscriptionStatus = asyncHandler(async (req: Request, res: Resp
 });
 
 /**
- * @desc    Verify and activate subscription
+ * @desc    Verify and activate subscription for the branch context
  * @route   POST /api/v1/subscriptions/verify
  * @access  Private
  */
 export const verifySubscription = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
+  const branchId = req.user?.branchId;
   const { reference, plan } = req.body;
 
-  if (!userId) {
-    throw new BadRequestError('User ID missing from Request.');
+  if (!userId || !branchId) {
+    throw new BadRequestError('User ID or active Branch ID is missing from Request.');
   }
 
   if (!reference || !plan || !['monthly', 'yearly'].includes(plan)) {
@@ -71,12 +74,13 @@ export const verifySubscription = asyncHandler(async (req: Request, res: Respons
   }
 
   try {
-    const result = await SubscriptionService.verifySubscriptionPayment(userId, reference, plan);
+    const result = await SubscriptionService.verifySubscriptionPayment(branchId, reference, plan);
 
     // Save success audit log
     await AuditLog.create({
       action: AUDIT_ACTIONS.VERIFY_SUBSCRIPTION,
       actor: userId,
+      branchId,
       ip: req.ip,
       deviceId: req.headers['x-device-id'],
       appVersion: req.headers['x-app-version'],
@@ -92,12 +96,13 @@ export const verifySubscription = asyncHandler(async (req: Request, res: Respons
       remainingAmount: result.remainingAmount,
     });
   } catch (error: any) {
-    logger.warn(`Subscription verification failure for user ${userId}:`, error.message);
+    logger.warn(`Subscription verification failure for user ${userId} / branch ${branchId}:`, error.message);
 
     // Save failure audit log
     await AuditLog.create({
       action: AUDIT_ACTIONS.VERIFY_SUBSCRIPTION_FAILED,
       actor: userId,
+      branchId,
       ip: req.ip,
       deviceId: req.headers['x-device-id'],
       appVersion: req.headers['x-app-version'],
@@ -113,16 +118,17 @@ export const verifySubscription = asyncHandler(async (req: Request, res: Respons
 });
 
 /**
- * @desc    Top-up a partial payment subscription
+ * @desc    Top-up a partial payment subscription for the branch context
  * @route   POST /api/v1/subscriptions/top-up
  * @access  Private
  */
 export const topUpSubscription = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
+  const branchId = req.user?.branchId;
   const { reference } = req.body;
 
-  if (!userId) {
-    throw new BadRequestError('User ID missing from Request.');
+  if (!userId || !branchId) {
+    throw new BadRequestError('User ID or active Branch ID is missing from Request.');
   }
 
   if (!reference) {
@@ -130,11 +136,12 @@ export const topUpSubscription = asyncHandler(async (req: Request, res: Response
   }
 
   try {
-    const result = await SubscriptionService.topUpSubscriptionPayment(userId, reference);
+    const result = await SubscriptionService.topUpSubscriptionPayment(branchId, reference);
 
     await AuditLog.create({
       action: AUDIT_ACTIONS.TOP_UP_SUBSCRIPTION,
       actor: userId,
+      branchId,
       ip: req.ip,
       deviceId: req.headers['x-device-id'],
       appVersion: req.headers['x-app-version'],
@@ -150,11 +157,12 @@ export const topUpSubscription = asyncHandler(async (req: Request, res: Response
       remainingAmount: result.remainingAmount,
     });
   } catch (error: any) {
-    logger.warn(`Subscription top-up failure for user ${userId}:`, error.message);
+    logger.warn(`Subscription top-up failure for user ${userId} / branch ${branchId}:`, error.message);
 
     await AuditLog.create({
       action: AUDIT_ACTIONS.TOP_UP_SUBSCRIPTION_FAILED,
       actor: userId,
+      branchId,
       ip: req.ip,
       deviceId: req.headers['x-device-id'],
       appVersion: req.headers['x-app-version'],

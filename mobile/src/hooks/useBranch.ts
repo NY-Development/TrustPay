@@ -1,28 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchBranchesApi, createBranchApi, updateBranchApi } from '@/src/api/branch.api';
+import { branchApi } from '@/src/api/branch.api';
+import { useAuthStore } from '@/src/store/authStore';
 
-export function useBranch(businessId?: string) {
+export function useBranches() {
   const queryClient = useQueryClient();
 
-  // Query: Get list of branches
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['branches', businessId],
-    queryFn: () => fetchBranchesApi(businessId),
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['branches'],
+    queryFn: branchApi.list,
   });
 
-  // Mutation: Create a new branch
   const createMutation = useMutation({
-    mutationFn: createBranchApi,
+    mutationFn: branchApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['branches', businessId] });
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
     },
   });
 
-  // Mutation: Update a branch
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateBranchApi(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => branchApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['branches', businessId] });
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: branchApi.deactivate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
     },
   });
 
@@ -30,7 +35,31 @@ export function useBranch(businessId?: string) {
     branches: data?.data ?? [],
     isLoading,
     error,
+    refetch,
     addBranch: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
     modifyBranch: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending,
+    deactivateBranch: deactivateMutation.mutateAsync,
   };
+}
+
+export function useBranchDetail(branchId: string) {
+  return useQuery({
+    queryKey: ['branch', branchId],
+    queryFn: () => branchApi.getById(branchId),
+    enabled: !!branchId,
+  });
+}
+
+export function useSwitchBranch() {
+  const switchBranch = useAuthStore((s) => s.switchBranch);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: switchBranch,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
 }

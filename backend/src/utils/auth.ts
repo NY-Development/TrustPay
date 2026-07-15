@@ -11,13 +11,23 @@ import { JwtAccessPayload, JwtRefreshPayload } from '../types';
 /**
  * Generate Access and Refresh tokens
  */
-export const generateTokens = (user: any) => {
+export const generateTokens = (
+  user: any,
+  actorTypeParam?: 'owner' | 'employee',
+  branchIdParam?: string
+) => {
+  const actorType =
+    actorTypeParam ||
+    (user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+      ? 'owner'
+      : 'employee');
+
   const accessPayload: JwtAccessPayload = {
     userId: user._id.toString(),
     email: user.email,
     role: user.role,
-    businessId: user.businessId?.toString(),
-    branchId: user.branchId?.toString(),
+    actorType,
+    branchId: branchIdParam || user.branchId?.toString(),
   };
 
   const refreshPayload: JwtRefreshPayload = {

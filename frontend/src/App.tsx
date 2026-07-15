@@ -36,6 +36,9 @@ import AnalyticsPage from './pages/dashboard/AnalyticsPage';
 import NotificationsPage from './pages/dashboard/NotificationsPage';
 import ExportPage from './pages/dashboard/ExportPage';
 import ProfilePage from './pages/dashboard/ProfilePage';
+import BranchesPage from './pages/dashboard/BranchesPage';
+import EmployeesPage from './pages/dashboard/EmployeesPage';
+import CommunicationsPage from './pages/dashboard/CommunicationsPage';
 
 // Admin pages
 import { AdminLayout } from './layouts/AdminLayout';
@@ -44,6 +47,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminVerificationsPage from './pages/admin/AdminVerificationsPage';
 import AdminSubscriptionsPage from './pages/admin/AdminSubscriptionsPage';
 import AdminAuditLogsPage from './pages/admin/AdminAuditLogsPage';
+import AdminLicensesPage from './pages/admin/AdminLicensesPage';
 
 export default function App() {
   return (
@@ -57,6 +61,9 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/legal" element={<LegalPage />} />
+        <Route path="/security" element={<SecurityPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
       </Route>
 
       {/* Auth Pages (Only accessible when NOT logged in) */}
@@ -67,9 +74,6 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/security" element={<SecurityPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Route>
       </Route>
 
@@ -86,6 +90,9 @@ export default function App() {
           <Route path="/dashboard/export" element={<ExportPage />} />
           <Route path="/dashboard/profile" element={<ProfilePage />} />
           <Route path="/dashboard/pricing" element={<PricingPage />} />
+          <Route path="/dashboard/branches" element={<BranchesPage />} />
+          <Route path="/dashboard/employees" element={<EmployeesPage />} />
+          <Route path="/dashboard/communications" element={<CommunicationsPage />} />
         </Route>
       </Route>
 
@@ -97,6 +104,7 @@ export default function App() {
           <Route path="/admin/verifications" element={<AdminVerificationsPage />} />
           <Route path="/admin/subscriptions" element={<AdminSubscriptionsPage />} />
           <Route path="/admin/audit" element={<AdminAuditLogsPage />} />
+          <Route path="/admin/licenses" element={<AdminLicensesPage />} />
         </Route>
       </Route>
 

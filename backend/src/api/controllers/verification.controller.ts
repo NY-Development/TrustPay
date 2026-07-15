@@ -2,34 +2,32 @@ import { Request, Response } from 'express';
 import { VerificationService } from '../../services/verification/verification.service';
 import { OcrService } from '../../services/verification/ocr.service';
 import { Verification } from '../../models/Verification';
+import { Branch } from '../../models/Branch';
+import { Employee } from '../../models/Employee';
+import { User } from '../../models/User';
 import { AuditLog } from '../../models/AuditLog';
 import { asyncHandler } from '../../utils/asyncHandler';
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
-  TooManyRequestsError
+  ForbiddenError
 } from '../../utils/AppError';
 import { VerifiedTransaction } from '../../types';
 import { AUDIT_ACTIONS } from '../../constants';
 import { logger } from '../../config/logger';
 import { NotificationService } from '../../services/notification.service';
-import { User } from '../../models/User';
 import { adminAlertService } from '../../services/adminAlert.service';
-
 
 function safeVerificationPayload(result: any, fallbackProvider: string) {
   return {
     bank: result?.bank || fallbackProvider || 'unknown',
-
     requestId: `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-
     verificationSummary: {
       severity: 'success',
       title: 'Verified Transaction',
       description: 'Transaction successfully verified'
     },
-
     verificationResult: {
       bankSpecific: result?.bankSpecific ?? {},
       settlementAccountMatch: result?.settlementAccountMatch ?? {},
@@ -39,30 +37,63 @@ function safeVerificationPayload(result: any, fallbackProvider: string) {
 }
 
 /**
+ * Helper to retrieve verifier details and pushToken (User or Employee)
+ */
+async function getVerifierDetails(userId: string, actorType: string) {
+  if (actorType === 'employee') {
+    const emp = await Employee.findById(userId);
+    return {
+      email: emp?.email || 'N/A',
+      pushToken: emp?.pushToken,
+      name: emp?.name || 'Employee'
+    };
+  } else {
+    const owner = await User.findById(userId);
+    return {
+      email: owner?.email || 'N/A',
+      pushToken: owner?.pushToken,
+      name: owner?.name || 'Owner'
+    };
+  }
+}
+
+/**
  * @desc    Verify payment manually
  * @route   POST /api/v1/verifications/verify
  */
 export const verifyManual = asyncHandler(async (req: Request, res: Response) => {
-  const { reference, provider: clientProvider, amountExpected, branchId } = req.body;
+  const { reference, provider: clientProvider, amountExpected } = req.body;
   const userId = req.user?.userId;
+  const branchId = req.user?.branchId;
+  const actorType = req.user?.actorType || 'owner';
 
-  // 2. Look up the verifier first (moved up to avoid block-scoped reference usage)
-  const verifier = await User.findById(userId);
+  if (!userId || !branchId) {
+    throw new BadRequestError('Authentication context missing branch identifier or user ID.');
+  }
 
-  // 1. Check for duplicate (Idempotency)
+  // 1. Fetch active Branch settlement accounts
+  const branch = await Branch.findById(branchId);
+  if (!branch) {
+    throw new NotFoundError('Branch context not found.');
+  }
+
+  // 2. Look up the verifier (Owner or Employee)
+  const verifierInfo = await getVerifierDetails(userId, actorType);
+
+  // 3. Check for duplicate (Idempotency)
   const existing = await Verification.findOne({ transactionId: reference.toUpperCase() });
   if (existing) {
     adminAlertService.sendSuspiciousActivityAlert(
       'Double Verification Attempt',
-      `User ID: ${userId} (${verifier?.email}) tried verifying reference: ${reference} which has already been verified under ID: ${existing._id}`
+      `User ID: ${userId} (${verifierInfo.email}) tried verifying reference: ${reference} which has already been verified under ID: ${existing._id}`
     ).catch(err => logger.error('Alert failed', err));
     throw new ConflictError('This transaction reference has already been verified.');
   }
 
   const resolvedProvider = clientProvider || VerificationService.detectProvider(reference);
-  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === resolvedProvider);
+  const matchingAccount = branch.accounts?.find(acc => acc.accountProvider === resolvedProvider);
   if (!matchingAccount) {
-    throw new BadRequestError(`No registered payment account found for provider '${resolvedProvider}'. Please register this provider in your settings.`);
+    throw new BadRequestError(`No registered payment account found for provider '${resolvedProvider}' on this branch.`);
   }
 
   const settlementAccount = matchingAccount.accountNumber;
@@ -78,7 +109,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
 
   const derivedPhone = (resolvedProvider === 'cbebirr' || resolvedProvider === 'kaafiebirr') ? settlementAccount : undefined;
 
-  // 3. Perform Verification via Verify.ET
+  // 4. Perform Verification via Verify.ET
   const result: VerifiedTransaction = await VerificationService.verifyWithProvider({
     provider: resolvedProvider,
     reference,
@@ -89,7 +120,7 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   });
 
   if (!result.verified) {
-    await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, { reference, provider: resolvedProvider, error: 'Provider reported invalid reference' });
+    await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, { reference, provider: resolvedProvider, error: 'Provider reported invalid reference', branchId });
     adminAlertService.sendVerificationFailedAlert(
       'N/A',
       reference,
@@ -100,13 +131,14 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
     throw new BadRequestError('Payment verification failed. Invalid reference.');
   }
 
-  // 4. Settlement Account Match Check (from Verify.ET response)
+  // 5. Settlement Account Match Check
   if (result.settlementAccountMatch && !result.verified) {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, {
       reference,
       provider: resolvedProvider,
       error: `Settlement account mismatch: ${result.settlementAccountMatch.reason}`,
       settlementAccountMatch: result.settlementAccountMatch,
+      branchId
     });
     adminAlertService.sendVerificationFailedAlert(
       'N/A',
@@ -116,60 +148,49 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
       resolvedProvider
     ).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError(
-      `Settlement account mismatch. The payment was not sent to your registered account. Reason: ${result.settlementAccountMatch.reason}`
+      `Settlement account mismatch. Reason: ${result.settlementAccountMatch.reason}`
     );
   }
 
-  // 5. Amount Validation
+  // 6. Amount Validation
   if (amountExpected && result.amount < amountExpected) {
     throw new BadRequestError(`Amount mismatch. Expected: ${amountExpected}, Verified: ${result.amount}`);
   }
 
-  // 6. Save and return
-const safe = safeVerificationPayload(result, resolvedProvider);
+  // 7. Save and return
+  const safe = safeVerificationPayload(result, resolvedProvider);
 
-const verification = await Verification.create({
-  transactionId: result.referenceNumber.toUpperCase(),
-  referenceNumber: result.referenceNumber.toUpperCase(),
+  const verification = await Verification.create({
+    transactionId: result.referenceNumber.toUpperCase(),
+    referenceNumber: result.referenceNumber.toUpperCase(),
+    requestId: safe.requestId,
+    bank: safe.bank,
+    provider: resolvedProvider,
+    amount: result.amount || 0,
+    currency: result.currency || 'ETB',
+    senderName: result.senderName || 'Unknown',
+    receiverName: result.receiverName || 'Unknown',
+    receiverAccount: result?.bankSpecific?.receiverAccount || undefined,
+    accountSuffix: result.accountSuffix || '',
+    paymentDate: result.timestamp || new Date(),
+    verified: true,
+    processingStatus: 'completed',
+    verificationStatus: 'success',
+    source: 'manual',
+    verificationSummary: safe.verificationSummary,
+    verificationResult: safe.verificationResult,
+    providerResponse: result?.raw || {},
+    verifiedBy: userId,
+    verifiedByType: actorType,
+    branchId: branchId
+  });
 
-  requestId: safe.requestId,
-  bank: safe.bank,
+  await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT, { verificationId: verification._id, reference, branchId });
 
-  provider: resolvedProvider,
-
-  amount: result.amount || 0,
-  currency: result.currency || 'ETB',
-
-  senderName: result.senderName || 'Unknown',
-  receiverName: result.receiverName || 'Unknown',
-
-  receiverAccount: result?.bankSpecific?.receiverAccount || undefined,
-  accountSuffix: result.accountSuffix || '',
-
-  paymentDate: result.timestamp || new Date(),
-
-  verified: true,
-  processingStatus: 'completed',
-  verificationStatus: 'success',
-
-  source: 'manual',
-
-  verificationSummary: safe.verificationSummary,
-  verificationResult: safe.verificationResult,
-
-  providerResponse: result?.raw || {},
-
-  verifiedBy: userId,
-  branchId: branchId || req.user?.branchId,
-  businessId: req.user?.businessId
-});
-
-  await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT, { verificationId: verification._id, reference });
-
-  // Send Push Notification to the user who verified
-  if (verifier?.pushToken) {
+  // Send Push Notification
+  if (verifierInfo.pushToken) {
     NotificationService.sendNotification(
-      verifier.pushToken,
+      verifierInfo.pushToken,
       'Payment Verified',
       `Transaction ${result.referenceNumber} of ${result.amount} ${result.currency} was successful.`
     ).catch(err => logger.error('Push notification failed', err));
@@ -183,39 +204,50 @@ const verification = await Verification.create({
 });
 
 /**
- * @desc    Verify payment from OCR text (Screenshot)
+ * @desc    Verify payment from OCR text (Screenshot Capture)
  * @route   POST /api/v1/verifications/verify-ocr
  */
 export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
-  const { rawText, branchId, amountExpected } = req.body;
+  const { rawText, amountExpected } = req.body;
   const userId = req.user?.userId;
+  const branchId = req.user?.branchId;
+  const actorType = req.user?.actorType || 'owner';
 
-  // 1. Extract transaction info using OcrService (Regex -> AI)
+  if (!userId || !branchId) {
+    throw new BadRequestError('Authentication context missing branch identifier or user ID.');
+  }
+
+  // 1. Extract transaction info
   const extracted = await OcrService.extract(rawText);
-
   if (!extracted.transactionId) {
     throw new BadRequestError('Could not extract transaction ID from the text. Please enter manually.');
   }
 
-  // 3. Look up the verifier first (moved up to avoid block-scoped reference usage)
-  const verifier = await User.findById(userId);
+  // 2. Fetch active Branch settlement accounts
+  const branch = await Branch.findById(branchId);
+  if (!branch) {
+     throw new NotFoundError('Branch context not found.');
+  }
 
-  // 2. Check for duplicate
+  // 3. Look up the verifier (Owner or Employee)
+  const verifierInfo = await getVerifierDetails(userId, actorType);
+
+  // 4. Check for duplicate
   const existing = await Verification.findOne({ transactionId: extracted.transactionId.toUpperCase() });
   if (existing) {
     adminAlertService.sendSuspiciousActivityAlert(
       'Double OCR Verification Attempt',
-      `User ID: ${userId} (${verifier?.email}) tried verifying reference: ${extracted.transactionId} which has already been verified under ID: ${existing._id}`
+      `User ID: ${userId} (${verifierInfo.email}) tried verifying reference: ${extracted.transactionId} which has already been verified under ID: ${existing._id}`
     ).catch(err => logger.error('Alert failed', err));
     throw new ConflictError('Transaction already processed.');
   }
 
   const detectedProvider = extracted.provider || VerificationService.detectProvider(extracted.transactionId);
-  const matchingAccount = verifier?.accounts?.find(acc => acc.accountProvider === detectedProvider);
-  const settlementAccount = matchingAccount?.accountNumber || verifier?.accounts?.[0]?.accountNumber;
+  const matchingAccount = branch.accounts?.find(acc => acc.accountProvider === detectedProvider);
+  const settlementAccount = matchingAccount?.accountNumber || branch.accounts?.[0]?.accountNumber;
 
   if (!settlementAccount) {
-    throw new BadRequestError('No registered payment account found. Please register at least one payment account in your settings.');
+    throw new BadRequestError('No registered payment account found on this branch.');
   }
 
   const resolvedProvider = matchingAccount?.accountProvider || detectedProvider;
@@ -231,7 +263,7 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
 
   const derivedPhone = (resolvedProvider === 'cbebirr' || resolvedProvider === 'kaafiebirr') ? settlementAccount : undefined;
 
-  // 4. Perform Verification via Verify.ET
+  // 5. Perform Verification via Verify.ET
   const result = await VerificationService.verifyWithProvider({
     provider: resolvedProvider,
     reference: extracted.transactionId,
@@ -252,7 +284,7 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
     throw new BadRequestError('Extracted reference is invalid or could not be verified.');
   }
 
-  // 5. Settlement Account Match Check
+  // 6. Settlement Account Match Check
   if (result.settlementAccountMatch && !result.verified) {
     adminAlertService.sendVerificationFailedAlert(
       'N/A',
@@ -266,49 +298,41 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
     );
   }
 
-  // 6. Save and return
-const safe = safeVerificationPayload(result, resolvedProvider);
+  // 7. Save and return
+  const safe = safeVerificationPayload(result, resolvedProvider);
 
-const verification = await Verification.create({
-  transactionId: result.referenceNumber.toUpperCase(),
-  referenceNumber: result.referenceNumber.toUpperCase(),
+  const verification = await Verification.create({
+    transactionId: result.referenceNumber.toUpperCase(),
+    referenceNumber: result.referenceNumber.toUpperCase(),
+    requestId: safe.requestId,
+    bank: safe.bank,
+    provider: resolvedProvider,
+    amount: result.amount || 0,
+    currency: result.currency || 'ETB',
+    senderName: result.senderName || 'Unknown',
+    receiverName: result.receiverName || 'Unknown',
+    receiverAccount: result?.bankSpecific?.receiverAccount || undefined,
+    accountSuffix: result.accountSuffix || '',
+    paymentDate: result.timestamp || new Date(),
+    verified: true,
+    processingStatus: 'completed',
+    verificationStatus: 'success',
+    source: 'ocr',
+    rawText: rawText,
+    verificationSummary: safe.verificationSummary,
+    verificationResult: safe.verificationResult,
+    providerResponse: result?.raw || {},
+    verifiedBy: userId,
+    verifiedByType: actorType,
+    branchId: branchId
+  });
 
-  requestId: safe.requestId,
-  bank: safe.bank,
-
-  provider: resolvedProvider,
-
-  amount: result.amount || 0,
-  currency: result.currency || 'ETB',
-
-  senderName: result.senderName || 'Unknown',
-  receiverName: result.receiverName || 'Unknown',
-
-  receiverAccount: result?.bankSpecific?.receiverAccount || undefined,
-  accountSuffix: result.accountSuffix || '',
-
-  paymentDate: result.timestamp || new Date(),
-
-  verified: true,
-  processingStatus: 'completed',
-  verificationStatus: 'success',
-
-  source: 'manual',
-
-  verificationSummary: safe.verificationSummary,
-  verificationResult: safe.verificationResult,
-
-  providerResponse: result?.raw || {},
-
-  verifiedBy: userId,
-  branchId: branchId || req.user?.branchId,
-  businessId: req.user?.businessId
-});
+  await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT, { verificationId: verification._id, reference: extracted.transactionId, branchId });
 
   // Send Push Notification
-  if (verifier?.pushToken) {
+  if (verifierInfo.pushToken) {
     NotificationService.sendNotification(
-      verifier.pushToken,
+      verifierInfo.pushToken,
       'OCR Verification Success',
       `Transaction ${result.referenceNumber} verified for ${result.amount} ${result.currency}.`
     ).catch(err => logger.error('Push notification failed', err));
@@ -318,14 +342,21 @@ const verification = await Verification.create({
 });
 
 /**
- * @desc    Get verification history for current user's business
+ * @desc    Get verification history for current context (Owner sees all branches, Employee sees their branch)
  * @route   GET /api/v1/verifications/business-history
  */
 export const getBusinessVerifications = asyncHandler(async (req: Request, res: Response) => {
+  const { actorType, userId, branchId } = req.user || {};
   const query: any = {};
 
-  if (req.user?.role !== 'SUPER_ADMIN') {
-    query.businessId = req.user?.businessId;
+  if (actorType === 'owner') {
+    // Owner queries everything associated with their owned branches
+    const branches = await Branch.find({ ownerId: userId });
+    const branchIds = branches.map(b => b._id);
+    query.branchId = { $in: branchIds };
+  } else {
+    // Employees only query their branch context
+    query.branchId = branchId;
   }
 
   const verifications = await Verification.find(query).sort({ createdAt: -1 });
@@ -341,26 +372,22 @@ export const getBusinessVerifications = asyncHandler(async (req: Request, res: R
  * @route   GET /api/v1/verifications/my-history
  */
 export const getMyVerifications = asyncHandler(async (req: Request, res: Response) => {
-  // Parse parameters from query parameters securely with runtime fallbacks
   const page = parseInt(req.query.page as string, 10) || 1;
   const limit = parseInt(req.query.limit as string, 10) || 15;
   const provider = req.query.provider as string;
   const skipIndex = (page - 1) * limit;
 
-  // Build filtering configuration payload bound strictly to the authenticated user ID[cite: 18]
   const filterQuery: any = {
     verifiedBy: req.user?.userId
   };
 
-  // Dynamically append channel provider filtering constraints when applicable
   if (provider && provider !== 'all') {
     filterQuery.provider = provider.toLowerCase();
   }
 
-  // Execute isolated pagination calculations efficiently inside your database model layer[cite: 18]
   const totalCount = await Verification.countDocuments(filterQuery);
   const verifications = await Verification.find(filterQuery)
-    .sort({ createdAt: -1 }) // Keep chronological descent[cite: 18]
+    .sort({ createdAt: -1 })
     .skip(skipIndex)
     .limit(limit);
 
@@ -382,16 +409,23 @@ export const getMyVerifications = asyncHandler(async (req: Request, res: Respons
  */
 export const getVerificationById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const query: any = { _id: id };
+  const { actorType, userId, branchId } = req.user || {};
 
-  if (req.user?.role !== 'SUPER_ADMIN') {
-    query.businessId = req.user?.businessId;
-  }
-
-  const verification = await Verification.findOne(query);
-
+  const verification = await Verification.findById(id);
   if (!verification) {
     throw new NotFoundError('Verification record not found.');
+  }
+
+  // Permission validation
+  if (actorType === 'owner') {
+    const branch = await Branch.findById(verification.branchId);
+    if (!branch || branch.ownerId.toString() !== userId) {
+      throw new ForbiddenError('Access Denied: You do not own the branch associated with this verification.');
+    }
+  } else {
+    if (verification.branchId.toString() !== branchId) {
+      throw new ForbiddenError('Access Denied: You are not assigned to the branch associated with this verification.');
+    }
   }
 
   res.status(200).json({
@@ -406,6 +440,8 @@ async function logAudit(req: Request, action: string, metadata: any) {
     await AuditLog.create({
       action,
       actor: req.user?.userId,
+      actorType: req.user?.actorType || 'owner',
+      branchId: req.user?.branchId,
       ip: req.ip,
       deviceId: req.headers['x-device-id'],
       appVersion: req.headers['x-app-version'],

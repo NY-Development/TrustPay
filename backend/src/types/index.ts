@@ -1,13 +1,13 @@
 import { Types } from 'mongoose';
-import { Role, Provider, VerificationSource } from '../constants';
-export { Role, Provider, VerificationSource };
+import { Role, Provider, VerificationSource, OwnerStatus, CompanyType, MessageType, NotificationCategory } from '../constants';
+export { Role, Provider, VerificationSource, OwnerStatus, CompanyType, MessageType, NotificationCategory };
 
 // ─── JWT ──────────────────────────────────────
 export interface JwtAccessPayload {
   userId: string;
   email: string;
   role: Role;
-  businessId?: string;
+  actorType: 'owner' | 'employee';
   branchId?: string;
 }
 
@@ -21,8 +21,9 @@ export interface AuthenticatedUser {
   userId: string;
   email: string;
   role: Role;
-  businessId?: string;
+  actorType: 'owner' | 'employee';
   branchId?: string;
+  ownerId?: string; // Links employee to owner
 }
 
 declare global {

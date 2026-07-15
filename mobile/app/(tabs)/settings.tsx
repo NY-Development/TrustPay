@@ -17,7 +17,7 @@ export default function Settings() {
   const { currentLanguage, changeLanguage } = useLanguage();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { user, biometricsEnabled, setBiometricsEnabled } = useAuthStore();  
+  const { user, actorType, biometricsEnabled, setBiometricsEnabled } = useAuthStore();  
   const logoutMutation = useLogout();
   const [notifications, setNotifications] = React.useState(true);
   
@@ -38,6 +38,19 @@ export default function Settings() {
 
   // Structured Items dynamically fetching Translation tokens at compute layout step
   const settingsItems = [
+    ...(actorType === 'owner' ? [{
+      section: 'Business Operations',
+      items: [
+        { id: 'employees', title: 'Manage Employees', icon: 'people-outline', type: 'chevron', route: '/employees' },
+        { id: 'communication', title: 'Communications', icon: 'chatbubbles-outline', type: 'chevron', route: '/communications' },
+        { id: 'billing', title: 'Billing Options', icon: 'card-outline', type: 'chevron', route: '/subscription-detail' },
+      ]
+    }] : [{
+      section: 'Operations Mode',
+      items: [
+        { id: 'communication', title: 'Notifications & Messages', icon: 'chatbubbles-outline', type: 'chevron', route: '/communications' },
+      ]
+    }]),
     { section: t('settings.account'), items: [
       { id: 'accounts', title: t('settings.manageAccounts'), icon: 'wallet-outline', type: 'chevron', route: '/manage-accounts', NoOfAcc: user?.accounts?.length },
     ]},
@@ -100,79 +113,83 @@ export default function Settings() {
             </View>
 
             {/* Corporate Profile & Branch Quick Navigation Section */}
-            <View className="flex-row items-center justify-between border-t border-border mt-5 pt-4 gap-3">
-              <TouchableOpacity
-                onPress={() => router.push('/business' as any)}
-                className="flex-1 flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
-              >
-                <Ionicons name="business-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
-                <Text className="text-foreground font-semibold text-sm ml-2">{t('settings.business')}</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                onPress={() => router.push('/branch' as any)}
-                className="flex-1 flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
-              >
-                <Ionicons name="git-branch-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
-                <Text className="text-foreground font-semibold text-sm ml-2">{t('settings.branches')}</Text>
-              </TouchableOpacity>
-            </View>
+            {actorType === 'owner' && (
+              <View className="flex-row items-center justify-between border-t border-border mt-5 pt-4 gap-3">
+                <TouchableOpacity
+                  onPress={() => router.push('/company-profile')}
+                  className="flex-1 flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
+                >
+                  <Ionicons name="business-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                  <Text className="text-foreground font-semibold text-sm ml-2">Company</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => router.push('/branch-management')}
+                  className="flex-1 flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
+                >
+                  <Ionicons name="git-branch-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                  <Text className="text-foreground font-semibold text-sm ml-2">Branches</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Subscription Status Card */}
-          <View className="bg-card border border-border rounded-3xl p-6 mb-10">
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center">
-                <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center mr-3">
-                  <Ionicons name="card-outline" size={18} color={isDark ? '#3b82f6' : '#003ec7'} />
+          {actorType === 'owner' && (
+            <View className="bg-card border border-border rounded-3xl p-6 mb-10">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 rounded-lg bg-primary/10 items-center justify-center mr-3">
+                    <Ionicons name="card-outline" size={18} color={isDark ? '#3b82f6' : '#003ec7'} />
+                  </View>
+                  <Text className="text-foreground text-lg font-bold">{t('settings.subscriptionStatus')}</Text>
                 </View>
-                <Text className="text-foreground text-lg font-bold">{t('settings.subscriptionStatus')}</Text>
+                
+                {isLoading ? (
+                  <View className="bg-muted px-3 py-1 rounded-full">
+                    <Text className="text-muted-foreground text-xs font-bold uppercase tracking-wider">{t('settings.checking')}</Text>
+                  </View>
+                ) : isSubscriptionActive ? (
+                  <View className="bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                    <Text className="text-emerald-500 text-xs font-bold uppercase tracking-wider">{t('settings.active')}</Text>
+                  </View>
+                ) : (
+                  <View className="bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                    <Text className="text-amber-500 text-xs font-bold uppercase tracking-wider">{t('settings.inactive')}</Text>
+                  </View>
+                )}
               </View>
-              
-              {isLoading ? (
-                <View className="bg-muted px-3 py-1 rounded-full">
-                  <Text className="text-muted-foreground text-xs font-bold uppercase tracking-wider">{t('settings.checking')}</Text>
-                </View>
-              ) : isSubscriptionActive ? (
-                <View className="bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                  <Text className="text-emerald-500 text-xs font-bold uppercase tracking-wider">{t('settings.active')}</Text>
-                </View>
-              ) : (
-                <View className="bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                  <Text className="text-amber-500 text-xs font-bold uppercase tracking-wider">{t('settings.inactive')}</Text>
-                </View>
+
+              {!isLoading && (
+                isSubscriptionActive && subscriptionDetails ? (
+                  <View>
+                    <Text className="text-muted-foreground text-sm">
+                      <Trans
+                        i18nKey="settings.subActiveText"
+                        values={{ plan: subscriptionDetails.plan }}
+                        components={{ h1: <Text className="font-bold text-foreground" /> }}
+                      />
+                    </Text>
+                    <Text className="text-muted-foreground text-xs mt-2">
+                      {t('settings.subExpiryText')} <Text className="text-foreground font-medium">{formatDate(subscriptionDetails.endDate)}</Text>
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="flex-row items-center justify-between mt-1">
+                    <Text className="text-muted-foreground text-sm flex-1 mr-4">
+                      {t('settings.subUpgradeText')}
+                    </Text>
+                    <TouchableOpacity 
+                      onPress={() => setIsModalVisible(true)} 
+                      className="bg-primary px-4 py-2 rounded-xl active:opacity-80"
+                    >
+                      <Text className="text-primary-foreground font-bold text-sm">{t('settings.upgradeBtn')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )
               )}
             </View>
-
-            {!isLoading && (
-              isSubscriptionActive && subscriptionDetails ? (
-                <View>
-                  <Text className="text-muted-foreground text-sm">
-                    <Trans
-                      i18nKey="settings.subActiveText"
-                      values={{ plan: subscriptionDetails.plan }}
-                      components={{ h1: <Text className="font-bold text-foreground" /> }}
-                    />
-                  </Text>
-                  <Text className="text-muted-foreground text-xs mt-2">
-                    {t('settings.subExpiryText')} <Text className="text-foreground font-medium">{formatDate(subscriptionDetails.endDate)}</Text>
-                  </Text>
-                </View>
-              ) : (
-                <View className="flex-row items-center justify-between mt-1">
-                  <Text className="text-muted-foreground text-sm flex-1 mr-4">
-                    {t('settings.subUpgradeText')}
-                  </Text>
-                  <TouchableOpacity 
-                    onPress={() => setIsModalVisible(true)} 
-                    className="bg-primary px-4 py-2 rounded-xl active:opacity-80"
-                  >
-                    <Text className="text-primary-foreground font-bold text-sm">{t('settings.upgradeBtn')}</Text>
-                  </TouchableOpacity>
-                </View>
-              )
-            )}
-          </View>
+          )}
 
           {/* Render Sections */}
           {settingsItems.map((section, idx) => (

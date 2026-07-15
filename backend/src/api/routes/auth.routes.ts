@@ -15,7 +15,8 @@ const router = Router();
    AUTH CORE
 ========================================================= */
 router.post('/register', validate(registerSchema), authController.register);
-router.post('/login', validate(loginSchema), authController.login);
+router.post('/login/owner', validate(loginSchema), authController.loginOwner);
+router.post('/login/employee', validate(loginSchema), authController.loginEmployee);
 router.post('/refresh', validate(refreshTokenSchema), authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 

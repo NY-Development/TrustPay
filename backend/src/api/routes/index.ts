@@ -1,7 +1,8 @@
 import { Express } from 'express';
 import authRoutes from './auth.routes';
-import businessRoutes from './business.routes';
 import branchRoutes from './branch.routes';
+import employeeRoutes from './employee.routes';
+import communicationRoutes from './communication.routes';
 import verificationRoutes from './verification.routes';
 import subscriptionRoutes from './subscription.routes';
 import contactRoutes from './contact.routes';
@@ -11,8 +12,9 @@ export const setupRoutes = (app: Express) => {
   const API_PREFIX = '/api/v1';
 
   app.use(`${API_PREFIX}/auth`, authRoutes);
-  app.use(`${API_PREFIX}/businesses`, businessRoutes);
   app.use(`${API_PREFIX}/branches`, branchRoutes);
+  app.use(`${API_PREFIX}/employees`, employeeRoutes);
+  app.use(`${API_PREFIX}/communications`, communicationRoutes);
   app.use(`${API_PREFIX}/verifications`, verificationRoutes);
   app.use(`${API_PREFIX}/subscriptions`, subscriptionRoutes);
   app.use(`${API_PREFIX}/contact`, contactRoutes);

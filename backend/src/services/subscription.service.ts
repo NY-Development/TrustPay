@@ -1,11 +1,11 @@
 import { Subscription, ISubscription } from '../models/Subscription';
 import { User } from '../models/User';
+import { Branch } from '../models/Branch';
 import { VerificationService } from './verification/verification.service';
 import { Verification } from '../models/Verification';
 import { BadRequestError, NotFoundError } from '../utils/AppError';
 import { SUBSCRIPTION_PRICING, SUBSCRIPTION_RECEIVER_NAME } from '../constants';
 import { logger } from '../config/logger';
-import { VerifiedTransaction } from '../types';
 
 export interface SubscriptionResult {
   subscription: ISubscription;
@@ -16,9 +16,9 @@ export interface SubscriptionResult {
 
 export class SubscriptionService {
 
-  static async checkActiveSubscription(userId: string): Promise<ISubscription | null> {
+  static async checkActiveSubscription(branchId: string): Promise<ISubscription | null> {
     const activeSub = await Subscription.findOne({
-      userId,
+      branchId,
       status: { $in: ['active', 'partial_payment'] },
     });
 
@@ -27,7 +27,7 @@ export class SubscriptionService {
     if (activeSub.status === 'active' && new Date() > activeSub.endDate) {
       activeSub.status = 'expired';
       await activeSub.save();
-      logger.info(`Subscription ${activeSub._id} expired for user ${userId}`);
+      logger.info(`Subscription ${activeSub._id} expired for branch ${branchId}`);
       return null;
     }
 
@@ -35,22 +35,25 @@ export class SubscriptionService {
   }
 
   static async verifySubscriptionPayment(
-    userId: string,
+    branchId: string,
     reference: string,
     plan: 'monthly' | 'yearly'
   ): Promise<SubscriptionResult> {
 
-    const user = await User.findById(userId);
-    if (!user) throw new NotFoundError('User not found.');
+    const branch = await Branch.findById(branchId);
+    if (!branch) throw new NotFoundError('Branch not found.');
 
-    const currentActive = await this.checkActiveSubscription(userId);
+    const owner = await User.findById(branch.ownerId);
+    if (!owner) throw new NotFoundError('Branch owner not found.');
+
+    const currentActive = await this.checkActiveSubscription(branchId);
 
     if (currentActive?.status === 'active') {
-      throw new BadRequestError('You already have an active subscription.');
+      throw new BadRequestError('This branch already has an active subscription.');
     }
 
     if (currentActive?.status === 'partial_payment') {
-      throw new BadRequestError('Complete existing partial payment first.');
+      throw new BadRequestError('Complete existing partial payment for this branch first.');
     }
 
     const existingTx = await Subscription.findOne({
@@ -58,24 +61,24 @@ export class SubscriptionService {
     });
 
     if (existingTx) {
-      throw new BadRequestError('Transaction already used.');
+      throw new BadRequestError('Transaction already used for another subscription.');
     }
 
     const detectedProvider = VerificationService.detectProvider(reference);
 
-    const matchingAccount = user.accounts?.find(
+    const matchingAccount = branch.accounts?.find(
       acc => acc.accountProvider === detectedProvider
     );
 
     const settlementAccount =
-      matchingAccount?.accountNumber || user.accounts?.[0]?.accountNumber;
+      matchingAccount?.accountNumber || branch.accounts?.[0]?.accountNumber;
 
     if (!settlementAccount) {
-      throw new BadRequestError('No settlement account found.');
+      throw new BadRequestError('No settlement account setup on this branch.');
     }
 
     const resolvedProvider =
-      matchingAccount?.accountProvider || user.accounts?.[0]?.accountProvider || 'cbe';
+      matchingAccount?.accountProvider || branch.accounts?.[0]?.accountProvider || 'cbe';
 
     let derivedSuffix = '';
 
@@ -90,7 +93,7 @@ export class SubscriptionService {
     const pricing = SUBSCRIPTION_PRICING[plan];
     const expectedAmount = pricing.amount;
 
-    logger.info(`Verifying subscription ${reference} for ${plan}`);
+    logger.info(`Verifying subscription payment ${reference} for branch ${branch.branchCode} (${plan})`);
 
     const result = await VerificationService.verifyWithProvider({
       provider: resolvedProvider,
@@ -101,41 +104,37 @@ export class SubscriptionService {
     });
 
     if (!result.verified) {
-      throw new BadRequestError('Verification failed.');
+      throw new BadRequestError('Verification with payment provider failed.');
     }
 
-    // =========================
-    // FIXED: use senderName only
-    // =========================
+    // Payer name validation (should match owner's name)
     const payerNameNormalized = (result.senderName || '')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
 
-    const userNameNormalized = user.name
+    const ownerNameNormalized = owner.name
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
 
     const payerWords = payerNameNormalized.split(' ').filter((w: string) => w.length > 1);
-    const userWords = userNameNormalized.split(' ').filter((w: string) => w.length > 1);
+    const ownerWords = ownerNameNormalized.split(' ').filter((w: string) => w.length > 1);
 
     const commonWords = payerWords.filter((w: string) =>
-      userWords.includes(w)
+      ownerWords.includes(w)
     );
 
-    const matchesUser =
-      payerNameNormalized.includes(userNameNormalized) ||
-      userNameNormalized.includes(payerNameNormalized) ||
+    const matchesOwner =
+      payerNameNormalized.includes(ownerNameNormalized) ||
+      ownerNameNormalized.includes(payerNameNormalized) ||
       commonWords.length >= 2;
 
-    if (!matchesUser) {
-      throw new BadRequestError('Payer name mismatch.');
+    if (!matchesOwner) {
+      throw new BadRequestError('Payer name mismatch with account owner.');
     }
 
-    // =========================
-    // FIXED receiver validation
-    // =========================
+    // Receiver validation
     const receiverNameNormalized = (result.receiverName || '')
       .replace(/\s+/g, ' ')
       .trim()
@@ -144,12 +143,10 @@ export class SubscriptionService {
     const expectedReceiver = SUBSCRIPTION_RECEIVER_NAME.toUpperCase();
 
     if (!receiverNameNormalized.includes(expectedReceiver)) {
-      throw new BadRequestError('Receiver mismatch.');
+      throw new BadRequestError('Receiver account name mismatch.');
     }
 
-    // =========================
-    // FIXED: Mongo Verification model
-    // =========================
+    // Create Verification record
     const verification = await Verification.create({
       transactionId: result.referenceNumber.toUpperCase(),
       referenceNumber: result.referenceNumber?.toUpperCase() || reference.toUpperCase(),
@@ -161,9 +158,9 @@ export class SubscriptionService {
       receiverAccount: result.bankSpecific?.receiverAccount,
       paymentDate: result.timestamp,
       verified: true,
-      verifiedBy: user._id,
-      businessId: user.businessId,
-      branchId: user.branchId,
+      verifiedBy: owner._id,
+      verifiedByType: 'owner',
+      branchId: branch._id,
       source: 'manual',
       rawResponse: result,
       status: 'completed',
@@ -175,14 +172,13 @@ export class SubscriptionService {
       startDate.getTime() + pricing.durationDays * 86400000
     );
 
-    // =========================
-    // UNDERPAYMENT
-    // =========================
+    // Underpayment scenario
     if (paidAmount < expectedAmount) {
       const remainingAmount = expectedAmount - paidAmount;
 
       const subscription = await Subscription.create({
-        userId: user._id,
+        branchId: branch._id,
+        ownerId: owner._id,
         plan,
         amount: expectedAmount,
         paidAmount,
@@ -200,48 +196,19 @@ export class SubscriptionService {
 
       return {
         subscription,
-        message: `Partial payment. Remaining ${remainingAmount}`,
+        message: `Partial payment processed. Remaining due amount: Birr ${remainingAmount}`,
         fullyPaid: false,
         remainingAmount,
       };
     }
 
-    // =========================
-    // OVERPAYMENT
-    // =========================
-    if (paidAmount > expectedAmount) {
-      const overpaid = paidAmount - expectedAmount;
+    // Overpayment/Exact Scenarios
+    const isOverpayment = paidAmount > expectedAmount;
+    const overpaid = paidAmount - expectedAmount;
 
-      const subscription = await Subscription.create({
-        userId: user._id,
-        plan,
-        amount: expectedAmount,
-        paidAmount,
-        requiredAmount: expectedAmount,
-        fullyPaid: true,
-        currency: result.currency,
-        transactionId: result.referenceNumber.toUpperCase(),
-        payerName: result.senderName,
-        receiverName: result.receiverName,
-        startDate,
-        endDate,
-        status: 'active',
-        verificationId: verification._id,
-      });
-
-      return {
-        subscription,
-        message: `Overpaid by ${overpaid}`,
-        fullyPaid: true,
-        remainingAmount: 0,
-      };
-    }
-
-    // =========================
-    // EXACT PAYMENT
-    // =========================
     const subscription = await Subscription.create({
-      userId: user._id,
+      branchId: branch._id,
+      ownerId: owner._id,
       plan,
       amount: expectedAmount,
       paidAmount,
@@ -259,33 +226,36 @@ export class SubscriptionService {
 
     return {
       subscription,
-      message: 'Subscription activated',
+      message: isOverpayment ? `Subscription activated (overpaid by Birr ${overpaid})` : 'Subscription activated successfully',
       fullyPaid: true,
       remainingAmount: 0,
     };
   }
 
   static async topUpSubscriptionPayment(
-    userId: string,
+    branchId: string,
     reference: string
   ): Promise<SubscriptionResult> {
-    const user = await User.findById(userId);
-    if (!user) throw new NotFoundError('User not found.');
+    const branch = await Branch.findById(branchId);
+    if (!branch) throw new NotFoundError('Branch not found.');
+
+    const owner = await User.findById(branch.ownerId);
+    if (!owner) throw new NotFoundError('Branch owner not found.');
 
     const subscription = await Subscription.findOne({
-      userId,
+      branchId,
       status: 'partial_payment',
     });
 
     if (!subscription) {
-      throw new BadRequestError('No partial payment subscription found to top up.');
+      throw new BadRequestError('No partial payment subscription found for this branch.');
     }
 
     const referenceUpper = reference.toUpperCase();
 
-    // Prevent double top-up or reuse of main subscription Tx
+    // Prevent double verification
     if (subscription.transactionId === referenceUpper) {
-      throw new BadRequestError('This transaction reference was already used for the initial payment.');
+      throw new BadRequestError('This reference was already used for the initial partial payment.');
     }
 
     const existingVerification = await Verification.findOne({
@@ -296,19 +266,19 @@ export class SubscriptionService {
     }
 
     const detectedProvider = VerificationService.detectProvider(reference);
-    const matchingAccount = user.accounts?.find(
+    const matchingAccount = branch.accounts?.find(
       acc => acc.accountProvider === detectedProvider
     );
 
     const settlementAccount =
-      matchingAccount?.accountNumber || user.accounts?.[0]?.accountNumber;
+      matchingAccount?.accountNumber || branch.accounts?.[0]?.accountNumber;
 
     if (!settlementAccount) {
-      throw new BadRequestError('No settlement account found.');
+      throw new BadRequestError('No settlement account found on this branch.');
     }
 
     const resolvedProvider =
-      matchingAccount?.accountProvider || user.accounts?.[0]?.accountProvider || 'cbe';
+      matchingAccount?.accountProvider || branch.accounts?.[0]?.accountProvider || 'cbe';
 
     let derivedSuffix = '';
     if (resolvedProvider === 'cbe') {
@@ -337,24 +307,24 @@ export class SubscriptionService {
       .trim()
       .toLowerCase();
 
-    const userNameNormalized = user.name
+    const ownerNameNormalized = owner.name
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
 
     const payerWords = payerNameNormalized.split(' ').filter((w: string) => w.length > 1);
-    const userWords = userNameNormalized.split(' ').filter((w: string) => w.length > 1);
+    const ownerWords = ownerNameNormalized.split(' ').filter((w: string) => w.length > 1);
 
     const commonWords = payerWords.filter((w: string) =>
-      userWords.includes(w)
+      ownerWords.includes(w)
     );
 
-    const matchesUser =
-      payerNameNormalized.includes(userNameNormalized) ||
-      userNameNormalized.includes(payerNameNormalized) ||
+    const matchesOwner =
+      payerNameNormalized.includes(ownerNameNormalized) ||
+      ownerNameNormalized.includes(payerNameNormalized) ||
       commonWords.length >= 2;
 
-    if (!matchesUser) {
+    if (!matchesOwner) {
       throw new BadRequestError('Payer name mismatch.');
     }
 
@@ -381,15 +351,15 @@ export class SubscriptionService {
       receiverAccount: result.bankSpecific?.receiverAccount,
       paymentDate: result.timestamp,
       verified: true,
-      verifiedBy: user._id,
-      businessId: user.businessId,
-      branchId: user.branchId,
+      verifiedBy: owner._id,
+      verifiedByType: 'owner',
+      branchId: branch._id,
       source: 'manual',
       rawResponse: result,
       status: 'completed',
     });
 
-    // Update subscription
+    // Update subscription balances
     const newPaidAmount = subscription.paidAmount + result.amount;
     subscription.paidAmount = newPaidAmount;
     
@@ -408,7 +378,7 @@ export class SubscriptionService {
 
     return {
       subscription,
-      message: subscription.status === 'active' ? 'Subscription fully activated' : `Partial top-up successful. Remaining: ${subscription.requiredAmount - newPaidAmount}`,
+      message: subscription.status === 'active' ? 'Subscription fully activated' : `Partial top-up successful. Remaining due balance: Birr ${subscription.requiredAmount - newPaidAmount}`,
       fullyPaid: subscription.fullyPaid,
       remainingAmount: Math.max(0, subscription.requiredAmount - newPaidAmount),
     };

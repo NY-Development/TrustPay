@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVerifyManual } from '@/src/hooks/useVerification';
+import { useAccounts } from '@/src/hooks/useAuth';
 import { useAuthStore } from '@/src/store/authStore';
 import { StatusModal } from '@/src/components/StatusModal';
 import { useAI } from '@/src/ai/AIProvider';
@@ -19,11 +20,12 @@ export default function ManualVerificationPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { organizer, status: aiStatus } = useAI();
+  const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
 
   const registeredProviders = useMemo(() => {
-    if (!user?.accounts) return [];
-    return providers.filter(p => user.accounts.some(acc => acc.accountProvider === p.id));
-  }, [user]);
+    if (!accountsData?.data) return [];
+    return providers.filter(p => accountsData.data?.some(acc => acc.accountProvider === p.id));
+  }, [accountsData]);
 
   const [provider, setProvider] = useState<string>('cbe');
   const [reference, setReference] = useState('');

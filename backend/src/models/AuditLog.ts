@@ -2,7 +2,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAuditLog extends Document {
   action: string;
-  actor: mongoose.Types.ObjectId;
+  actor: mongoose.Types.ObjectId; // References User (Owner/Admin) or Employee
+  actorType: 'owner' | 'employee' | 'admin';
+  branchId?: mongoose.Types.ObjectId;
   ip: string;
   deviceId?: string;
   appVersion?: string;
@@ -20,9 +22,21 @@ const auditLogSchema = new Schema<IAuditLog>(
     },
     actor: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
       required: true,
       index: true,
+    },
+    actorType: {
+      type: String,
+      enum: ['owner', 'employee', 'admin'],
+      required: true,
+      default: 'owner',
+      index: true,
+    },
+    branchId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Branch',
+      index: true,
+      default: null,
     },
     ip: {
       type: String,

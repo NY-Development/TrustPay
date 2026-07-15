@@ -40,8 +40,8 @@ const sections: SectionItem[] = [
     bullets: [
       'Be at least 18 years of age or the age of legal majority in your jurisdiction.',
       'Be a registered business entity or authorized representative of one, operating within the Ethiopian financial ecosystem.',
-      'Provide accurate, truthful, and complete registration information, including your full legal name exactly as it appears on your settlement bank account(s).',
-      'Maintain the security and confidentiality of your account credentials. You are solely responsible for all activities that occur under your account.',
+      'Provide accurate, truthful, and complete registration information, including your full legal name and business details for owner verification.',
+      'Maintain the security and confidentiality of your account credentials. You are solely responsible for all activities that occur under your account, including those of your invited employees.',
     ],
   },
   {
@@ -53,8 +53,9 @@ const sections: SectionItem[] = [
     ],
     bullets: [
       'Transaction Reference Verification: Validating payment references against banking settlement records via the Verify.ET API gateway.',
-      'On-Device AI Receipt Processing: Using local machine learning models (ExecuTorch, ML Kit) to extract reference numbers, amounts, and merchant details from receipt screenshots — processed entirely on-device.',
-      'Subscription Access Control: Managing merchant subscription plans (monthly/yearly) with access gating for premium features.',
+      'On-Device AI Receipt Processing: Using local machine learning models (ExecuTorch, Google ML Kit) to extract reference numbers, amounts, and merchant details from receipt screenshots — processed entirely on-device.',
+      'Subscription Access Control: Managing branch-level subscriptions (each branch is billed individually) with access gating for premium features.',
+      'Multi-Branch & Employee Features: Support for configuring multiple physical or digital branches under a single owner account, inviting employees, allocating branch access permissions, and viewing isolated verification records.',
       'Business Analytics & Audit: AI-driven financial insights, spending trend analysis, and anomaly detection dashboards.',
       'Push Notifications: Critical account alerts, verification results, and subscription reminders.',
     ],
@@ -82,7 +83,8 @@ const sections: SectionItem[] = [
     ],
     bullets: [
       'Verification results compare receiver names against your registered identity. Mismatched names will cause verifications to fail.',
-      'You may register multiple settlement accounts across supported providers (CBE, BOA, Telebirr, Dashen, Awash, M-Pesa, CBE Birr).',
+      'Organization Roles: Owners are fully responsible for the operation and permissions of all sub-accounts (Cashier, Manager, etc.) created underneath their organization business profile.',
+      'Branch Account Allocation: Settlement accounts can be registered and tied to specific branches to allow correct verification checking.',
       'You are solely responsible for keeping your settlement account information up to date. Outdated or incorrect account numbers may lead to failed verifications.',
       'Account sharing is strictly prohibited. Each account must represent a single, identifiable merchant or business entity.',
       'We reserve the right to suspend or terminate accounts that exhibit patterns consistent with fraud, abuse, or violation of these Terms.',
@@ -97,6 +99,7 @@ const sections: SectionItem[] = [
     ],
     bullets: [
       'Plans: Monthly (100 ETB) and Yearly (1,000 ETB) plans are available. Pricing is subject to change with 30 days advance notice.',
+      'Branch Billing: TrustPay plans are charged per branch. Owners must maintain an active subscription for each configured branch to allow employees at that branch to run verifications.',
       'Billing Cycle: Subscriptions auto-renew at the end of each billing period unless cancelled before the renewal date.',
       'Refund Policy: Due to the transactional nature of verification API polling costs, active subscription charges are non-refundable. You may cancel at any time to prevent future charges.',
       'Grace Period: Upon subscription expiration, you will have a 3-day grace period during which read-only access to historical verifications is maintained before access gating activates.',
@@ -114,6 +117,8 @@ const sections: SectionItem[] = [
       'Submit fabricated, manipulated, or fraudulent transaction references for verification.',
       'Attempt to reverse-engineer, decompile, or extract proprietary algorithms, AI models, or source code from the application.',
       'Circumvent subscription access controls, rate limits, or security mechanisms.',
+      'Allow unauthorized employees or third parties to access branch dashboards or verification history.',
+      'Provide fake or fraudulent business details during organization onboarding.',
       'Use automated scripts, bots, or crawlers to access the Service without express written permission.',
       'Impersonate another person, business, or entity.',
       'Transmit malware, viruses, or any code designed to disrupt, damage, or gain unauthorized access to our systems.',

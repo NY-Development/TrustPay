@@ -1,30 +1,46 @@
-import {apiClient} from './client';
+import { apiClient } from './client';
 
-/**
- * Get all branches for a business.
- * If user is SUPER_ADMIN, they can optionally pass a businessId query parameter.
- * Maps to: GET /api/v1/branches
- */
-export const fetchBranchesApi = async (businessId?: string) => {
-  const config = businessId ? { params: { businessId } } : {};
-  const response = await apiClient.get('/api/v1/branches', config);
-  return response.data; // Yields { success: true, data: IBranch[] }
+export const listBranchesApi = async () => {
+  const response = await apiClient.get('/api/v1/branches');
+  return response.data;
 };
 
-/**
- * Create a new branch (Accessible by SUPER_ADMIN, ADMIN, or MANAGER)
- * Maps to: POST /api/v1/branches[cite: 12]
- */
+export const getBranchApi = async (id: string) => {
+  const response = await apiClient.get(`/api/v1/branches/${id}`);
+  return response.data;
+};
+
 export const createBranchApi = async (branchData: any) => {
   const response = await apiClient.post('/api/v1/branches', branchData);
-  return response.data; // Yields { success: true, data: IBranch }
+  return response.data;
 };
 
-/**
- * Update a specific branch layout configuration details
- * Maps to: PATCH /api/v1/branches/:id[cite: 12]
- */
-export const updateBranchApi = async (branchId: string, updateData: any) => {
-  const response = await apiClient.patch(`/api/v1/branches/${branchId}`, updateData);
-  return response.data; // Yields { success: true, data: IBranch }
+export const updateBranchApi = async (id: string, branchData: any) => {
+  const response = await apiClient.put(`/api/v1/branches/${id}`, branchData);
+  return response.data;
+};
+
+export const deactivateBranchApi = async (id: string) => {
+  const response = await apiClient.put(`/api/v1/branches/${id}/deactivate`);
+  return response.data;
+};
+
+export const addBranchAccountApi = async (branchId: string, accountData: any) => {
+  const response = await apiClient.post(`/api/v1/branches/${branchId}/accounts`, accountData);
+  return response.data;
+};
+
+export const updateBranchAccountApi = async (branchId: string, accountId: string, accountData: any) => {
+  const response = await apiClient.put(`/api/v1/branches/${branchId}/accounts/${accountId}`, accountData);
+  return response.data;
+};
+
+export const removeBranchAccountApi = async (branchId: string, accountId: string) => {
+  const response = await apiClient.delete(`/api/v1/branches/${branchId}/accounts/${accountId}`);
+  return response.data;
+};
+
+export const switchBranchApi = async (branchId: string) => {
+  const response = await apiClient.post('/api/v1/branches/switch', { branchId });
+  return response.data;
 };

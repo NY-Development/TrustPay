@@ -105,9 +105,9 @@ export interface IVerification extends Document {
 
   verifiedBy: mongoose.Types.ObjectId;
 
-  branchId?: mongoose.Types.ObjectId;
+  verifiedByType: 'owner' | 'employee';
 
-  businessId?: mongoose.Types.ObjectId;
+  branchId: mongoose.Types.ObjectId;
 
   createdAt: Date;
 
@@ -220,18 +220,20 @@ const verificationSchema = new Schema<IVerification>(
 
     verifiedBy:{
         type:Schema.Types.ObjectId,
-        ref:"User",
         required:true
+    },
+
+    verifiedByType:{
+        type:String,
+        enum:['owner', 'employee'],
+        required:true,
+        default:'owner'
     },
 
     branchId:{
         type:Schema.Types.ObjectId,
-        ref:"Branch"
-    },
-
-    businessId:{
-        type:Schema.Types.ObjectId,
-        ref:"Business"
+        ref:"Branch",
+        required:true
     }
 
 },
@@ -249,11 +251,6 @@ verificationSchema.index(
 
 verificationSchema.index({
     requestId:1
-});
-
-verificationSchema.index({
-    businessId:1,
-    createdAt:-1
 });
 
 verificationSchema.index({

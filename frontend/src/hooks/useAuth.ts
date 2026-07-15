@@ -17,15 +17,55 @@ export const useLogin = () => {
   });
 };
 
+export const useLoginOwner = () => {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useMutation({
+    mutationFn: authApi.loginOwner,
+    onSuccess: async (response: any) => {
+      if (response.data?.user) {
+        const { accessToken, refreshToken, user, selectedBranch, branches } = response.data;
+        await setUser(user, { accessToken, refreshToken }, {
+          actorType: 'owner',
+          selectedBranch,
+          branches: branches || [],
+        });
+      }
+    },
+  });
+};
+
+export const useLoginEmployee = () => {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useMutation({
+    mutationFn: authApi.loginEmployee,
+    onSuccess: async (response: any) => {
+      if (response.data?.user) {
+        const { accessToken, refreshToken, user, branch } = response.data;
+        await setUser(user, { accessToken, refreshToken }, {
+          actorType: 'employee',
+          selectedBranch: branch,
+          branches: branch ? [branch] : [],
+        });
+      }
+    },
+  });
+};
+
 export const useRegister = () => {
   const setUser = useAuthStore((state) => state.setUser);
   
   return useMutation({
     mutationFn: authApi.register,
-    onSuccess: async (response) => {
+    onSuccess: async (response: any) => {
       if (response.data?.user) {
-        const { accessToken, refreshToken } = response.data;
-        await setUser(response.data.user, { accessToken, refreshToken });
+        const { accessToken, refreshToken, user, selectedBranch, branches } = response.data;
+        await setUser(user, { accessToken, refreshToken }, {
+          actorType: 'owner',
+          selectedBranch,
+          branches: branches || [],
+        });
       }
     },
   });

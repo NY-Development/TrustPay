@@ -32,14 +32,17 @@ export const getMyNotifications = asyncHandler(
  */
 export const createAndDispatchNotification = async (params: {
   userId: string;
+  recipientType?: 'owner' | 'employee';
+  branchId?: string;
   title: string;
   body: string;
   type: 'info' | 'success' | 'warning' | 'error';
+  category?: string;
   auditLogId?: string;
   emailTemplate?: { subject: string; html: string };
 }) => {
   try {
-    const { userId, title, body, type, auditLogId, emailTemplate } = params;
+    const { userId, recipientType, branchId, title, body, type, category, auditLogId, emailTemplate } = params;
 
     // 1. Fetch user to target delivery systems
     const user = await User.findById(userId);
@@ -51,11 +54,13 @@ export const createAndDispatchNotification = async (params: {
     // 2. Persist notification to Database
     const notification = await Notification.create({
       userId,
-      businessId: user.businessId,
+      recipientType: recipientType || 'owner',
+      branchId: branchId || null,
       auditLogId,
       title,
       body,
       type,
+      category: category || 'SYSTEM',
     });
 
     // 3. Dispatch Mobile Push via Expo-Server-SDK using fixed method name

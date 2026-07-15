@@ -16,6 +16,7 @@ declare global {
         daysLeft?: number;
         subscription?: any;
       };
+      selectedBranch?: any;
     }
   }
 }

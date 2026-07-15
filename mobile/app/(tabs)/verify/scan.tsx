@@ -39,6 +39,7 @@ export default function UnifiedScanner() {
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
 
   const cameraRef = useRef<any>(null);
+  const isProcessingRef = useRef<boolean>(false);
   const { organizer, status: aiStatus } = useAI();
   const { downloadingModelId, progress: dlProgress, startGlobalDownload } = useGlobalDownload();
 
@@ -178,14 +179,15 @@ export default function UnifiedScanner() {
   };
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
-    if (processing || imageUri || !data) return;
+    if (isProcessingRef.current || processing || imageUri || !data) return;
+    isProcessingRef.current = true;
     setProcessing(true);
 
-    let reference = data;
-    if (data.trim().startsWith('{')) {
+    let reference = data.trim();
+    if (reference.startsWith('{')) {
       try {
-        const parsed = JSON.parse(data);
-        reference = parsed.reference || parsed.txnId || parsed.transactionId || data;
+        const parsed = JSON.parse(reference);
+        reference = parsed.reference || parsed.txnId || parsed.transactionId || reference;
       } catch {}
     }
 
@@ -225,6 +227,14 @@ export default function UnifiedScanner() {
             isVerificationFailure: false,
           });
         },
+        onSettled: () => {
+          // 4. Ensure references unlock only AFTER modal closes or resets
+          // Clean up in a single callback block to avoid missed unlocks
+          setProcessing(false);
+          // NOTE: If you want to keep it locked while the modal is open,
+          // move 'isProcessingRef.current = false' to your Modal's onClose() handler!
+          isProcessingRef.current = false; 
+        }
       }
     );
   };
@@ -345,7 +355,7 @@ export default function UnifiedScanner() {
             ref={cameraRef}
             style={StyleSheet.absoluteFillObject}
             onBarcodeScanned={processing ? undefined : handleBarCodeScanned}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            barcodeScannerSettings={processing ? undefined : { barcodeTypes: ['qr'] }}
           />
 
           {/* Full Screen Immersive HUD Overlay */}

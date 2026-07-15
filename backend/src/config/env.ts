@@ -46,6 +46,11 @@ const envSchema = z.object({
 
   // Super Admin
   SUPER_ADMIN_EMAIL: z.string().email().optional(),
+
+  // Cloudinary Credentials
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

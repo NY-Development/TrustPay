@@ -34,10 +34,12 @@ export default function Login() {
   const isDark = colorScheme === 'dark';
 
   const loginMutation = useLogin();
-  const { setUser, setBiometricsEnabled } = useAuthStore();
+  const { setUser, setBiometricsEnabled, loadBranches } = useAuthStore();
 
+  const [loginMode, setLoginMode] = React.useState<'owner' | 'employee'>('owner');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [branchCode, setBranchCode] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [biometricsPrompted, setBiometricsPrompted] = React.useState(false);
   const [hasSavedTokens, setHasSavedTokens] = React.useState(false);
@@ -161,15 +163,30 @@ export default function Login() {
       return;
     }
 
+    const payload: any = { email, password, actorType: loginMode };
+    if (loginMode === 'owner' && branchCode.trim()) {
+      payload.branchCode = branchCode.trim();
+    }
+
     loginMutation.mutate(
-      { email, password },
+      payload,
       {
         onSuccess: async (data: any) => {
           try {
             await setUser(data.data.user, {
               accessToken: data.data.accessToken,
               refreshToken: data.data.refreshToken,
+            }, {
+              actorType: loginMode,
+              branches: data.data.branches || [],
+              selectedBranch: data.data.selectedBranch || null,
             });
+
+            // Owners can access all their branches; load the full list so the
+            // branch selector is populated (login only returns the active branch).
+            if (loginMode === 'owner') {
+              await loadBranches();
+            }
 
             clearAuthCache();
             await hydrateAuthCache();
@@ -235,13 +252,33 @@ export default function Login() {
               justifyContent: 'center',
             }}
           >
-            <View className="mb-12">
+            <View className="mb-8">
               <Text className="text-foreground text-3xl font-bold mb-4">
                 {t('login.welcomeTitle')}
               </Text>
               <Text className="text-muted-foreground text-lg">
                 {t('login.welcomeSubtitle')}
               </Text>
+            </View>
+
+            {/* Owner / Employee Toggle */}
+            <View className="flex-row bg-muted rounded-2xl p-1 mb-6 border border-border">
+              <TouchableOpacity
+                onPress={() => setLoginMode('owner')}
+                className={`flex-1 h-12 rounded-xl items-center justify-center ${loginMode === 'owner' ? 'bg-primary' : ''}`}
+              >
+                <Text className={`font-bold ${loginMode === 'owner' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                  Owner Login
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setLoginMode('employee')}
+                className={`flex-1 h-12 rounded-xl items-center justify-center ${loginMode === 'employee' ? 'bg-primary' : ''}`}
+              >
+                <Text className={`font-bold ${loginMode === 'employee' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                  Employee Login
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View className="space-y-2 mb-6">
@@ -258,6 +295,24 @@ export default function Login() {
                 />
               </View>
             </View>
+
+            {/* Branch Code (Owner only) */}
+            {loginMode === 'owner' && (
+              <View className="space-y-2 mb-4">
+                <Text className="text-muted-foreground font-medium">Branch Code (Optional)</Text>
+                <View className="flex-row items-center bg-muted border border-border rounded-2xl px-4 h-14">
+                  <Ionicons name="business-outline" size={20} color={isDark ? '#94a3b8' : '#64748b'} />
+                  <TextInput
+                    className="flex-1 text-foreground ml-3 h-full"
+                    placeholder="e.g. HTL-001"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                    value={branchCode}
+                    onChangeText={setBranchCode}
+                    autoCapitalize="characters"
+                  />
+                </View>
+              </View>
+            )}
 
             <View className="space-y-2 mb-2">
               <Text className="text-muted-foreground font-medium">{t('login.passLabel')}</Text>

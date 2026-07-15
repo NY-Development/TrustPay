@@ -5,13 +5,18 @@ import { useEffect } from 'react';
 
 export const useLogin = () => {
   const setUser = useAuthStore((state) => state.setUser);
-  
+
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: async (response) => {
+    onSuccess: async (response: any) => {
       if (response.data?.user) {
-        const { accessToken, refreshToken } = response.data;
-        await setUser(response.data.user, { accessToken, refreshToken });
+        const { accessToken, refreshToken, user, selectedBranch, branches } = response.data;
+        const actorType = user?.actorType || (user?.role === 'OWNER' ? 'owner' : 'employee');
+        await setUser(user, { accessToken, refreshToken }, {
+          actorType,
+          selectedBranch,
+          branches: branches || [],
+        });
       }
     },
   });
@@ -19,13 +24,17 @@ export const useLogin = () => {
 
 export const useRegister = () => {
   const setUser = useAuthStore((state) => state.setUser);
-  
+
   return useMutation({
     mutationFn: authApi.register,
-    onSuccess: async (response) => {
+    onSuccess: async (response: any) => {
       if (response.data?.user) {
-        const { accessToken, refreshToken } = response.data;
-        await setUser(response.data.user, { accessToken, refreshToken });
+        const { accessToken, refreshToken, user, selectedBranch, branches } = response.data;
+        await setUser(user, { accessToken, refreshToken }, {
+          actorType: 'owner',
+          selectedBranch,
+          branches: branches || [],
+        });
       }
     },
   });

@@ -6,7 +6,6 @@ import { User } from '../models/User';
 import { Subscription } from '../models/Subscription';
 import { Verification } from '../models/Verification';
 import { Branch } from '../models/Branch';
-import { Business } from '../models/Business';
 import { Otp } from '../models/Otp';
 import { AuditLog } from '../models/AuditLog';
 
@@ -60,12 +59,6 @@ async function cleanup() {
     name: dummyEmailRegex,
   });
   console.log(`🗑️ Branches deleted: ${deletedBranches.deletedCount}`);
-
-  // 7. BUSINESSES (ONLY if dummy)
-  const deletedBusinesses = await Business.deleteMany({
-    name: dummyEmailRegex,
-  });
-  console.log(`🗑️ Businesses deleted: ${deletedBusinesses.deletedCount}`);
 
   console.log('✅ Cleanup complete');
 }

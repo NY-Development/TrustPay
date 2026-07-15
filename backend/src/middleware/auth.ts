@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { User } from '../models/User';
+import { Employee } from '../models/Employee';
 import { UnauthorizedError, ForbiddenError } from '../utils/AppError';
 import { asyncHandler } from '../utils/asyncHandler';
 import { Role, ACCESS_TOKEN_COOKIE } from '../constants';
@@ -30,20 +31,39 @@ export const authenticate = asyncHandler(async (req: Request, res: Response, nex
     // 3. Verify token
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtAccessPayload;
 
-    // 4. Check if user still exists and is active
-    const user = await User.findById(decoded.userId).select('+isActive');
-    if (!user || !user.isActive) {
-      throw new UnauthorizedError('User no longer exists or is inactive.');
-    }
+    // 4. Check if user/employee still exists and is active
+    const actorType = decoded.actorType || 'owner';
 
-    // 5. Attach user info to request
-    req.user = {
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      businessId: user.businessId?.toString(),
-      branchId: user.branchId?.toString(),
-    };
+    if (actorType === 'owner') {
+      const user = await User.findById(decoded.userId).select('+isActive');
+      if (!user || !user.isActive) {
+        throw new UnauthorizedError('User no longer exists or is inactive.');
+      }
+
+      // 5. Attach user info to request
+      req.user = {
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        actorType: 'owner',
+        branchId: decoded.branchId, // Selected branch context from token
+      };
+    } else {
+      const employee = await Employee.findById(decoded.userId).select('+isActive');
+      if (!employee || !employee.isActive) {
+        throw new UnauthorizedError('Employee no longer exists or is inactive.');
+      }
+
+      // 5. Attach employee info to request
+      req.user = {
+        userId: employee._id.toString(),
+        email: employee.email,
+        role: employee.role,
+        actorType: 'employee',
+        branchId: employee.branchId.toString(),
+        ownerId: employee.ownerId.toString(),
+      };
+    }
 
     next();
   } catch (error) {

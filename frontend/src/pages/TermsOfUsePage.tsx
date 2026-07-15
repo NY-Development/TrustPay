@@ -34,7 +34,7 @@ const sections: Section[] = [
     bullets: [
       'Be at least 18 years of age or the legal majority in your jurisdiction.',
       'Be a registered business entity or authorized representative operating within the Ethiopian financial ecosystem.',
-      'Provide accurate, truthful registration information, including your full legal name, business TIN, and a valid trading license document for owner verification.',
+      'Provide accurate, truthful registration information, including your full legal name and business details for owner verification.',
       'Maintain the security of your account credentials. You are solely responsible for all activities under your account, including those of your invited employees.',
     ],
   },
@@ -102,7 +102,7 @@ const sections: Section[] = [
       'Reverse-engineer, decompile, or extract proprietary algorithms or AI models.',
       'Circumvent subscription controls, rate limits, or security mechanisms.',
       'Allow unauthorized employees or third parties to access branch dashboards or verification history.',
-      'Provide fake, expired, or third-party trading licenses or business details during organization onboarding.',
+      'Provide fake or fraudulent business details during organization onboarding.',
       'Use bots, scrapers, or automated tools without written permission.',
       'Impersonate another person, business, or entity.',
       'Transmit malware or code designed to disrupt our systems.',

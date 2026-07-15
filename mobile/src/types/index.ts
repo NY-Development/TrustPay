@@ -1,4 +1,4 @@
-// Add this interface
+// ─── Trial ────────────────────────────────────────────
 export interface TrialInfo {
   hasUsedTrial: boolean;
   trialStartDate?: string;
@@ -6,21 +6,38 @@ export interface TrialInfo {
   daysLeft?: number;
 }
 
+// ─── Company Info ─────────────────────────────────────
+export interface CompanyInfo {
+  companyName: string;
+  companyType: string;
+  website?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  address?: string;
+}
+
+// ─── Account ──────────────────────────────────────────
+export interface Account {
+  _id?: string;
+  accountNumber: string;
+  accountProvider: string;
+}
+
+// ─── User (Owner) ─────────────────────────────────────
 export interface User {
   _id: string;
   name: string;
   email: string;
   role: string;
-  accounts: {
-    accountNumber: string;
-    accountProvider: string;
-  }[];
+  actorType?: 'owner' | 'employee';
+  ownerStatus?: 'PENDING_LICENSE' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
+  accounts: Account[];
   pushToken?: string;
-  
-  // Updated to include trial object
-  trial?: TrialInfo;
+  companyInfo?: CompanyInfo;
+  branches?: string[];
 
-  // Keep existing fields for backward compatibility if needed
+  trial?: TrialInfo;
   trialStartDate?: string;
   trialEndDate?: string;
   hasUsedTrial?: boolean;
@@ -29,29 +46,90 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// ─── Branch ───────────────────────────────────────────
+export interface Branch {
+  _id: string;
+  ownerId: string;
+  branchName: string;
+  branchCode: string;
+  branchNumber: number;
+  country?: string;
+  region?: string;
+  city?: string;
+  subCity?: string;
+  wereda?: string;
+  kebele?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  phone?: string;
+  email?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  accounts: Account[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── Employee ──────────────────────────────────────────
+export interface Employee {
+  _id: string;
+  ownerId: string;
+  branchId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  pushToken?: string;
+  lastLogin?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── Message ──────────────────────────────────────────
+export interface Message {
+  _id: string;
+  senderId: string;
+  branchId?: string;
+  recipientIds: string[];
+  recipientType: 'INDIVIDUAL' | 'BRANCH' | 'COMPANY';
+  messageType: 'ANNOUNCEMENT' | 'TASK' | 'REMINDER' | 'ALERT';
+  title: string;
+  body: string;
+  readBy: string[];
+  createdAt: string;
+}
+
+// ─── Verification ─────────────────────────────────────
 export interface Verification {
   id: string;
   _id?: string;
   transactionId: string;
-  referenceNumber : string;
+  referenceNumber: string;
   provider: string;
   amount: number;
   currency: string;
-  payerName: string;
+  senderName?: string;
+  payerName?: string;
   receiverName?: string;
   receiverAccount?: string;
   paymentDate: string;
   verified: boolean;
   verifiedBy: string;
+  verifiedByType?: 'owner' | 'employee';
+  branchId?: string;
   status: 'pending' | 'completed' | 'failed';
-  source: 'screenshot' | 'manual' | 'qr';
+  source: 'screenshot' | 'manual' | 'qr' | 'ocr';
   rawResponse?: Record<string, any>;
   createdAt: string;
 }
 
+// ─── Subscription ─────────────────────────────────────
 export interface Subscription {
-  id: string;
-  userId: string;
+  _id: string;
+  branchId: string;
+  ownerId: string;
   plan: 'monthly' | 'yearly';
   amount: number;
   currency: string;
@@ -87,15 +165,13 @@ export interface SubscriptionVerifyResponse {
   remainingAmount?: number;
 }
 
+// ─── API Response ─────────────────────────────────────
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
-
-// optional auth payload support
   accessToken?: string;
   refreshToken?: string;
-
   fullyPaid?: boolean;
   remainingAmount?: number;
 }

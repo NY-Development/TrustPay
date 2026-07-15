@@ -30,11 +30,10 @@ const sections: Section[] = [
     title: '1. Encryption & Data Protection',
     paragraphs: ['Multiple layers of encryption protect your data at all times:'],
     bullets: [
-      'TLS 1.3 Transport Encryption: All communications between your device, our API servers, and third-party services (Verify.ET, Cloudinary, Brevo SMTP) are encrypted using TLS 1.3. Older protocols (TLS 1.0, 1.1, SSL) are disabled.',
+      'TLS 1.3 Transport Encryption: All communications between your device, our API servers, and third-party services (Verify.ET, Brevo SMTP) are encrypted using TLS 1.3. Older protocols (TLS 1.0, 1.1, SSL) are disabled.',
       'Password Hashing: Passwords are hashed using bcrypt (cost factor 12) with per-user random salts.',
       'Database Encryption: MongoDB Atlas provides AES-256 encryption at rest for all stored data, including verification records, branch configurations, employee profiles, and subscription details.',
       'JWT Token Security: Tokens are signed with RS256. Expire after 7 days; invalidated on logout.',
-      'Trading License Storage: Uploaded business licenses are transferred securely using HTTPS encryption and stored with restricted secure URLs.',
       'OTP Security: Cryptographically secure random generation; auto-expire after 10 minutes via TTL indexes.',
     ],
   },
@@ -86,7 +85,6 @@ const sections: Section[] = [
     paragraphs: ['All third-party services are carefully vetted:'],
     bullets: [
       'Verify.ET API: Only reference number and provider identifier shared — no account details or names.',
-      'Cloudinary: We utilize Cloudinary under HTTPS for secure storage and delivery of business trading license verification images.',
       'Brevo SMTP: Transactional emails and employee invitations only. No marketing data exchanged.',
       'Expo Push: Tokens stored securely; push notifications contain only text and never contain sensitive financial data.',
       'No Analytics Trackers: No Google Analytics, Facebook Pixel, or third-party behavior tracking.',

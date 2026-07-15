@@ -6,17 +6,40 @@ export const authApi = {
     const response = await apiClient.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/login', data);
     return response.data;
   },
-  register: async (data: any) => {
-    const response = await apiClient.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/register', data);
+  loginOwner: async (data: any) => {
+    const response = await apiClient.post<ApiResponse<{ user: User; selectedBranch: any; accessToken: string; refreshToken: string }>>('/auth/login/owner', data);
     return response.data;
+  },
+  loginEmployee: async (data: any) => {
+    const response = await apiClient.post<ApiResponse<{ user: any; branch: any; accessToken: string; refreshToken: string }>>('/auth/login/employee', data);
+    return response.data;
+  },
+  register: async (data: any) => {
+    const response = await apiClient.post<ApiResponse<any>>('/auth/register', data);
+    const d: any = response.data?.data ?? {};
+    // Backend returns the created owner under `owner` plus the initial `branch`.
+    return {
+      ...response.data,
+      data: {
+        ...d,
+        user: d.owner,
+        selectedBranch: d.branch ?? null,
+        branches: d.branch ? [d.branch] : [],
+      },
+    };
   },
   logout: async () => {
     const response = await apiClient.post<ApiResponse>('/auth/logout');
     return response.data;
   },
   getMe: async () => {
-    const response = await apiClient.get<ApiResponse<{ user: User }>>('/auth/me');
-    return response.data;
+    const response = await apiClient.get<ApiResponse<any>>('/auth/me');
+    const d: any = response.data?.data ?? {};
+    // Owner responses carry `user`, employee responses carry `employee`.
+    return {
+      ...response.data,
+      data: { ...d, user: d.user ?? d.employee ?? null },
+    };
   },
   updatePushToken: async (pushToken: string) => {
     const response = await apiClient.patch<ApiResponse>('/auth/push-token', { pushToken });
