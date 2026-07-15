@@ -41,11 +41,11 @@ export const useLoginEmployee = () => {
   return useMutation({
     mutationFn: authApi.loginEmployee,
     onSuccess: async (response: any) => {
-      if (response.data?.user) {
-        const { accessToken, refreshToken, user, branch } = response.data;
-        await setUser(user, { accessToken, refreshToken }, {
+      if (response.data?.employee) {
+        const { accessToken, refreshToken, employee, branch } = response.data;
+        await setUser(employee, { accessToken, refreshToken }, {
           actorType: 'employee',
-          selectedBranch: branch,
+          selectedBranch: branch ?? null,
           branches: branch ? [branch] : [],
         });
       }

@@ -342,28 +342,59 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * @desc    Get verification history for current context (Owner sees all branches, Employee sees their branch)
+ * @desc    Get verification history for a branch context.
+ *          Owner: all owned branches, or a single owned branch via ?branchId=.
+ *          Employee: always restricted to their assigned branch.
  * @route   GET /api/v1/verifications/business-history
  */
 export const getBusinessVerifications = asyncHandler(async (req: Request, res: Response) => {
   const { actorType, userId, branchId } = req.user || {};
+
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 15;
+  const provider = req.query.provider as string;
+  const requestedBranchId = req.query.branchId as string | undefined;
+  const skipIndex = (page - 1) * limit;
+
   const query: any = {};
 
   if (actorType === 'owner') {
-    // Owner queries everything associated with their owned branches
-    const branches = await Branch.find({ ownerId: userId });
-    const branchIds = branches.map(b => b._id);
-    query.branchId = { $in: branchIds };
+    // Owner queries their owned branches (all, or a single selected branch)
+    const branches = await Branch.find({ ownerId: userId }).select('_id');
+    const ownedIds = branches.map(b => b._id.toString());
+
+    if (requestedBranchId && requestedBranchId !== 'all') {
+      if (!ownedIds.includes(requestedBranchId)) {
+        throw new ForbiddenError('Access Denied: You do not own this branch.');
+      }
+      query.branchId = requestedBranchId;
+    } else {
+      query.branchId = { $in: branches.map(b => b._id) };
+    }
   } else {
-    // Employees only query their branch context
+    // Employees are always restricted to their branch context (param ignored)
     query.branchId = branchId;
   }
 
-  const verifications = await Verification.find(query).sort({ createdAt: -1 });
+  if (provider && provider !== 'all') {
+    query.provider = provider.toLowerCase();
+  }
+
+  const totalCount = await Verification.countDocuments(query);
+  const verifications = await Verification.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skipIndex)
+    .limit(limit);
 
   res.status(200).json({
     success: true,
-    data: verifications
+    data: verifications,
+    pagination: {
+      totalItems: totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      hasMore: skipIndex + verifications.length < totalCount
+    }
   });
 });
 

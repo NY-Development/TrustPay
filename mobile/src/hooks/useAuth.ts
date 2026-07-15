@@ -3,19 +3,37 @@ import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../store/authStore';
 import { useEffect } from 'react';
 
-export const useLogin = () => {
+export const useLoginOwner = () => {
   const setUser = useAuthStore((state) => state.setUser);
 
   return useMutation({
-    mutationFn: authApi.login,
+    mutationFn: authApi.loginOwner,
     onSuccess: async (response: any) => {
-      if (response.data?.user) {
-        const { accessToken, refreshToken, user, selectedBranch, branches } = response.data;
-        const actorType = user?.actorType || (user?.role === 'OWNER' ? 'owner' : 'employee');
-        await setUser(user, { accessToken, refreshToken }, {
-          actorType,
+      if (response.data?.owner) {
+        const { accessToken, refreshToken, owner, selectedBranch, branches } = response.data;
+        await setUser(owner, { accessToken, refreshToken }, {
+          actorType: 'owner',
           selectedBranch,
+          // Owner's full branch list is loaded post-login via loadBranches().
           branches: branches || [],
+        });
+      }
+    },
+  });
+};
+
+export const useLoginEmployee = () => {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useMutation({
+    mutationFn: authApi.loginEmployee,
+    onSuccess: async (response: any) => {
+      if (response.data?.employee) {
+        const { accessToken, refreshToken, employee, branch } = response.data;
+        await setUser(employee, { accessToken, refreshToken }, {
+          actorType: 'employee',
+          selectedBranch: branch ?? null,
+          branches: branch ? [branch] : [],
         });
       }
     },

@@ -2,38 +2,15 @@ import { apiClient } from './client';
 import { ApiResponse, User } from '../types';
 
 export const authApi = {
-  // Dual-actor login. `data.actorType` decides which backend endpoint is used.
-  // Response is normalized so callers always read `data.user`, `data.selectedBranch`
-  // and `data.branches` regardless of actor type.
-  login: async (data: any) => {
-    const { actorType, ...credentials } = data ?? {};
-
-    if (actorType === 'employee') {
-      const response = await apiClient.post<ApiResponse<any>>('/auth/login/employee', credentials);
-      const d: any = response.data?.data ?? {};
-      return {
-        ...response.data,
-        data: {
-          ...d,
-          user: d.employee,
-          selectedBranch: d.branch ?? null,
-          branches: d.branch ? [d.branch] : [],
-        },
-      };
-    }
-
-    const response = await apiClient.post<ApiResponse<any>>('/auth/login/owner', credentials);
-    const d: any = response.data?.data ?? {};
-    return {
-      ...response.data,
-      data: {
-        ...d,
-        user: d.owner,
-        selectedBranch: d.selectedBranch ?? null,
-        // Owner's full branch list is loaded post-login via loadBranches()
-        branches: [],
-      },
-    };
+  // Owner login → backend returns { owner, selectedBranch, accessToken, refreshToken }.
+  loginOwner: async (data: { email: string; password: string; branchCode?: string }) => {
+    const response = await apiClient.post<ApiResponse<any>>('/auth/login/owner', data);
+    return response.data;
+  },
+  // Employee login → backend returns { employee, branch, accessToken, refreshToken }.
+  loginEmployee: async (data: { email: string; password: string }) => {
+    const response = await apiClient.post<ApiResponse<any>>('/auth/login/employee', data);
+    return response.data;
   },
   register: async (data: any) => {
     const response = await apiClient.post<ApiResponse<any>>('/auth/register', data);

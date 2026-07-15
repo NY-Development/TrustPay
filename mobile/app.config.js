@@ -36,7 +36,10 @@ export default {
     },
     web: {
       "bundler": "metro",
-      "output": "static",
+      // "single" (client-only SPA) avoids build-time static rendering, which
+      // evaluates native-only modules (react-native-executorch) in Node and
+      // crashes `eas update` web export. This app targets iOS/Android natively.
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     plugins: [

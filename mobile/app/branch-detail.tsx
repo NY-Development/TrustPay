@@ -14,14 +14,18 @@ export default function BranchDetailScreen() {
   const isDark = colorScheme === 'dark';
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
   
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, readOnly: readOnlyParam } = useLocalSearchParams<{ id: string; readOnly?: string }>();
   const isEditMode = !!id;
+
+  const actorType = useAuthStore((s) => s.actorType);
+  // Employees (or explicit readOnly nav) get a view-only branch screen.
+  const readOnly = actorType === 'employee' || readOnlyParam === '1';
 
   const { data: branchData, isLoading: isLoadingDetail, refetch } = useBranchDetail(id || '');
   const { addBranch, modifyBranch, deactivateBranch } = useBranches();
   const loadBranches = useAuthStore((s) => s.loadBranches);
 
-  const branch = branchData?.data;
+  const branch = branchData?.data as any;
 
   // Form Fields
   const [branchName, setBranchName] = React.useState('');
@@ -176,7 +180,7 @@ export default function BranchDetailScreen() {
             <Ionicons name="arrow-back" size={24} color={isDark ? '#f8fafc' : '#0f172a'} />
           </TouchableOpacity>
           <Text className="text-foreground text-xl font-bold">
-            {isEditMode ? 'Branch Profile' : 'New Branch'}
+            {!isEditMode ? 'New Branch' : readOnly ? 'Branch Details' : 'Branch Profile'}
           </Text>
           <View style={{ width: 24 }} />
         </View>
@@ -192,6 +196,7 @@ export default function BranchDetailScreen() {
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 value={branchName}
                 onChangeText={setBranchName}
+                editable={!readOnly}
               />
             </View>
           </View>
@@ -200,6 +205,43 @@ export default function BranchDetailScreen() {
             <View className="mb-4 bg-muted/40 p-4 rounded-2xl border border-dashed border-border/80 flex-row justify-between items-center">
               <Text className="text-muted-foreground font-medium">Auto-generated Code</Text>
               <Text className="text-primary font-mono font-bold text-lg">{branch.branchCode}</Text>
+            </View>
+          )}
+
+          {/* Branch overview: subscription, employees & accounts snapshot */}
+          {isEditMode && branch && (
+            <View className="mb-4 bg-card border border-border rounded-3xl p-5">
+              <Text className="text-foreground font-bold text-base mb-4">Branch Overview</Text>
+
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-muted-foreground text-sm">Status</Text>
+                <View className={`px-3 py-1 rounded-full ${branch.status === 'ACTIVE' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+                  <Text className={`text-xs font-bold ${branch.status === 'ACTIVE' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    {branch.status}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-muted-foreground text-sm">Employees</Text>
+                <Text className="text-foreground font-semibold text-sm">{branch.employeeCount ?? 0}</Text>
+              </View>
+
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-muted-foreground text-sm">Settlement Accounts</Text>
+                <Text className="text-foreground font-semibold text-sm">{accounts.length}</Text>
+              </View>
+
+              <View className="flex-row justify-between items-center">
+                <Text className="text-muted-foreground text-sm">Subscription</Text>
+                <Text className={`font-semibold text-sm ${branch.subscription?.status === 'active' ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                  {branch.subscription?.status === 'active'
+                    ? 'Active'
+                    : (branch.trialDaysLeft ?? 0) > 0
+                      ? `Trial • ${branch.trialDaysLeft}d left`
+                      : 'Inactive'}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -214,6 +256,7 @@ export default function BranchDetailScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
+                editable={!readOnly}
               />
             </View>
           </View>
@@ -229,6 +272,7 @@ export default function BranchDetailScreen() {
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
+                editable={!readOnly}
               />
             </View>
           </View>
@@ -244,6 +288,7 @@ export default function BranchDetailScreen() {
                 onChangeText={setRegion}
                 placeholder="e.g. Addis Ababa"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                editable={!readOnly}
                 className="bg-muted border border-border rounded-xl h-12 px-3 text-foreground text-sm"
               />
             </View>
@@ -254,6 +299,7 @@ export default function BranchDetailScreen() {
                 onChangeText={setCity}
                 placeholder="e.g. Addis Ababa"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                editable={!readOnly}
                 className="bg-muted border border-border rounded-xl h-12 px-3 text-foreground text-sm"
               />
             </View>
@@ -267,6 +313,7 @@ export default function BranchDetailScreen() {
                 onChangeText={setSubCity}
                 placeholder="e.g. Bole"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                editable={!readOnly}
                 className="bg-muted border border-border rounded-xl h-12 px-3 text-foreground text-sm"
               />
             </View>
@@ -277,6 +324,7 @@ export default function BranchDetailScreen() {
                 onChangeText={setWereda}
                 placeholder="e.g. 03"
                 placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                editable={!readOnly}
                 className="bg-muted border border-border rounded-xl h-12 px-3 text-foreground text-sm"
               />
             </View>
@@ -289,6 +337,7 @@ export default function BranchDetailScreen() {
               onChangeText={setAddress}
               placeholder="e.g. Near Edna Mall"
               placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              editable={!readOnly}
               className="bg-muted border border-border rounded-2xl h-14 px-4 text-foreground text-sm"
             />
           </View>
@@ -305,61 +354,67 @@ export default function BranchDetailScreen() {
                 <Text className="text-foreground font-bold uppercase text-sm mb-1">{acc.accountProvider}</Text>
                 <Text className="text-muted-foreground text-base">{acc.accountNumber}</Text>
               </View>
-              <TouchableOpacity onPress={() => handleRemoveAccount(acc)} className="p-2 bg-destructive/10 rounded-xl">
-                <Ionicons name="trash-outline" size={18} color="#ef4444" />
-              </TouchableOpacity>
+              {!readOnly && (
+                <TouchableOpacity onPress={() => handleRemoveAccount(acc)} className="p-2 bg-destructive/10 rounded-xl">
+                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                </TouchableOpacity>
+              )}
             </View>
           ))}
 
           {/* Add account inline */}
-          <View className="bg-card border border-border rounded-3xl p-4 my-2">
-            <TextInput
-              placeholder="Account Number"
-              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-              value={newAccNum}
-              onChangeText={setNewAccNum}
-              keyboardType="number-pad"
-              className="bg-muted border border-border rounded-xl h-12 px-3 text-foreground text-sm mb-3"
-            />
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="space-x-2 mb-3 py-1">
-              {['cbe', 'telebirr', 'mpesa', 'boa', 'dashen', 'awash'].map((prov) => (
-                <TouchableOpacity
-                  key={prov}
-                  onPress={() => setNewAccProvider(prov)}
-                  className={`px-4 h-10 rounded-full items-center justify-center border mr-2 ${newAccProvider === prov ? 'bg-primary border-primary' : 'bg-muted border-border'}`}
-                >
-                  <Text className={`text-xs font-bold ${newAccProvider === prov ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
-                    {prov.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+          {!readOnly && (
+            <View className="bg-card border border-border rounded-3xl p-4 my-2">
+              <TextInput
+                placeholder="Account Number"
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                value={newAccNum}
+                onChangeText={setNewAccNum}
+                keyboardType="number-pad"
+                className="bg-muted border border-border rounded-xl h-12 px-3 text-foreground text-sm mb-3"
+              />
 
-            <TouchableOpacity
-              onPress={handleAddAccount}
-              className="bg-primary/20 border border-primary/20 h-10 rounded-xl items-center justify-center"
-            >
-              <Text className="text-primary font-semibold text-sm">Add Template Account</Text>
-            </TouchableOpacity>
-          </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="space-x-2 mb-3 py-1">
+                {['cbe', 'telebirr', 'mpesa', 'boa', 'dashen', 'awash'].map((prov) => (
+                  <TouchableOpacity
+                    key={prov}
+                    onPress={() => setNewAccProvider(prov)}
+                    className={`px-4 h-10 rounded-full items-center justify-center border mr-2 ${newAccProvider === prov ? 'bg-primary border-primary' : 'bg-muted border-border'}`}
+                  >
+                    <Text className={`text-xs font-bold ${newAccProvider === prov ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                      {prov.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                onPress={handleAddAccount}
+                className="bg-primary/20 border border-primary/20 h-10 rounded-xl items-center justify-center"
+              >
+                <Text className="text-primary font-semibold text-sm">Add Template Account</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Action Buttons */}
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving}
-            className="bg-primary h-16 rounded-2xl items-center justify-center shadow-lg active:opacity-90 mt-8 mb-4"
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-primary-foreground font-bold text-lg">
-                {isEditMode ? 'Save Changes' : 'Create Branch'}
-              </Text>
-            )}
-          </TouchableOpacity>
+          {!readOnly && (
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={saving}
+              className="bg-primary h-16 rounded-2xl items-center justify-center shadow-lg active:opacity-90 mt-8 mb-4"
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-primary-foreground font-bold text-lg">
+                  {isEditMode ? 'Save Changes' : 'Create Branch'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
 
-          {isEditMode && branch?.status !== 'SUSPENDED' && (
+          {!readOnly && isEditMode && branch?.status !== 'SUSPENDED' && (
             <TouchableOpacity
               onPress={handleDeactivate}
               className="bg-destructive/10 border border-destructive/25 h-16 rounded-2xl items-center justify-center mb-12"
@@ -367,6 +422,8 @@ export default function BranchDetailScreen() {
               <Text className="text-destructive font-bold text-lg">Deactivate Branch</Text>
             </TouchableOpacity>
           )}
+
+          {readOnly && <View className="h-16" />}
         </View>
       </ScrollView>
 

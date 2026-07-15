@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useVerificationHistory } from '@/src/hooks/useVerification';
+import { useBranchVerificationHistory } from '@/src/hooks/useVerification';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useAuthStore } from '@/src/store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,12 +25,14 @@ export default function Dashboard() {
   const { currentLanguage } = useLanguage();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { user } = useAuthStore();
+  const { user, selectedBranch, viewAllBranches } = useAuthStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
 
   useNotifications();
-  const { data: infiniteHistory, isLoading, refetch } = useVerificationHistory();
+  // Scope dashboard data: aggregated across all branches, or a single branch.
+  const scopeBranchId = viewAllBranches ? undefined : selectedBranch?._id;
+  const { data: infiniteHistory, isLoading, refetch } = useBranchVerificationHistory({ branchId: scopeBranchId });
   const router = useRouter();
 
   useEffect(() => {
@@ -64,9 +66,9 @@ export default function Dashboard() {
     return d.getTime() === today.getTime();
   };
 
-  const historyItems = infiniteHistory?.pages?.flatMap(page => page.data) || [];
+  const historyItems = infiniteHistory?.pages?.flatMap((page: any) => page.data) || [];
   const todayCount = historyItems.filter((v: any) => isSameDay(v.paymentDate)).length || 0;
-  const totalCount = historyItems.length || 0;
+  const totalCount = infiniteHistory?.pages?.[0]?.pagination?.totalItems ?? historyItems.length;
 
   const getLocaleTag = () => {
     if (currentLanguage === 'am') return 'am-ET';

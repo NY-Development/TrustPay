@@ -55,6 +55,29 @@ export const useVerificationHistory = (filters: { provider?: string; limit?: num
   });
 };
 
+/**
+ * Branch-scoped verification history for the dashboard.
+ * Owner: pass branchId for one branch, or omit (all) for every owned branch.
+ * Employee: backend always restricts to their assigned branch.
+ */
+export const useBranchVerificationHistory = (
+  opts: { branchId?: string; provider?: string; limit?: number; enabled?: boolean } = {}
+) => {
+  const { branchId, provider, limit = 15, enabled = true } = opts;
+
+  return useInfiniteQuery({
+    queryKey: ['branch-verifications', { branchId: branchId ?? 'all', provider, limit }],
+    queryFn: ({ pageParam = 1 }) =>
+      verificationApi.getBranchHistory({ page: pageParam, limit, provider, branchId }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const current = lastPage.pagination.currentPage;
+      return lastPage.pagination.hasMore ? current + 1 : undefined;
+    },
+    enabled,
+  });
+};
+
 export const useVerificationDetail = (id: string) => {
   return useQuery({
     queryKey: ['verification', id], //[cite: 11]

@@ -24,6 +24,8 @@ interface AuthState {
   actorType: 'owner' | 'employee' | null;
   branches: Branch[];
   selectedBranch: Branch | null;
+  // Owner dashboard scope: when true, aggregate data across all branches.
+  viewAllBranches: boolean;
 
   setUser: (
     user: User | null,
@@ -48,6 +50,7 @@ interface AuthState {
   // Branch switching
   switchBranch: (branchId: string) => Promise<void>;
   loadBranches: () => Promise<void>;
+  setViewAllBranches: (value: boolean) => void;
 }
 
 /* =========================================================
@@ -65,6 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   actorType: null,
   branches: [],
   selectedBranch: null,
+  viewAllBranches: false,
 
   /* =========================================================
      SET USER (LOGIN)
@@ -101,6 +105,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         actorType: null,
         branches: [],
         selectedBranch: null,
+        viewAllBranches: false,
       });
     } finally {
       set({ isLoggingOut: false });
@@ -225,12 +230,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (accessToken) await TokenService.saveAccessToken(accessToken);
         if (refreshToken) await TokenService.saveRefreshToken(refreshToken);
         await Storage.setItem('selectedBranchId', branchId);
-        set({ selectedBranch });
+        // Selecting a specific branch exits the aggregated "all branches" view.
+        set({ selectedBranch, viewAllBranches: false });
       }
     } catch (error) {
       console.error('Branch switch failed:', error);
       throw error;
     }
+  },
+
+  setViewAllBranches: (value: boolean) => {
+    set({ viewAllBranches: value });
   },
 
   loadBranches: async () => {

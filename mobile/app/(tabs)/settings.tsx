@@ -17,7 +17,7 @@ export default function Settings() {
   const { currentLanguage, changeLanguage } = useLanguage();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { user, actorType, biometricsEnabled, setBiometricsEnabled } = useAuthStore();  
+  const { user, actorType, biometricsEnabled, setBiometricsEnabled, selectedBranch } = useAuthStore();
   const logoutMutation = useLogout();
   const [notifications, setNotifications] = React.useState(true);
   
@@ -129,6 +129,19 @@ export default function Settings() {
                 >
                   <Ionicons name="git-branch-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
                   <Text className="text-foreground font-semibold text-sm ml-2">Branches</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Employee: read-only view of their assigned branch */}
+            {actorType === 'employee' && selectedBranch && (
+              <View className="border-t border-border mt-5 pt-4">
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/branch-detail', params: { id: selectedBranch._id, readOnly: '1' } } as any)}
+                  className="flex-row items-center justify-center bg-muted h-11 rounded-xl border border-border active:opacity-80"
+                >
+                  <Ionicons name="git-branch-outline" size={16} color={isDark ? '#3b82f6' : '#003ec7'} />
+                  <Text className="text-foreground font-semibold text-sm ml-2">My Branch</Text>
                 </TouchableOpacity>
               </View>
             )}

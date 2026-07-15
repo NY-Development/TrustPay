@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useLogin } from '@/src/hooks/useAuth';
+import { useLoginOwner, useLoginEmployee } from '@/src/hooks/useAuth';
 import { StatusModal, StatusModalProps } from '@/src/components/StatusModal';
 import { BiometricService } from '@/src/utils/biometrics';
 import { TokenService } from '@/src/services/token.service';
@@ -33,8 +33,10 @@ export default function Login() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const loginMutation = useLogin();
-  const { setUser, setBiometricsEnabled, loadBranches } = useAuthStore();
+  const ownerLogin = useLoginOwner();
+  const employeeLogin = useLoginEmployee();
+  const isLoggingIn = ownerLogin.isPending || employeeLogin.isPending;
+  const { setBiometricsEnabled, loadBranches } = useAuthStore();
 
   const [loginMode, setLoginMode] = React.useState<'owner' | 'employee'>('owner');
   const [email, setEmail] = React.useState('');
@@ -150,6 +152,63 @@ export default function Login() {
     };
   }, [biometricsPrompted]);
 
+  // Post-login side effects. The actor-specific hook has already stored the
+  // user + tokens + branch context via setUser by the time this runs.
+  const completeLogin = async () => {
+    try {
+      // Owners can access all their branches; load the full list so the
+      // branch selector is populated (login only returns the active branch).
+      if (loginMode === 'owner') {
+        await loadBranches();
+      }
+
+      clearAuthCache();
+      await hydrateAuthCache();
+
+      const { isAvailable, isEnrolled } = await BiometricService.checkAvailability();
+
+      setModalState({
+        visible: true,
+        type: 'success',
+        title: t('login.successTitle'),
+        message: isAvailable && isEnrolled
+          ? t('login.successBioMsg')
+          : t('login.successMsg'),
+        onClose: async () => {
+          setModalState((prev) => ({ ...prev, visible: false }));
+
+          if (isAvailable && isEnrolled) {
+            try {
+              const confirmed = await BiometricService.authenticate(t('login.bioEnablePrompt'));
+              if (confirmed) {
+                await setBiometricsEnabled(true);
+                await Storage.setItem(STORAGE_KEYS.BIOMETRICS_ENABLED, true);
+              }
+            } catch (bioErr) {
+              console.warn('First-time biometric setup skipped or failed:', bioErr);
+            }
+          }
+
+          router.replace('/(tabs)');
+        },
+      });
+    } catch (err) {
+      console.error('Login cache loading mutation error:', err);
+      router.replace('/(tabs)');
+    }
+  };
+
+  const handleLoginError = (error: any) => {
+    setModalState({
+      visible: true,
+      type: 'error',
+      title: t('login.failedTitle'),
+      message: error.response?.data?.message || t('login.failedDesc'),
+      onClose: () =>
+        setModalState((prev) => ({ ...prev, visible: false })),
+    });
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       setModalState({
@@ -163,79 +222,17 @@ export default function Login() {
       return;
     }
 
-    const payload: any = { email, password, actorType: loginMode };
-    if (loginMode === 'owner' && branchCode.trim()) {
-      payload.branchCode = branchCode.trim();
+    if (loginMode === 'owner') {
+      ownerLogin.mutate(
+        { email, password, branchCode: branchCode.trim() || undefined },
+        { onSuccess: completeLogin, onError: handleLoginError }
+      );
+    } else {
+      employeeLogin.mutate(
+        { email, password },
+        { onSuccess: completeLogin, onError: handleLoginError }
+      );
     }
-
-    loginMutation.mutate(
-      payload,
-      {
-        onSuccess: async (data: any) => {
-          try {
-            await setUser(data.data.user, {
-              accessToken: data.data.accessToken,
-              refreshToken: data.data.refreshToken,
-            }, {
-              actorType: loginMode,
-              branches: data.data.branches || [],
-              selectedBranch: data.data.selectedBranch || null,
-            });
-
-            // Owners can access all their branches; load the full list so the
-            // branch selector is populated (login only returns the active branch).
-            if (loginMode === 'owner') {
-              await loadBranches();
-            }
-
-            clearAuthCache();
-            await hydrateAuthCache();
-
-            const { isAvailable, isEnrolled } = await BiometricService.checkAvailability();
-
-            setModalState({
-              visible: true,
-              type: 'success',
-              title: t('login.successTitle'),
-              message: isAvailable && isEnrolled 
-                ? t('login.successBioMsg') 
-                : t('login.successMsg'),
-              onClose: async () => {
-                setModalState((prev) => ({ ...prev, visible: false }));
-
-                if (isAvailable && isEnrolled) {
-                  try {
-                    const confirmed = await BiometricService.authenticate(t('login.bioEnablePrompt'));
-                    if (confirmed) {
-                      await setBiometricsEnabled(true);
-                      await Storage.setItem(STORAGE_KEYS.BIOMETRICS_ENABLED, true);
-                    }
-                  } catch (bioErr) {
-                    console.warn('First-time biometric setup skipped or failed:', bioErr);
-                  }
-                }
-                
-                router.replace('/(tabs)');
-              },
-            });
-          } catch (err) {
-            console.error('Login cache loading mutation error:', err);
-            router.replace('/(tabs)');
-          }
-        },
-        onError: (error: any) => {
-          setModalState({
-            visible: true,
-            type: 'error',
-            title: t('login.failedTitle'),
-            message:
-              error.response?.data?.message || t('login.failedDesc'),
-            onClose: () =>
-              setModalState((prev) => ({ ...prev, visible: false })),
-          });
-        },
-      }
-    );
   };
 
   return (
@@ -345,10 +342,10 @@ export default function Login() {
 
             <TouchableOpacity
               onPress={handleLogin}
-              disabled={loginMutation.isPending}
+              disabled={isLoggingIn}
               className="w-full h-16 bg-primary rounded-2xl items-center justify-center shadow-md active:opacity-90"
             >
-              {loginMutation.isPending ? (
+              {isLoggingIn ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
                 <Text className="text-primary-foreground font-bold text-lg">{t('login.btnSignIn')}</Text>
@@ -371,7 +368,7 @@ export default function Login() {
                   
                   <TouchableOpacity
                     onPress={handleBiometricLoginPress}
-                    disabled={loginMutation.isPending}
+                    disabled={isLoggingIn}
                     activeOpacity={0.7}
                     style={{ backgroundColor: themePrimary + '15' }}
                     className="w-16 h-16 rounded-full items-center justify-center border border-primary/20 shadow-sm active:scale-95"
