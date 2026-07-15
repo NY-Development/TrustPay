@@ -29,11 +29,13 @@ export default function LoginPage() {
         { email, password, branchCode: branchCode || undefined },
         {
           onSuccess: (response: any) => {
-            const role = response?.data?.user?.role;
+            const role = response?.data?.owner?.role;
             if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
               navigate('/admin/dashboard');
-            } else {
+            } else if (role === 'OWNER') {
               navigate('/dashboard');
+            } else {
+              navigate('/login');
             }
           },
           onError: (err: any) => {

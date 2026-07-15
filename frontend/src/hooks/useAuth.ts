@@ -23,9 +23,9 @@ export const useLoginOwner = () => {
   return useMutation({
     mutationFn: authApi.loginOwner,
     onSuccess: async (response: any) => {
-      if (response.data?.user) {
-        const { accessToken, refreshToken, user, selectedBranch, branches } = response.data;
-        await setUser(user, { accessToken, refreshToken }, {
+      if (response.data?.owner) {
+        const { accessToken, refreshToken, owner, selectedBranch, branches } = response.data;
+        await setUser(owner, { accessToken, refreshToken }, {
           actorType: 'owner',
           selectedBranch,
           branches: branches || [],
