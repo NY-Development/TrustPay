@@ -69,12 +69,12 @@
   "collectionTitle": "1. Information We Collect",
   "collectionContent": "We collect information you provide directly (such as when setting up your business, branches, and employees), information generated through your usage, and limited information from third-party payment verification partners.",
   "collectionBullets": [
-    "Account & Business Registration Data: Business owner full name, email, credentials, TIN, and trading license documents uploaded for approval.",
+    "Account & Business Registration Data: Business owner full name, email, credentials, and company info.",
     "Branch and Employee Data: Branch names, physical locations, branch codes, contact phone numbers, and cashier/manager name, email, role, and branch assignments managed by the Owner.",
     "Settlement Account Data: Bank account numbers and wallet identifiers registered for verification matching. These can be managed at a branch level.",
     "Transaction Verification Data: Payment reference numbers, transaction IDs, verification request timestamps, provider responses including payer name, receiver name, and amounts.",
     "Device & Usage Data: Device model, operating system version, app version, IP address, session duration, feature usage patterns, and crash reports.",
-    "OCR & AI Processing Data: Receipt images are processed locally on your device. Trading license uploads are stored securely on remote servers.",
+    "OCR & AI Processing Data: Receipt images are processed locally on your device.",
     "Communication Data: Support messages, feedback submissions, and system-level communications between owners and branch employees.",
     "Subscription & Billing Data: Subscription plan type, payment status, renewal dates, and transaction records for branch-level subscription purchases."
   ],
@@ -86,11 +86,11 @@
     "On-Device AI Processing: Running local inference models (Llama 3.2 via ExecuTorch) to extract reference numbers, categorize transactions, and generate business insights.",
     "Fraud Prevention & Audit: Detecting duplicate submissions, anomaly detection, and keeping immutable logs of actions taken by users and employees.",
     "Service Improvement: Analyzing aggregated, anonymized usage patterns to improve user experience.",
-    "Legal Compliance: Fulfilling obligations under Ethiopian financial regulations, anti-money laundering (AML) directives, and verifying trading licenses.",
+    "Legal Compliance: Fulfilling obligations under Ethiopian financial regulations and anti-money laundering (AML) directives.",
     "Communication: Sending critical account alerts, security notifications, subscription reminders, and support responses."
   ],
   "sharingTitle": "3. Information Sharing & Disclosure",
-  "sharingContent": "TrustPay does not sell, rent, or trade your personal data. We share data only with Verify.ET API for payment checks, Cloudinary for secure license image storage, Brevo SMTP for transactional emails, and when required by law.",
+  "sharingContent": "TrustPay does not sell, rent, or trade your personal data. We share data only with Verify.ET API for payment checks, Brevo SMTP for transactional emails, and when required by law.",
   "retentionTitle": "4. Data Retention",
   "retentionContent": "We retain personal info only as long as necessary: organization data for account lifetime plus 30 days, employee/branch deletion deactivates accounts immediately, verification/audit logs for 3 years, and OTPs for 10 minutes.",
   "securityTitle": "5. Data Security",
@@ -119,7 +119,7 @@
 "termsOfUse": {
   "screenTitle": "Terms of Use",
   "eligibilityTitle": "2. Eligibility",
-  "eligibilityContent": "To use the Service, you must be a registered business entity with valid TIN and trading licenses, and take full responsibility for all activities under your account, including invited employee activities.",
+  "eligibilityContent": "To use the Service, you must be a registered business entity and take full responsibility for all activities under your account, including invited employee activities.",
   "billingTitle": "6. Subscriptions & Billing",
   "billingContent": "TrustPay plans are charged per registered branch. Business owners must maintain an active subscription for each configured branch to allow verification access for employee sub-accounts at that branch."
 },
