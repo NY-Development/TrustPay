@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { User, Branch } from '../types';
 import { Storage, STORAGE_KEYS } from '../utils/storage';
 import { authApi } from '../api/auth.api';
-import { listBranchesApi } from '../api/branch.api';
+import { listBranchesApi, switchBranchApi } from '../api/branch.api';
 
 import { TokenService } from '@/src/services/token.service';
 import { clearAuthCache } from '@/src/providers/query-auth-sync';
@@ -19,6 +19,8 @@ interface AuthState {
   actorType: 'owner' | 'employee' | null;
   selectedBranch: Branch | null;
   branches: Branch[];
+  // Owner dashboard scope: when true, aggregate data across all branches.
+  viewAllBranches: boolean;
 
   isAuthenticated: boolean;
   isHydrated: boolean;
@@ -40,8 +42,9 @@ interface AuthState {
     }
   ) => Promise<void>;
 
-  switchBranch: (branch: Branch) => void;
+  switchBranch: (branchId: string) => Promise<void>;
   loadBranches: () => Promise<void>;
+  setViewAllBranches: (value: boolean) => void;
 
   logout: (reason?: 'manual' | 'expired') => Promise<void>;
 
@@ -61,6 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   actorType: null,
   selectedBranch: null,
   branches: [],
+  viewAllBranches: false,
   isAuthenticated: false,
   isHydrated: false,
   hasSeenOnboarding: false,
@@ -89,9 +93,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /* =========================================================
      SWITCH BRANCH
+     Regenerates tokens with the new branch context (owner only) —
+     downstream branch-scoped reads (subscription status, etc.) key
+     off the JWT's branchId claim, so a plain state set isn't enough.
   ========================================================= */
-  switchBranch: (branch) => {
-    set({ selectedBranch: branch });
+  switchBranch: async (branchId) => {
+    const response = await switchBranchApi(branchId);
+    const { selectedBranch, accessToken, refreshToken } = response?.data || {};
+
+    if (accessToken) await TokenService.saveAccessToken(accessToken);
+    if (refreshToken) await TokenService.saveRefreshToken(refreshToken);
+
+    set({ selectedBranch, viewAllBranches: false });
+  },
+
+  setViewAllBranches: (value) => {
+    set({ viewAllBranches: value });
   },
 
   /* =========================================================
@@ -129,6 +146,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         actorType: null,
         selectedBranch: null,
         branches: [],
+        viewAllBranches: false,
       });
     } finally {
       set({ isLoggingOut: false });

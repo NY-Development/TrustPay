@@ -289,6 +289,7 @@ export default function Login() {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  autoComplete='email'
                 />
               </View>
             </View>
@@ -326,6 +327,7 @@ export default function Login() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  autoComplete='password'
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={isDark ? '#94a3b8' : '#64748b'} />

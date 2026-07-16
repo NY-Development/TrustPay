@@ -9,6 +9,11 @@ export interface GetHistoryParams {
   provider?: string;
 }
 
+// Branch-scoped history params (owner: all owned branches, or one via branchId)
+export interface GetBranchHistoryParams extends GetHistoryParams {
+  branchId?: string;
+}
+
 // Custom return interface matching our new backend pagination response
 export interface PaginatedVerificationResponse {
   success: boolean;
@@ -43,6 +48,19 @@ export const verificationApi = {
         limit,
         // Only pass the parameter to the backend if a specific provider is chosen
         ...(provider && provider !== 'all' ? { provider } : {})
+      }
+    });
+    return response.data;
+  },
+  // Branch-scoped history. Owner: pass branchId for a single branch, or omit for
+  // all owned branches. Employee: backend forces their assigned branch.
+  getBranchHistory: async ({ page = 1, limit = 15, provider, branchId }: GetBranchHistoryParams = {}) => {
+    const response = await apiClient.get<PaginatedVerificationResponse>('/verifications/business-history', {
+      params: {
+        page,
+        limit,
+        ...(provider && provider !== 'all' ? { provider } : {}),
+        ...(branchId ? { branchId } : {}),
       }
     });
     return response.data;

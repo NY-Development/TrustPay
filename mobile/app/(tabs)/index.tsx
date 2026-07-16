@@ -93,24 +93,40 @@ export default function Dashboard() {
             <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={isDark ? '#3b82f6' : '#003ec7'} />
           }
         >
-          <View className="flex-row justify-between items-center pt-6 pb-8">
-            <View className="flex-row items-center flex-1 pr-4">
-              <View className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 items-center justify-center relative">
-                <Text className="text-primary font-bold text-lg uppercase">{user?.name ? user.name.slice(0, 2) : 'ME'}</Text>
-                <View className="absolute bottom-[-1] right-[-1] w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-background" />
-              </View>
-              <View className="ml-4 flex-1">
-                <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">{user?.role || t('common.verified')}</Text>
-                <Text className="text-foreground text-2xl font-black tracking-tight truncate">{user?.name || 'TrustPay Hub'}</Text>
-              </View>
+        <View className="pt-6 pb-8">
+          {/* Top Row: User Profile Information */}
+          <View className="flex-row items-center mb-4">
+            <View className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 items-center justify-center relative">
+              <Text className="text-primary font-bold text-lg uppercase">
+                {user?.name ? user.name.slice(0, 2) : 'ME'}
+              </Text>
+              <View className="absolute bottom-[-1] right-[-1] w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-background" />
             </View>
-            <View className="flex-row items-center">
-              <BranchSelector />
-              <TouchableOpacity onPress={() => router.push('/notification-center')} className="w-12 h-12 bg-card rounded-2xl items-center justify-center border border-border shadow-sm active:opacity-80 ml-2">
-                <Ionicons name="notifications" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />
-              </TouchableOpacity>
+            <View className="ml-4 flex-1">
+              <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
+                {user?.role || t('common.verified')}
+              </Text>
+              <Text className="text-foreground text-2xl font-black tracking-tight truncate">
+                {user?.name || 'TrustPay Hub'}
+              </Text>
             </View>
           </View>
+
+          {/* Bottom Row: Actions */}
+          <View className="flex-row items-center justify-between">
+            {/* Added a container or spacer if needed, or left-align */}
+            <View className="flex-1">
+              <BranchSelector />
+            </View>
+            
+            <TouchableOpacity 
+              onPress={() => router.push('/notification-center')} 
+              className="w-12 h-12 bg-card rounded-2xl items-center justify-center border border-border shadow-sm active:opacity-80 ml-4"
+            >
+              <Ionicons name="notifications" size={22} color={isDark ? '#3b82f6' : '#003ec7'} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
           <View className="flex-row gap-4 mb-8">
             <View className="flex-1 bg-card border border-border rounded-3xl p-5 shadow-sm">

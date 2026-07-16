@@ -22,7 +22,6 @@ export default function BranchSelector() {
   if (!selectedBranch) return null;
 
   if (actorType === 'employee') {
-    // Employees cannot switch branches, show static active branch
     return (
       <View className="flex-row items-center bg-muted/60 px-3 py-1.5 rounded-full border border-border">
         <Ionicons name="business" size={16} color={themePrimary} />
@@ -40,7 +39,6 @@ export default function BranchSelector() {
 
   const handleSelect = async (branchId: string) => {
     if (branchId === selectedBranch._id) {
-      // Already the active branch — just exit the aggregated view.
       setViewAllBranches(false);
       setIsOpen(false);
       return;
@@ -75,18 +73,23 @@ export default function BranchSelector() {
         <Ionicons name="chevron-down" size={12} color={isDark ? '#94a3b8' : '#64748b'} />
       </TouchableOpacity>
 
-      <Modal visible={isOpen} animationType="slide" transparent>
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-card rounded-t-3xl p-6 border-t border-border max-h-[70%]">
+      <Modal visible={isOpen} animationType="slide" transparent={true} statusBarTranslucent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-card rounded-t-3xl pt-4 pb-10 px-6 border-t border-border max-h-[80%] shadow-2xl">
+            {/* Grabber Handle */}
+            <View className="w-12 h-1.5 bg-muted rounded-full self-center mb-6" />
+
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-foreground text-xl font-bold">Switch Branch Context</Text>
-              <TouchableOpacity onPress={() => setIsOpen(false)}>
-                <Ionicons name="close" size={24} color={isDark ? '#f8fafc' : '#0f172a'} />
+              <Text className="text-foreground text-xl font-bold">Select Branch</Text>
+              <TouchableOpacity 
+                onPress={() => setIsOpen(false)}
+                className="p-2 rounded-full bg-muted"
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#f8fafc' : '#0f172a'} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} className="space-y-2">
-              {/* All Branches (aggregate) */}
               <TouchableOpacity
                 onPress={handleSelectAll}
                 className={`p-4 rounded-2xl border flex-row justify-between items-center mb-2 ${viewAllBranches ? 'bg-primary border-primary' : 'bg-muted border-border'}`}
@@ -106,9 +109,7 @@ export default function BranchSelector() {
                     </Text>
                   </View>
                 </View>
-                {viewAllBranches && (
-                  <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                )}
+                {viewAllBranches && <Ionicons name="checkmark-circle" size={24} color="#fff" />}
               </TouchableOpacity>
 
               {branches.map((b) => {
@@ -127,9 +128,7 @@ export default function BranchSelector() {
                         {b.branchCode} • {b.city || 'No Location'}
                       </Text>
                     </View>
-                    {isSelected && (
-                      <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                    )}
+                    {isSelected && <Ionicons name="checkmark-circle" size={24} color="#fff" />}
                   </TouchableOpacity>
                 );
               })}

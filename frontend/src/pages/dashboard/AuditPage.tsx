@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, Layers } from 'lucide-react';
+import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, Layers, CalendarDays, X } from 'lucide-react';
 import { useAI } from '@/src/ai/AIProvider';
 import type { ReceiptData, AuditReport } from '@/src/ai/ai-types';
 
@@ -8,10 +8,13 @@ type FilterPeriod = 'all' | 'today' | 'week' | 'month' | 'year';
 
 export default function AuditPage() {
   const { organizer, status: aiStatus } = useAI();
-  const { data: historyRes, isLoading, refetch } = useVerificationHistory();
-  const history = historyRes?.pages?.flatMap(page => page.data) || [];
+  const { data: historyRes, isLoading, refetch } = useVerificationHistory({ limit: 100 });
+  // Memoized so the reference is stable across renders — this prevents the AI
+  // audit effect below from re-firing on every render (runaway generateAudit).
+  const history = useMemo(() => historyRes?.pages?.flatMap(page => page.data) || [], [historyRes]);
 
   const [activeFilter, setActiveFilter] = useState<FilterPeriod>('all');
+  const [startDate, setStartDate] = useState<string>('');
   const [generatingAi, setGeneratingAi] = useState(false);
   const [aiReport, setAiReport] = useState<AuditReport | null>(null);
 
@@ -23,9 +26,45 @@ export default function AuditPage() {
     { id: 'year', label: 'This Year' },
   ] as const;
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Single filtered set shared by the metrics AND the AI audit, so every panel
+  // reflects the selected period + start date consistently.
+  const filteredHistory = useMemo(() => {
+    const now = new Date();
+    const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
+
+    return history.filter((record: any) => {
+      const recordDateStr = record.createdAt;
+
+      // Preset period filter
+      if (activeFilter !== 'all') {
+        if (!recordDateStr) return false;
+        const recordDate = new Date(recordDateStr);
+        const diffDays = (now.getTime() - recordDate.getTime()) / (1000 * 60 * 60 * 24);
+        let passes = true;
+        switch (activeFilter) {
+          case 'today': passes = recordDate.toDateString() === now.toDateString(); break;
+          case 'week': passes = diffDays <= 7; break;
+          case 'month': passes = diffDays <= 30; break;
+          case 'year': passes = diffDays <= 365; break;
+        }
+        if (!passes) return false;
+      }
+
+      // Start-date filter (records on / after the chosen day)
+      if (start) {
+        if (!recordDateStr) return false;
+        if (new Date(recordDateStr) < start) return false;
+      }
+
+      return true;
+    });
+  }, [history, activeFilter, startDate]);
+
   // Convert histories into unified structure for audit checking
   const receiptDataItems = useMemo((): ReceiptData[] => {
-    return history.map((item: any) => ({
+    return filteredHistory.map((item: any) => ({
       merchant: item.provider || item.bank || 'Unknown',
       date: item.paymentDate || item.createdAt || new Date().toISOString(),
       subtotal: Number(item.amount) || 0,
@@ -43,24 +82,36 @@ export default function AuditPage() {
       senderName: item.rawResponse?.senderName || null,
       receiverName: item.rawResponse?.receiverName || null,
     }));
-  }, [history]);
+  }, [filteredHistory]);
 
   useEffect(() => {
-    if (receiptDataItems.length > 0 && aiStatus === 'ready') {
-      const getAiAudit = async () => {
-        setGeneratingAi(true);
-        try {
-          const report = await organizer.generateAudit(receiptDataItems);
-          setAiReport(report);
-        } catch (err) {
-          console.warn('[AI Web Audit Error]', err);
-        } finally {
-          setGeneratingAi(false);
-        }
-      };
-      getAiAudit();
+    if (aiStatus !== 'ready') return;
+
+    // Nothing in the current filter → clear any stale report.
+    if (receiptDataItems.length === 0) {
+      setAiReport(null);
+      setGeneratingAi(false);
+      return;
     }
-  }, [receiptDataItems, aiStatus]);
+
+    let cancelled = false;
+    const getAiAudit = async () => {
+      setGeneratingAi(true);
+      try {
+        const report = await organizer.generateAudit(receiptDataItems);
+        if (!cancelled) setAiReport(report);
+      } catch (err) {
+        console.warn('[AI Web Audit Error]', err);
+        if (!cancelled) setAiReport(null);
+      } finally {
+        if (!cancelled) setGeneratingAi(false);
+      }
+    };
+    getAiAudit();
+
+    // Prevent a slow, stale response from overwriting a newer filter selection.
+    return () => { cancelled = true; };
+  }, [receiptDataItems, aiStatus, organizer]);
 
   const metrics = useMemo(() => {
     let totalMoney = 0;
@@ -70,31 +121,6 @@ export default function AuditPage() {
     let failedCount = 0;
 
     const providerStats: Record<string, { totalAmount: number; verifiedCount: number; fraudCount: number }> = {};
-    const now = new Date();
-
-    const filteredHistory = history.filter((record: any) => {
-      if (activeFilter === 'all') return true;
-
-      const recordDateStr = record.createdAt;
-      if (!recordDateStr) return false;
-      
-      const recordDate = new Date(recordDateStr);
-      const diffTime = now.getTime() - recordDate.getTime();
-      const diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-      switch (activeFilter) {
-        case 'today':
-          return recordDate.toDateString() === now.toDateString();
-        case 'week':
-          return diffDays <= 7;
-        case 'month':
-          return diffDays <= 30;
-        case 'year':
-          return diffDays <= 365;
-        default:
-          return true;
-      }
-    });
 
     filteredHistory.forEach((record: any) => {
       const provider = (record.provider || 'unknown').toLowerCase();
@@ -135,7 +161,7 @@ export default function AuditPage() {
       providerStats,
       totalCount: filteredHistory.length,
     };
-  }, [history, activeFilter]);
+  }, [filteredHistory]);
 
   return (
     <div className="space-y-8">
@@ -155,20 +181,51 @@ export default function AuditPage() {
       </div>
 
       {/* Filter Options bar */}
-      <div className="flex gap-2 pb-2 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 pb-2 items-center">
         {filterOptions.map((opt) => (
           <button
             key={opt.id}
             onClick={() => setActiveFilter(opt.id)}
             className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              activeFilter === opt.id 
-                ? 'bg-[#004bca] text-white shadow-xs' 
+              activeFilter === opt.id
+                ? 'bg-[#004bca] text-white shadow-xs'
                 : 'bg-white border border-[#c2c6d9]/30 dark:bg-transparent dark:border-white/10 text-[#54647a]'
             }`}
           >
             {opt.label}
           </button>
         ))}
+
+        {/* Start-date calendar filter */}
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <div
+            className={`flex items-center gap-2 rounded-full px-3 py-1.5 border transition-all ${
+              startDate
+                ? 'bg-[#004bca]/10 border-[#004bca]/30 text-[#004bca]'
+                : 'bg-white border-[#c2c6d9]/30 dark:bg-transparent dark:border-white/10 text-[#54647a]'
+            }`}
+          >
+            <CalendarDays size={14} />
+            <input
+              type="date"
+              value={startDate}
+              max={todayStr}
+              onChange={(e) => setStartDate(e.target.value)}
+              aria-label="Filter from start date"
+              className="bg-transparent text-xs font-bold outline-none cursor-pointer dark:[color-scheme:dark]"
+            />
+          </div>
+          {startDate && (
+            <button
+              onClick={() => setStartDate('')}
+              aria-label="Clear start date"
+              className="flex items-center gap-1 text-[10px] font-bold text-[#54647a] hover:text-red-500 px-2 py-1.5 rounded-full transition-colors cursor-pointer"
+            >
+              <X size={12} />
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Hero Volume Card */}

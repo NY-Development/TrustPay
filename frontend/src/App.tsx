@@ -37,6 +37,7 @@ import NotificationsPage from './pages/dashboard/NotificationsPage';
 import ExportPage from './pages/dashboard/ExportPage';
 import ProfilePage from './pages/dashboard/ProfilePage';
 import BranchesPage from './pages/dashboard/BranchesPage';
+import BranchDetailPage from './pages/dashboard/BranchDetailPage';
 import EmployeesPage from './pages/dashboard/EmployeesPage';
 import CommunicationsPage from './pages/dashboard/CommunicationsPage';
 
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="/dashboard/profile" element={<ProfilePage />} />
           <Route path="/dashboard/pricing" element={<PricingPage />} />
           <Route path="/dashboard/branches" element={<BranchesPage />} />
+          <Route path="/dashboard/branches/:id" element={<BranchDetailPage />} />
           <Route path="/dashboard/employees" element={<EmployeesPage />} />
           <Route path="/dashboard/communications" element={<CommunicationsPage />} />
         </Route>

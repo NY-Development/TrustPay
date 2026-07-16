@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listBranchesApi, createBranchApi, deactivateBranchApi } from '@/src/api/branch.api';
 import { useAuthStore } from '@/src/store/authStore';
@@ -98,10 +99,17 @@ export default function BranchesPage() {
                 </div>
               </div>
 
+              <Link
+                to={`/dashboard/branches/${branch._id}`}
+                className="mt-4 w-full block text-center text-xs font-semibold py-2.5 rounded-xl bg-[#004bca]/10 text-[#004bca] hover:bg-[#004bca]/20 transition-colors"
+              >
+                View Details
+              </Link>
+
               {actorType === 'owner' && branch.status === 'ACTIVE' && (
                 <button
                   onClick={() => deactivateMutation.mutate(branch._id)}
-                  className="mt-4 w-full text-xs font-semibold py-2.5 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors"
+                  className="mt-2 w-full text-xs font-semibold py-2.5 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors"
                 >
                   Deactivate
                 </button>

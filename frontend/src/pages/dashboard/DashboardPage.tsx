@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useVerificationHistory } from '@/src/hooks/useVerification';
+import { useBranchVerificationHistory } from '@/src/hooks/useVerification';
 import { Link } from 'react-router-dom';
 import SubscriptionModal from '@/src/components/SubscriptionModal';
+import BranchSelector from '@/src/components/BranchSelector';
 import {
   Area,
   AreaChart,
@@ -32,13 +33,14 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function DashboardPage() {
-  const { data, isLoading } = useVerificationHistory({ limit: 50 });
-  const { user } = useAuthStore();
+  const { user, selectedBranch, viewAllBranches } = useAuthStore();
+  const scopeBranchId = viewAllBranches ? undefined : selectedBranch?._id;
+  const { data, isLoading } = useBranchVerificationHistory({ branchId: scopeBranchId, limit: 50 });
   const { data: subData } = useSubscriptionStatus(); // Fetch status[cite: 19, 20]
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
-  
+
   const allVerifications = data?.pages?.flatMap(page => page.data) || [];
   const verifications = allVerifications.slice(0, 5);
 
@@ -100,6 +102,12 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Branch Scope */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-[#54647a] dark:text-[#c2c6d9] uppercase tracking-wider">Branch Scope</span>
+        <BranchSelector />
+      </div>
+
       {/* Welcome Banner */}
       <div className="bg-[#004bca] rounded-3xl p-8 text-white relative overflow-hidden shadow-md">
         <div className="relative z-10 max-w-xl">

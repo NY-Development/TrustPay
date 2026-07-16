@@ -166,7 +166,7 @@ export default function ManualVerificationPage() {
         </div>
 
         {/* AI Receipt Scanning Area */}
-        <div className="mb-6 p-5 rounded-2xl border border-dashed border-[#004bca]/30 bg-gradient-to-br from-[#004bca]/5 to-transparent flex flex-col items-center justify-center">
+        {/* <div className="mb-6 p-5 rounded-2xl border border-dashed border-[#004bca]/30 bg-gradient-to-br from-[#004bca]/5 to-transparent flex flex-col items-center justify-center">
           <span className="material-symbols-outlined text-[32px] text-[#004bca] mb-2">document_scanner</span>
           <h4 className="text-xs font-bold text-[#131b2e] dark:text-white">Smart Receipt Upload</h4>
           <p className="text-[10px] text-muted-foreground text-center mt-1 mb-3 max-w-sm leading-relaxed">
@@ -182,7 +182,7 @@ export default function ManualVerificationPage() {
               disabled={scanning}
             />
           </label>
-        </div>
+        </div> */}
 
         {registeredProviders.length === 0 ? (
           <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl mb-8">

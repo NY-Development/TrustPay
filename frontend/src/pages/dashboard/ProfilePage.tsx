@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/src/store/authStore';
 import { 
   useAccounts, 
@@ -11,7 +12,7 @@ import {
 import { StatusModal } from '@/src/components/StatusModal';
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user, actorType, selectedBranch } = useAuthStore();
   const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
 
   const addAccountMutation = useAddAccount();
@@ -194,8 +195,27 @@ export default function ProfilePage() {
       {/* Profile Details Adjustments */}
       <div className="lg:col-span-2 space-y-8">
         <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-[32px] p-8 shadow-xs">
-          <h2 className="text-lg font-bold text-[#131b2e] dark:text-white mb-6">Profile Settings</h2>
-          
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-[#131b2e] dark:text-white">Profile Settings</h2>
+            {actorType === 'owner' ? (
+              <Link
+                to="/dashboard/branches"
+                className="flex items-center gap-2 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/40 dark:border-white/10 hover:border-[#004bca]/50 px-4 py-2 rounded-xl text-xs font-bold text-[#131b2e] dark:text-white transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[#004bca]">store</span>
+                Manage Branches
+              </Link>
+            ) : selectedBranch ? (
+              <Link
+                to={`/dashboard/branches/${selectedBranch._id}`}
+                className="flex items-center gap-2 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/40 dark:border-white/10 hover:border-[#004bca]/50 px-4 py-2 rounded-xl text-xs font-bold text-[#131b2e] dark:text-white transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[#004bca]">store</span>
+                My Branch
+              </Link>
+            ) : null}
+          </div>
+
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-[#131b2e] dark:text-[#eef0ff] uppercase tracking-wider mb-2">Display Name</label>
