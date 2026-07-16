@@ -9,6 +9,7 @@ import { StatusModal } from '@/src/components/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/src/store/authStore';
+import { useAccounts } from '@/src/hooks/useAuth';
 
 const providers = [
   { id: 'cbe', name: 'CBE', color: '#8E24AA', placeholder: 'e.g. FT123456789' },
@@ -26,11 +27,12 @@ export default function ManualEntry() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { user } = useAuthStore();
+  const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
 
   const registeredProviders = React.useMemo(() => {
-    if (!user?.accounts) return [];
-    return providers.filter(p => user.accounts!.some(acc => acc.accountProvider === p.id));
-  }, [user]);
+    if (!accountsData?.data) return [];
+    return providers.filter(p => accountsData.data?.some(acc => acc.accountProvider === p.id));
+  }, [accountsData]);
 
   const [provider, setProvider] = React.useState('cbe');
   const [reference, setReference] = React.useState('');
