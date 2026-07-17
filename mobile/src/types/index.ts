@@ -75,7 +75,7 @@ export interface Branch {
 export interface Employee {
   _id: string;
   ownerId: string;
-  branchId: string;
+  branchId: string | Branch;
   name: string;
   email: string;
   role: string;

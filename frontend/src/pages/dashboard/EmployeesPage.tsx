@@ -1,23 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listEmployeesApi, inviteEmployeeApi, deactivateEmployeeApi, activateEmployeeApi, deleteEmployeeApi } from '@/src/api/employee.api';
+import { useQuery } from '@tanstack/react-query';
+import {
+  useEmployees,
+  useInviteEmployee,
+  useDeactivateEmployee,
+  useActivateEmployee,
+  useDeleteEmployee,
+} from '@/src/hooks/useEmployee';
 import { listBranchesApi } from '@/src/api/branch.api';
 import { useAuthStore } from '@/src/store/authStore';
+import { StatusModal } from '@/src/components/StatusModal';
 
 export default function EmployeesPage() {
-  const { actorType, selectedBranch } = useAuthStore();
+  const { actorType } = useAuthStore();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [filterBranch, setFilterBranch] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [inviteData, setInviteData] = useState({ name: '', email: '', password: '', role: 'CASHIER', branchId: '' });
+  const [modal, setModal] = useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  }>({ visible: false, type: 'info', title: '', message: '' });
 
-  const { data: employeesRes, isLoading } = useQuery({
-    queryKey: ['employees', filterBranch],
-    queryFn: () => listEmployeesApi(filterBranch ? { branchId: filterBranch } : undefined),
-  });
+  const { data: employeesRes, isLoading } = useEmployees(filterBranch || undefined);
 
   const { data: branchesRes } = useQuery({
     queryKey: ['branches'],
@@ -25,33 +34,49 @@ export default function EmployeesPage() {
     enabled: actorType === 'owner',
   });
 
-  const inviteMutation = useMutation({
-    mutationFn: inviteEmployeeApi,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      setShowInvite(false);
-      setInviteData({ name: '', email: '', password: '', role: 'CASHIER', branchId: '' });
-    },
-  });
-
-  const deactivateMutation = useMutation({
-    mutationFn: deactivateEmployeeApi,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
-  });
-
-  const activateMutation = useMutation({
-    mutationFn: activateEmployeeApi,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteEmployeeApi,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
-  });
+  const inviteMutation = useInviteEmployee();
+  const deactivateMutation = useDeactivateEmployee();
+  const activateMutation = useActivateEmployee();
+  const deleteMutation = useDeleteEmployee();
 
   const employees = employeesRes?.data || [];
   const branches = branchesRes?.data || [];
   const roles = ['MANAGER', 'CASHIER', 'VERIFIER', 'RECEPTIONIST', 'OTHER'];
+
+  const handleInvite = () => {
+    if (!inviteData.name || !inviteData.email || !inviteData.password || !inviteData.branchId) {
+      setModal({ visible: true, type: 'error', title: 'Input Error', message: 'All fields are required.' });
+      return;
+    }
+    inviteMutation.mutate(inviteData, {
+      onSuccess: () => {
+        setShowInvite(false);
+        setInviteData({ name: '', email: '', password: '', role: 'CASHIER', branchId: '' });
+        setModal({ visible: true, type: 'success', title: 'Success', message: 'Employee has been invited successfully.' });
+      },
+      onError: (err: any) => {
+        setModal({ visible: true, type: 'error', title: 'Invitation Failed', message: err.response?.data?.message || 'Something went wrong.' });
+      },
+    });
+  };
+
+  const handleToggleStatus = (emp: any) => {
+    const mutation = emp.status === 'ACTIVE' ? deactivateMutation : activateMutation;
+    mutation.mutate(emp._id, {
+      onError: (err: any) => {
+        setModal({ visible: true, type: 'error', title: 'Action Failed', message: err.response?.data?.message || 'Failed to update employee status.' });
+      },
+    });
+  };
+
+  const handleDelete = (emp: any) => {
+    if (!window.confirm(`Delete ${emp.name}? This cannot be undone.`)) return;
+    deleteMutation.mutate(emp._id, {
+      onError: (err: any) => {
+        setModal({ visible: true, type: 'error', title: 'Delete Failed', message: err.response?.data?.message || 'Failed to delete employee.' });
+      },
+    });
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -64,7 +89,7 @@ export default function EmployeesPage() {
         {actorType === 'owner' && (
           <button
             onClick={() => setShowInvite(true)}
-            className="bg-[#004bca] hover:bg-[#0061ff] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-[0.97]"
+            className="bg-[#004bca] hover:bg-[#0061ff] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-[0.97] cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">person_add</span>
             Invite Employee
@@ -103,7 +128,8 @@ export default function EmployeesPage() {
           {employees.map((emp: any) => (
             <div
               key={emp._id}
-              className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-2xl p-5 hover:shadow-lg transition-all group"
+              onClick={() => navigate(`/dashboard/employees/${emp._id}`)}
+              className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-2xl p-5 hover:shadow-lg transition-all group cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -136,17 +162,17 @@ export default function EmployeesPage() {
               </div>
 
               {actorType === 'owner' && (
-                <div className="flex gap-2 pt-3 border-t border-[#c2c6d9]/15 dark:border-white/5">
+                <div className="flex gap-2 pt-3 border-t border-[#c2c6d9]/15 dark:border-white/5" onClick={(e) => e.stopPropagation()}>
                   {emp.status === 'ACTIVE' ? (
-                    <button onClick={() => deactivateMutation.mutate(emp._id)} className="flex-1 text-xs font-semibold py-2 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors">
+                    <button onClick={() => handleToggleStatus(emp)} className="flex-1 text-xs font-semibold py-2 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors cursor-pointer">
                       Deactivate
                     </button>
                   ) : (
-                    <button onClick={() => activateMutation.mutate(emp._id)} className="flex-1 text-xs font-semibold py-2 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors">
+                    <button onClick={() => handleToggleStatus(emp)} className="flex-1 text-xs font-semibold py-2 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer">
                       Activate
                     </button>
                   )}
-                  <button onClick={() => deleteMutation.mutate(emp._id)} className="text-xs font-semibold py-2 px-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors">
+                  <button onClick={() => handleDelete(emp)} className="text-xs font-semibold py-2 px-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer">
                     <span className="material-symbols-outlined text-[16px]">delete</span>
                   </button>
                 </div>
@@ -161,7 +187,7 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
           <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
             <h3 className="text-xl font-bold text-[#131b2e] dark:text-white mb-6 font-['Geist']">Invite Employee</h3>
-            
+
             <div className="space-y-4">
               <input
                 placeholder="Full Name"
@@ -203,13 +229,13 @@ export default function EmployeesPage() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowInvite(false)} className="flex-1 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 py-3 rounded-xl text-sm font-bold text-[#131b2e] dark:text-white">
+              <button onClick={() => setShowInvite(false)} className="flex-1 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 py-3 rounded-xl text-sm font-bold text-[#131b2e] dark:text-white cursor-pointer">
                 Cancel
               </button>
               <button
-                onClick={() => inviteMutation.mutate(inviteData)}
+                onClick={handleInvite}
                 disabled={inviteMutation.isPending}
-                className="flex-1 bg-[#004bca] hover:bg-[#0061ff] text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50"
+                className="flex-1 bg-[#004bca] hover:bg-[#0061ff] text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50 cursor-pointer"
               >
                 {inviteMutation.isPending ? 'Sending...' : 'Send Invite'}
               </button>
@@ -217,6 +243,14 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
+
+      <StatusModal
+        visible={modal.visible}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        onClose={() => setModal({ ...modal, visible: false })}
+      />
     </div>
   );
 }

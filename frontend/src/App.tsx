@@ -39,6 +39,7 @@ import ProfilePage from './pages/dashboard/ProfilePage';
 import BranchesPage from './pages/dashboard/BranchesPage';
 import BranchDetailPage from './pages/dashboard/BranchDetailPage';
 import EmployeesPage from './pages/dashboard/EmployeesPage';
+import EmployeeDetailPage from './pages/dashboard/EmployeeDetailPage';
 import CommunicationsPage from './pages/dashboard/CommunicationsPage';
 
 // Admin pages
@@ -94,6 +95,7 @@ export default function App() {
           <Route path="/dashboard/branches" element={<BranchesPage />} />
           <Route path="/dashboard/branches/:id" element={<BranchDetailPage />} />
           <Route path="/dashboard/employees" element={<EmployeesPage />} />
+          <Route path="/dashboard/employees/:id" element={<EmployeeDetailPage />} />
           <Route path="/dashboard/communications" element={<CommunicationsPage />} />
         </Route>
       </Route>

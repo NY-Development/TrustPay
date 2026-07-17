@@ -27,6 +27,7 @@ export const DashboardLayout: React.FC = () => {
     { to: '/dashboard/verify', label: 'Verification', icon: 'verified_user' },
     { to: '/dashboard/audit', label: 'Audit Logs', icon: 'assignment' },
     { to: '/dashboard/analytics', label: 'Analytics', icon: 'monitoring' },
+    { to: '/dashboard/employees', label: 'Employees', icon: 'group' },
     { to: '/dashboard/notifications', label: 'Notifications', icon: 'notifications' },
     { to: '/dashboard/export', label: 'Export Center', icon: 'output' },
     { to: '/dashboard/profile', label: 'Profile Settings', icon: 'settings' },

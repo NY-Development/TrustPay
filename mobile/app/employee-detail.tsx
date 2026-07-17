@@ -89,7 +89,11 @@ export default function EmployeeDetailScreen() {
     );
   }
 
-  const assignedBranch = branches.find((b) => b._id === employee.branchId);
+  const employeeBranchId =
+    typeof employee.branchId === 'object' && employee.branchId !== null
+      ? employee.branchId._id
+      : employee.branchId;
+  const assignedBranch = branches.find((b) => b._id === employeeBranchId);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -208,12 +212,12 @@ export default function EmployeeDetailScreen() {
                 <TouchableOpacity
                   key={b._id}
                   onPress={() => handleMoveBranch(b._id)}
-                  className={`p-4 rounded-2xl border ${b._id === employee.branchId ? 'bg-primary border-primary' : 'bg-muted border-border'} mb-2`}
+                  className={`p-4 rounded-2xl border ${b._id === employeeBranchId ? 'bg-primary border-primary' : 'bg-muted border-border'} mb-2`}
                 >
-                  <Text className={`font-bold ${b._id === employee.branchId ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  <Text className={`font-bold ${b._id === employeeBranchId ? 'text-primary-foreground' : 'text-foreground'}`}>
                     {b.branchName}
                   </Text>
-                  <Text className={`text-xs ${b._id === employee.branchId ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  <Text className={`text-xs ${b._id === employeeBranchId ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                     {b.branchCode}
                   </Text>
                 </TouchableOpacity>
