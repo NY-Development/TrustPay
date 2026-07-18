@@ -36,9 +36,37 @@ export const verificationRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Tighter rate limiting for credential/brute-force-sensitive auth endpoints
+// (login, password reset). Unlike globalRateLimiter this is active in every
+// environment — brute-forcing login doesn't stop mattering outside prod.
+export const authRateLimiter = rateLimit({
+  windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+  max: env.AUTH_RATE_LIMIT_MAX,
+  message: {
+    success: false,
+    message: 'Too many attempts, please try again after 15 minutes',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logger.warn(`Auth rate limit exceeded for IP: ${req.ip} on ${req.originalUrl}`);
+    res.status(options.statusCode).send(options.message);
+  },
+});
+
 export const setupSecurityMiddleware = (app: any) => {
   // Set security HTTP headers
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+    })
+  );
 
   // Parse comma-separated origins into an array, removing any accidental whitespace
   const allowedOrigins = env.CORS_ORIGIN 

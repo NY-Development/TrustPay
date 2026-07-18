@@ -1,12 +1,37 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { Response } from 'express';
 import { env } from '../../src/config/env';
-import { 
-  ACCESS_TOKEN_COOKIE, 
-  REFRESH_TOKEN_COOKIE, 
-  COOKIE_OPTIONS 
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  CSRF_TOKEN_COOKIE,
+  COOKIE_OPTIONS
 } from '../../src/constants';
 import { JwtAccessPayload, JwtRefreshPayload } from '../types';
+
+/**
+ * Build the shared cookie option base for a given request.
+ *
+ * Production deploys the frontend and API on different registrable domains
+ * (separate *.vercel.app sites) by default, so SameSite=Strict/Lax cookies
+ * would never be sent cross-site. SameSite=None (paired with Secure, which
+ * browsers mandate) works regardless of domain topology, at the cost of no
+ * longer getting CSRF protection "for free" from SameSite — that's why the
+ * CSRF double-submit middleware exists alongside this.
+ */
+const buildCookieOptions = () => {
+  const isProduction = env.NODE_ENV === 'production';
+
+  return {
+    ...COOKIE_OPTIONS,
+    secure: isProduction ? true : env.COOKIE_SECURE,
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    // Only scope to a domain when explicitly configured (shared parent domain
+    // setups). Omitting it defaults the cookie to the exact request host.
+    ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
+  };
+};
 
 /**
  * Generate Access and Refresh tokens
@@ -47,17 +72,12 @@ export const generateTokens = (
 };
 
 /**
- * Set auth cookies on response
+ * Set auth cookies on response, plus a companion CSRF token cookie for the
+ * double-submit pattern (non-httpOnly by design — the frontend reads it and
+ * echoes it back as the X-CSRF-Token header on mutating requests).
  */
 export const sendAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
-  const isProduction = env.NODE_ENV === 'production';
-  
-  const options = {
-    ...COOKIE_OPTIONS,
-    secure: env.COOKIE_SECURE || isProduction,
-    domain: env.COOKIE_DOMAIN,
-    sameSite: isProduction ? 'strict' as const : 'lax' as const,
-  };
+  const options = buildCookieOptions();
 
   // Set access token cookie (short lived)
   res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
@@ -70,18 +90,22 @@ export const sendAuthCookies = (res: Response, accessToken: string, refreshToken
     ...options,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days matching JWT
   });
+
+  // Set CSRF cookie (readable by JS, matches refresh cookie lifetime)
+  res.cookie(CSRF_TOKEN_COOKIE, crypto.randomBytes(32).toString('hex'), {
+    ...options,
+    httpOnly: false,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
 };
 
 /**
- * Clear auth cookies
+ * Clear auth cookies (and the CSRF cookie)
  */
 export const clearAuthCookies = (res: Response) => {
-  const options = {
-    ...COOKIE_OPTIONS,
-    secure: env.COOKIE_SECURE || env.NODE_ENV === 'production',
-    domain: env.COOKIE_DOMAIN,
-  };
+  const options = buildCookieOptions();
 
   res.clearCookie(ACCESS_TOKEN_COOKIE, options);
   res.clearCookie(REFRESH_TOKEN_COOKIE, options);
+  res.clearCookie(CSRF_TOKEN_COOKIE, { ...options, httpOnly: false });
 };

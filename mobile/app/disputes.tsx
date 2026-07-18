@@ -60,7 +60,7 @@ export default function Disputes() {
                   <View className="flex-row justify-between items-start mb-3">
                     <View className="flex-row items-center">
                       <View className={`w-8 h-8 rounded-lg items-center justify-center mr-3 ${isFraud ? 'bg-red-500/10' : 'bg-amber-500/10'}`}>
-                        <Ionicons name={isFraud ? 'alert-triangle' : 'copy'} size={16} color={isFraud ? '#ef4444' : '#f59e0b'} />
+                        <Ionicons name={isFraud ? 'warning-outline' : 'copy'} size={16} color={isFraud ? '#ef4444' : '#f59e0b'} />
                       </View>
                       <View>
                         <Text className="text-foreground font-bold text-base capitalize">{item.provider || 'Unknown Provider'}</Text>

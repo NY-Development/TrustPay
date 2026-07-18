@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
+import { authRateLimiter } from '../../middleware/security';
 
 import {
   registerSchema,
@@ -15,8 +16,8 @@ const router = Router();
    AUTH CORE
 ========================================================= */
 router.post('/register', validate(registerSchema), authController.register);
-router.post('/login/owner', validate(loginSchema), authController.loginOwner);
-router.post('/login/employee', validate(loginSchema), authController.loginEmployee);
+router.post('/login/owner', authRateLimiter, validate(loginSchema), authController.loginOwner);
+router.post('/login/employee', authRateLimiter, validate(loginSchema), authController.loginEmployee);
 router.post('/refresh', validate(refreshTokenSchema), authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 
@@ -29,9 +30,9 @@ router.patch('/profile', authenticate, authController.updateProfile);
 /* =========================================================
    PASSWORD MANAGEMENT
 ========================================================= */
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/verify-otp', authController.verifyOtp);
-router.post('/reset-password', authController.resetPassword);
+router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
+router.post('/verify-otp', authRateLimiter, authController.verifyOtp);
+router.post('/reset-password', authRateLimiter, authController.resetPassword);
 router.post('/change-password', authenticate, authController.changePassword);
 
 /* =========================================================

@@ -367,7 +367,7 @@ export default function Audit() {
                 ) : (
                   <View className="bg-card border border-border rounded-3xl p-5 flex-row items-center shadow-sm">
                     <View className="bg-green-500/10 p-2.5 rounded-xl mr-4">
-                      <Ionicons name="checkmark-shield-outline" size={20} color="#22c55e" />
+                      <Ionicons name="shield-checkmark-outline" size={20} color="#22c55e" />
                     </View>
                     <View className="flex-1">
                       <Text className="text-foreground font-bold text-sm">Clear Check Profile</Text>

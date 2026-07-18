@@ -17,7 +17,12 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRY: z.string().default('30d'),
 
   // Cookie
-  COOKIE_DOMAIN: z.string().default('localhost'),
+  // No default: an explicit domain only makes sense when the frontend and API
+  // share a parent domain (e.g. both under `.trustpay.com`). Leaving this unset
+  // scopes the cookie to the exact request host, which is what a cross-site
+  // *.vercel.app deployment needs — a mismatched Domain attribute makes the
+  // browser silently drop the Set-Cookie header entirely.
+  COOKIE_DOMAIN: z.string().optional(),
   COOKIE_SECURE: z.string().transform((val) => val === 'true').default('false'),
 
   // CORS
@@ -43,6 +48,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   VERIFY_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
   VERIFY_RATE_LIMIT_MAX: z.coerce.number().default(20),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().default(10),
 
   // Super Admin
   SUPER_ADMIN_EMAIL: z.string().email().optional(),

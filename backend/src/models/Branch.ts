@@ -41,7 +41,6 @@ const branchSchema = new Schema<IBranch>(
     },
     branchCode: {
       type: String,
-      unique: true,
       trim: true,
     },
     branchNumber: {
@@ -125,7 +124,11 @@ const branchSchema = new Schema<IBranch>(
 );
 
 // Indexes for performance and uniqueness
-branchSchema.index({ branchCode: 1 }, { unique: true });
+// branchCode is only ever looked up scoped by owner (e.g. login-by-branch-code),
+// so uniqueness is scoped the same way — a bare global-unique index here would
+// collide as soon as two different owners of the same company type both
+// generate their first branch ("RTL-001", "RTL-001", ...).
+branchSchema.index({ ownerId: 1, branchCode: 1 }, { unique: true });
 branchSchema.index({ ownerId: 1 });
 branchSchema.index({ ownerId: 1, branchName: 1 }, { unique: true });
 

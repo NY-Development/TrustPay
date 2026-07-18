@@ -1,0 +1,156 @@
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:32:46.274Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:32:47.262Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:32:47.271Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:32:47.526Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:32:47.535Z"}
+{"level":"error","message":"Error: refreshToken: Required","method":"POST","path":"/api/v1/auth/refresh","timestamp":"2026-07-18T08:32:47.781Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/auth/logout","timestamp":"2026-07-18T08:32:48.048Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:32:48.314Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:32:48.562Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:32:48.815Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:32:49.061Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-18T08:32:50.271Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:50.519Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:50.764Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:52.890Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:53.177Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:32:53.184Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:32:53.680Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:53.930Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:53.933Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:32:54.410Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:54.652Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:54.657Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:32:54.662Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:32:55.135Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:55.382Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:55.629Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:55.870Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:56.115Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:32:56.371Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-18T08:32:56.378Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:32:59.058Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:32:59.095Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:32:59.473Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/branches","timestamp":"2026-07-18T08:32:59.478Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PUT","path":"/api/v1/branches/6a5b3a3ba222c8694d24ef83","timestamp":"2026-07-18T08:32:59.798Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:33:00.351Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PUT","path":"/api/v1/branches/6a5b3a3ca222c8694d24efb4/deactivate","timestamp":"2026-07-18T08:33:00.624Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches/6a5b3a3ca222c8694d24efc8/accounts","timestamp":"2026-07-18T08:33:00.893Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches/6a5b3a3da222c8694d24efdc/accounts","timestamp":"2026-07-18T08:33:01.164Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:35:01.743Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:35:03.771Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:35:03.792Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:35:04.149Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:35:04.164Z"}
+{"level":"error","message":"Error: refreshToken: Required","method":"POST","path":"/api/v1/auth/refresh","timestamp":"2026-07-18T08:35:04.459Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/auth/logout","timestamp":"2026-07-18T08:35:04.721Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:35:04.985Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:35:05.247Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:35:05.526Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:35:05.787Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-18T08:35:07.187Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:07.546Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:07.897Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:10.542Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:10.873Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:35:10.882Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:35:11.422Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:11.738Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:11.743Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:35:12.367Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:12.629Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:12.633Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:35:12.637Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:35:13.126Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:13.382Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:13.636Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:13.898Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:14.172Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:35:14.439Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-18T08:35:14.447Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:35:16.918Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:35:16.932Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:35:17.264Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/branches","timestamp":"2026-07-18T08:35:17.269Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PUT","path":"/api/v1/branches/6a5b3ac54ac6fd1cb4bfa8cd","timestamp":"2026-07-18T08:35:17.620Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:35:18.205Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PUT","path":"/api/v1/branches/6a5b3ac64ac6fd1cb4bfa8fe/deactivate","timestamp":"2026-07-18T08:35:18.518Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches/6a5b3ac64ac6fd1cb4bfa912/accounts","timestamp":"2026-07-18T08:35:18.800Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches/6a5b3ac74ac6fd1cb4bfa926/accounts","timestamp":"2026-07-18T08:35:19.072Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:37:15.857Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:37:16.899Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:37:16.910Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:37:17.204Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:37:17.217Z"}
+{"level":"error","message":"Error: refreshToken: Required","method":"POST","path":"/api/v1/auth/refresh","timestamp":"2026-07-18T08:37:17.548Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/auth/logout","timestamp":"2026-07-18T08:37:17.923Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:37:18.326Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:37:18.689Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:37:19.000Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:37:19.303Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-18T08:37:20.606Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:20.873Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:21.127Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:23.132Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:23.498Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:37:23.508Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:37:24.094Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:24.411Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:24.416Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:37:25.003Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:25.337Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:25.344Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:37:25.350Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:37:25.915Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:26.179Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:26.450Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:26.711Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:26.985Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:37:27.274Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-18T08:37:27.283Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:37:29.225Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:37:29.242Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:37:29.565Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/branches","timestamp":"2026-07-18T08:37:29.571Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PUT","path":"/api/v1/branches/6a5b3b49774b096fc01516bd","timestamp":"2026-07-18T08:37:29.879Z"}
+{"level":"error","message":"Error: E11000 duplicate key error collection: test.branches index: branchCode_1 dup key: { branchCode: \"RTL-001\" }","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:37:30.461Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"PUT","path":"/api/v1/branches/6a5b3b4a774b096fc01516ee/deactivate","timestamp":"2026-07-18T08:37:30.767Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches/6a5b3b4b774b096fc0151702/accounts","timestamp":"2026-07-18T08:37:31.060Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches/6a5b3b4b774b096fc0151716/accounts","timestamp":"2026-07-18T08:37:31.362Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:46:17.319Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:50:23.202Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:50:24.417Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:50:24.426Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:50:24.757Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:50:25.404Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:50:25.719Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:50:25.995Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-18T08:50:28.324Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:50:30.336Z"}
+{"level":"error","message":"Error: Access denied. Owners only.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:50:35.357Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:50:36.048Z"}
+{"level":"error","message":"Error: An account with this email address already exists.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:50:36.741Z"}
+{"level":"error","message":"Error: Access denied: Employee belongs to another company.","method":"GET","path":"/api/v1/employees/6a5b3e609e4faa3d9af66b4d","timestamp":"2026-07-18T08:50:40.361Z"}
+{"level":"error","message":"Error: Employee not found.","method":"GET","path":"/api/v1/employees/6a5b3e639e4faa3d9af66bf2","timestamp":"2026-07-18T08:50:43.886Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-18T08:50:43.903Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:50:46.161Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a5b3e674d51de51dd38a13d","timestamp":"2026-07-18T08:50:47.539Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T08:53:47.358Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a5b3f1c504e5eafd2ad64c8","timestamp":"2026-07-18T08:53:48.617Z"}
+{"level":"error","message":"Error: Account already exists on this branch.","method":"POST","path":"/api/v1/branches/6a5b3f1d504e5eafd2ad6516/accounts","timestamp":"2026-07-18T08:53:49.596Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T08:53:51.841Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:53:52.878Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T08:53:52.887Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:53:53.154Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T08:53:53.685Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:53:53.947Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T08:53:54.208Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-18T08:53:56.018Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T08:53:57.304Z"}
+{"level":"error","message":"Error: Access denied. Owners only.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:54:00.236Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:54:00.906Z"}
+{"level":"error","message":"Error: An account with this email address already exists.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T08:54:01.560Z"}
+{"level":"error","message":"Error: Access denied: Employee belongs to another company.","method":"GET","path":"/api/v1/employees/6a5b3f2c1f291ebff818ef92","timestamp":"2026-07-18T08:54:04.753Z"}
+{"level":"error","message":"Error: Employee not found.","method":"GET","path":"/api/v1/employees/6a5b3f2f1f291ebff818f037","timestamp":"2026-07-18T08:54:07.979Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-18T08:54:07.992Z"}

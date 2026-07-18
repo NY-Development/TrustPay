@@ -546,7 +546,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
   const valid = await bcrypt.compare(otp, record.otp);
   if (!valid) throw new BadRequestError('Invalid OTP');
 
-  const resetToken = jwt.sign({ email }, env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+  const resetToken = jwt.sign({ email, purpose: 'password_reset' }, env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
   await Otp.deleteMany({ email });
 
   res.status(200).json({
@@ -564,6 +564,9 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
 
   try {
     const decoded = jwt.verify(resetToken, env.JWT_ACCESS_SECRET) as any;
+    if (decoded.purpose !== 'password_reset') {
+      throw new BadRequestError('Invalid or expired reset token');
+    }
     const user = await User.findOne({ email: decoded.email });
     if (!user) throw new NotFoundError('User not found');
 

@@ -4,7 +4,6 @@ import { Storage, STORAGE_KEYS } from '../utils/storage';
 import { authApi } from '../api/auth.api';
 import { listBranchesApi, switchBranchApi } from '../api/branch.api';
 
-import { TokenService } from '@/src/services/token.service';
 import { clearAuthCache } from '@/src/providers/query-auth-sync';
 import { onUnauthorized } from '@/src/api/auth-events';
 
@@ -72,16 +71,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /* =========================================================
      SET USER (LOGIN/REGISTER)
+     Tokens are no longer handled here — the backend sets them as httpOnly
+     cookies on the login/register response itself (Set-Cookie), so by the
+     time this runs the browser has already stored them. The `tokens` param
+     is kept in the signature so existing call sites (useAuth.ts) don't need
+     to change, but its value is intentionally unused.
   ========================================================= */
-  setUser: async (user, tokens, extras) => {
-    if (tokens?.accessToken) {
-      await TokenService.saveAccessToken(tokens.accessToken);
-    }
-
-    if (tokens?.refreshToken) {
-      await TokenService.saveRefreshToken(tokens.refreshToken);
-    }
-
+  setUser: async (user, _tokens, extras) => {
     set({
       user,
       isAuthenticated: !!user,
@@ -99,11 +95,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   ========================================================= */
   switchBranch: async (branchId) => {
     const response = await switchBranchApi(branchId);
-    const { selectedBranch, accessToken, refreshToken } = response?.data || {};
+    const { selectedBranch } = response?.data || {};
 
-    if (accessToken) await TokenService.saveAccessToken(accessToken);
-    if (refreshToken) await TokenService.saveRefreshToken(refreshToken);
-
+    // New tokens arrive as Set-Cookie on this response — nothing to persist
+    // client-side.
     set({ selectedBranch, viewAllBranches: false });
   },
 
@@ -127,6 +122,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /* =========================================================
      LOGOUT
+     Tokens live in httpOnly cookies now, which client JS cannot clear
+     itself — only the server can, via Set-Cookie with an expired date. So
+     this must call the backend; skipping that call (as this used to do)
+     would leave the session cookies live and the refresh token valid
+     server-side even though the UI shows the user as logged out.
   ========================================================= */
   logout: async (reason = 'manual') => {
     console.log(`[authStore] Logging out: ${reason}`);
@@ -137,7 +137,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoggingOut: true });
 
     try {
-      await TokenService.clearTokens();
+      try {
+        await authApi.logout();
+      } catch {
+        // Best-effort — still clear local state even if the request fails
+        // (e.g. already-expired session).
+      }
       clearAuthCache();
 
       set({
@@ -154,12 +159,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /* =========================================================
-     HYDRATE (TOKEN-BASED ONLY)
+     HYDRATE (COOKIE-BASED)
+     There's no client-readable token to gate this on anymore — the httpOnly
+     cookie (if any) is sent automatically, so just ask the backend who we
+     are. A guest simply gets a 401 here, which is the same cost as the old
+     "no token" branch.
   ========================================================= */
   hydrate: async () => {
     try {
-      const accessToken = await TokenService.getAccessToken();
-
       const onboarded = await Storage.getItem<boolean>(
         STORAGE_KEYS.HAS_SEEN_ONBOARDING
       );
@@ -169,34 +176,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       let selectedBranch: Branch | null = null;
       let actorType: 'owner' | 'employee' | null = null;
 
-      if (accessToken) {
-        try {
-          const response = await authApi.getMe();
-          const resData: any = response?.data;
+      try {
+        const response = await authApi.getMe();
+        const resData: any = response?.data;
 
-          if (resData?.user) {
-            user = resData.user;
-            const ownerRoles = ['OWNER', 'SUPER_ADMIN', 'ADMIN'];
-            actorType = resData.actorType || (user && ownerRoles.includes(user.role) ? 'owner' : 'employee');
+        if (resData?.user) {
+          user = resData.user;
+          const ownerRoles = ['OWNER', 'SUPER_ADMIN', 'ADMIN'];
+          actorType = resData.actorType || (user && ownerRoles.includes(user.role) ? 'owner' : 'employee');
 
-            if (actorType === 'owner') {
-              // Owners can access all their branches — load the full list.
-              try {
-                const branchRes = await listBranchesApi();
-                branches = branchRes?.data || [];
-                selectedBranch = branches[0] || null;
-              } catch {
-                // Branch loading failure is non-fatal
-              }
-            } else {
-              // Employees are scoped to their single assigned branch.
-              selectedBranch = resData.branch || null;
-              branches = resData.branch ? [resData.branch] : [];
+          if (actorType === 'owner') {
+            // Owners can access all their branches — load the full list.
+            try {
+              const branchRes = await listBranchesApi();
+              branches = branchRes?.data || [];
+              selectedBranch = branches[0] || null;
+            } catch {
+              // Branch loading failure is non-fatal
             }
+          } else {
+            // Employees are scoped to their single assigned branch.
+            selectedBranch = resData.branch || null;
+            branches = resData.branch ? [resData.branch] : [];
           }
-        } catch {
-          await TokenService.clearTokens();
         }
+      } catch {
+        // Not authenticated (no/expired session) — fall through with nulls.
       }
 
       set({

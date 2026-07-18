@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Baseline CSP. Note the limits of a meta-tag CSP: it can't express
+      frame-ancestors, and connect-src is static HTML so it must be kept in
+      sync with the deployed API origin by hand — see SECURITY.md for the
+      recommended header-based CSP (via vercel.json) as the more robust
+      production mechanism.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:5000 https://trust-pay-api.vercel.app; object-src 'none'; base-uri 'self'"
+    />
     <title>Trust Pay — Verify Payments Instantly</title>
     <!-- Fonts and Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />

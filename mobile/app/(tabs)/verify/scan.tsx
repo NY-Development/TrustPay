@@ -5,10 +5,10 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   ScrollView,
   TextInput,
 } from 'react-native';
+import { Image } from '@/components/ui/expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -428,7 +428,7 @@ export default function UnifiedScanner() {
             </View>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Image source={{ uri: imageUri }} className="h-64 rounded-3xl border border-border shadow-sm mb-4" resizeMode="cover" />
+              <Image source={{ uri: imageUri }} className="h-64 rounded-3xl border border-border shadow-sm mb-4" contentFit="cover" />
 
               {processing && (
                 <View className="bg-primary/5 p-4 rounded-2xl flex-row items-center justify-center border border-primary/10 shadow-sm mb-4">

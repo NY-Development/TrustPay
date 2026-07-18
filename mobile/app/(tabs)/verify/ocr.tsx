@@ -3,11 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   ScrollView,
   TextInput,
 } from 'react-native';
+import { Image } from '@/components/ui/expo-image';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';

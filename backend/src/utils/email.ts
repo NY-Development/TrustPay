@@ -2,6 +2,14 @@ import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 /**
  * Send an email using Brevo SMTP (configured in .env) with nodemailer
  */
@@ -30,6 +38,12 @@ export const sendEmail = async (to: string, subject: string, text: string): Prom
     await transporter.verify();
     logger.info('[Email Service] Brevo SMTP connection verified successfully.');
 
+    // Escape user-controlled content (subject/text may originate from the
+    // contact form) before interpolating into HTML — otherwise a submitter
+    // could inject markup/script into the email rendered for ADMIN_EMAIL.
+    const safeSubject = escapeHtml(subject);
+    const safeText = escapeHtml(text);
+
     // Beautiful HTML template utilizing TrustPay color palette (HSL-equivalent hex codes)
     const htmlTemplate = `
       <!DOCTYPE html>
@@ -37,7 +51,7 @@ export const sendEmail = async (to: string, subject: string, text: string): Prom
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>${subject}</title>
+        <title>${safeSubject}</title>
       </head>
       <body style="margin:0; padding:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color:#f8fafc; color:#0f172a;">
         <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:16px; overflow:hidden; border: 1px solid #e2e8f0; box-shadow:0 10px 25px rgba(0,0,0,0.03);">
@@ -49,9 +63,9 @@ export const sendEmail = async (to: string, subject: string, text: string): Prom
 
           <!-- Body -->
           <div style="padding:40px 30px;">
-            <h2 style="font-size:22px; font-weight:700; margin-top:0; margin-bottom:20px; color:#0f172a;">${subject}</h2>
+            <h2 style="font-size:22px; font-weight:700; margin-top:0; margin-bottom:20px; color:#0f172a;">${safeSubject}</h2>
             <div style="font-size:16px; line-height:1.6; color:#334155; margin-bottom:30px;">
-              ${text.split('\n').map(paragraph => `<p style="margin:0 0 16px 0;">${paragraph}</p>`).join('')}
+              ${safeText.split('\n').map(paragraph => `<p style="margin:0 0 16px 0;">${paragraph}</p>`).join('')}
             </div>
             
             <table style="width:100%; border-collapse:collapse; margin-top:30px; margin-bottom:10px;">

@@ -11,8 +11,13 @@ const API_URL =
   (import.meta.env.VITE_API_URL as string) ||
   'http://localhost:5000/api/v1';
 
+const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
 export const apiClient = axios.create({
   baseURL: API_URL,
+  // Access/refresh/CSRF tokens live in httpOnly (or CSRF-only) cookies set by
+  // the backend — withCredentials is what makes the browser attach and store
+  // them automatically. There is no token for this client to read or set.
   withCredentials: true,
   timeout: 15000,
   headers: {
@@ -25,10 +30,10 @@ export const apiClient = axios.create({
 ========================================================= */
 
 let isRefreshing = false;
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
 let requestQueue: Array<{
-  resolve: (token: string) => void;
+  resolve: () => void;
   reject: (error: any) => void;
 }> = [];
 
@@ -36,10 +41,10 @@ let requestQueue: Array<{
    QUEUE
 ========================================================= */
 
-function processQueue(error: any, token: string | null) {
+function processQueue(error: any) {
   requestQueue.forEach((p) => {
     if (error) p.reject(error);
-    else if (token) p.resolve(token);
+    else p.resolve();
   });
 
   requestQueue = [];
@@ -50,11 +55,14 @@ function processQueue(error: any, token: string | null) {
 ========================================================= */
 
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
-    const token = await TokenService.getAccessToken();
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config: InternalAxiosRequestConfig) => {
+    // Double-submit CSRF: mutating requests must echo the (non-httpOnly)
+    // csrf_token cookie back as a header — see backend/src/middleware/csrf.ts.
+    if (config.method && MUTATING_METHODS.has(config.method) && config.headers) {
+      const csrfToken = TokenService.getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
     }
 
     return config;
@@ -97,52 +105,26 @@ apiClient.interceptors.response.use(
           isRefreshing = true;
 
           refreshPromise = (async () => {
-            const refreshToken = await TokenService.getRefreshToken();
-            if (!refreshToken) throw new Error('No refresh token');
-
-            const res = await axios.post(
-              `${API_URL}/auth/refresh`,
-              { refreshToken },
-              { withCredentials: true }
-            );
-
-            const data = res.data?.data ?? res.data;
-
-            const newAccessToken = data?.accessToken;
-            const newRefreshToken = data?.refreshToken;
-
-            if (typeof newAccessToken === 'string') {
-              await TokenService.saveAccessToken(newAccessToken);
-            }
-
-            if (typeof newRefreshToken === 'string') {
-              await TokenService.saveRefreshToken(newRefreshToken);
-            }
-
-            return newAccessToken ?? null;
+            // No body needed — the refresh cookie carries the token, and the
+            // response's Set-Cookie headers update the browser's cookie jar
+            // (new access/refresh/csrf cookies) automatically.
+            await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+            return true;
           })();
 
-          const newToken = await refreshPromise;
+          await refreshPromise;
 
           isRefreshing = false;
           refreshPromise = null;
 
-          processQueue(null, newToken);
+          processQueue(null);
 
-          if (newToken) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return apiClient(originalRequest);
-          }
-
-          throw new Error('Refresh failed');
+          return apiClient(originalRequest);
         }
 
         return new Promise((resolve, reject) => {
           requestQueue.push({
-            resolve: (token: string) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              resolve(apiClient(originalRequest));
-            },
+            resolve: () => resolve(apiClient(originalRequest)),
             reject,
           });
         });
@@ -150,9 +132,7 @@ apiClient.interceptors.response.use(
         isRefreshing = false;
         refreshPromise = null;
 
-        processQueue(err, null);
-
-        await TokenService.clearTokens();
+        processQueue(err);
 
         emitUnauthorized();
 

@@ -86,7 +86,9 @@ async function registerForPushNotificationsAsync() {
       token = (await Notifications.getExpoPushTokenAsync({
         projectId,
       })).data;
-      console.log("push token", token);
+      if (__DEV__) {
+        console.log("push token", token);
+      }
     } catch (e: any) {
       console.warn("Failed to get push token (FCM credentials may not be compiled into the native build):", e.message || e);
     }

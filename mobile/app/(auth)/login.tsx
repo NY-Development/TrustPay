@@ -376,7 +376,7 @@ export default function Login() {
                     className="w-16 h-16 rounded-full items-center justify-center border border-primary/20 shadow-sm active:scale-95"
                   >
                     <Ionicons
-                      name={Platform.OS === 'ios' ? 'face-id' : 'finger-print'}
+                      name={Platform.OS === 'ios' ? 'scan-outline' : 'finger-print'}
                       size={32}
                       color={themePrimary}
                     />

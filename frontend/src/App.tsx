@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { PublicLayout } from './layouts/PublicLayout';
 import { DashboardLayout } from './layouts/DashboardLayout';
@@ -9,51 +9,58 @@ import { PublicOnlyRoute } from './components/PublicOnlyRoute';
 import { ThemeToggle } from './components/ThemeToggle';
 
 // Public pages
-import HomePage from './pages/HomePage';
-import FeaturesPage from './pages/FeaturesPage';
-import PricingPage from './pages/PricingPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import LegalPage from './pages/LegalPage';
+const HomePage = lazy(() => import('./pages/HomePage'));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 // Auth pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import VerifyEmailPage from './pages/auth/VerifyEmailPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import SecurityPage from './pages/SecurityPage';
-import TermsPage from './pages/TermsOfUsePage';
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const SecurityPage = lazy(() => import('./pages/SecurityPage'));
+const TermsPage = lazy(() => import('./pages/TermsOfUsePage'));
 
 // Dashboard pages
-import DashboardPage from './pages/dashboard/DashboardPage';
-import VerificationPage from './pages/dashboard/VerificationPage';
-import ManualVerificationPage from './pages/dashboard/ManualVerificationPage';
-import VerificationDetailPage from './pages/dashboard/VerificationDetailPage';
-import AuditPage from './pages/dashboard/AuditPage';
-import AnalyticsPage from './pages/dashboard/AnalyticsPage';
-import NotificationsPage from './pages/dashboard/NotificationsPage';
-import ExportPage from './pages/dashboard/ExportPage';
-import ProfilePage from './pages/dashboard/ProfilePage';
-import BranchesPage from './pages/dashboard/BranchesPage';
-import BranchDetailPage from './pages/dashboard/BranchDetailPage';
-import EmployeesPage from './pages/dashboard/EmployeesPage';
-import EmployeeDetailPage from './pages/dashboard/EmployeeDetailPage';
-import CommunicationsPage from './pages/dashboard/CommunicationsPage';
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const VerificationPage = lazy(() => import('./pages/dashboard/VerificationPage'));
+const ManualVerificationPage = lazy(() => import('./pages/dashboard/ManualVerificationPage'));
+const VerificationDetailPage = lazy(() => import('./pages/dashboard/VerificationDetailPage'));
+const AuditPage = lazy(() => import('./pages/dashboard/AuditPage'));
+const AnalyticsPage = lazy(() => import('./pages/dashboard/AnalyticsPage'));
+const NotificationsPage = lazy(() => import('./pages/dashboard/NotificationsPage'));
+const ExportPage = lazy(() => import('./pages/dashboard/ExportPage'));
+const ProfilePage = lazy(() => import('./pages/dashboard/ProfilePage'));
+const BranchesPage = lazy(() => import('./pages/dashboard/BranchesPage'));
+const BranchDetailPage = lazy(() => import('./pages/dashboard/BranchDetailPage'));
+const EmployeesPage = lazy(() => import('./pages/dashboard/EmployeesPage'));
+const EmployeeDetailPage = lazy(() => import('./pages/dashboard/EmployeeDetailPage'));
+const CommunicationsPage = lazy(() => import('./pages/dashboard/CommunicationsPage'));
 
 // Admin pages
 import { AdminLayout } from './layouts/AdminLayout';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminVerificationsPage from './pages/admin/AdminVerificationsPage';
-import AdminSubscriptionsPage from './pages/admin/AdminSubscriptionsPage';
-import AdminAuditLogsPage from './pages/admin/AdminAuditLogsPage';
-import AdminLicensesPage from './pages/admin/AdminLicensesPage';
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminVerificationsPage = lazy(() => import('./pages/admin/AdminVerificationsPage'));
+const AdminSubscriptionsPage = lazy(() => import('./pages/admin/AdminSubscriptionsPage'));
+const AdminAuditLogsPage = lazy(() => import('./pages/admin/AdminAuditLogsPage'));
+const AdminLicensesPage = lazy(() => import('./pages/admin/AdminLicensesPage'));
+
+const RouteFallback: React.FC = () => (
+  <div className="flex items-center justify-center min-h-screen bg-[#faf8ff] dark:bg-[#0b0e14]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004bca]" />
+  </div>
+);
 
 export default function App() {
   return (
     <>
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public Pages */}
       <Route element={<PublicLayout />}>
@@ -115,6 +122,7 @@ export default function App() {
       {/* Fallback Catch-All */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
     <ThemeToggle />
     </>
   );

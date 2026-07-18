@@ -14,13 +14,16 @@ import { JwtAccessPayload } from '../types';
 export const authenticate = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   let token: string | undefined;
 
-  // 1. Get token from cookie
-  if (req.cookies && req.cookies[ACCESS_TOKEN_COOKIE]) {
-    token = req.cookies[ACCESS_TOKEN_COOKIE];
-  }
-  // 2. Fallback to Authorization header
-  else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  // 1. Prefer the Authorization header — an explicit, deliberate credential
+  //    from a Bearer client (mobile). Checking it first avoids a stray/stale
+  //    platform-level cookie (mobile's HTTP client also sends
+  //    withCredentials: true) shadowing a freshly-refreshed Bearer token.
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  }
+  // 2. Fallback to the httpOnly cookie (web).
+  else if (req.cookies && req.cookies[ACCESS_TOKEN_COOKIE]) {
+    token = req.cookies[ACCESS_TOKEN_COOKIE];
   }
 
   if (!token) {

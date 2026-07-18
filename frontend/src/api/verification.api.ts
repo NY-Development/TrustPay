@@ -37,7 +37,9 @@ export const verificationApi = {
   },
   verifyOcr: async (data: any) => {
     const response = await apiClient.post<ApiResponse<VerificationRecord & { extracted?: any }>>('/verifications/verify-ocr', data);
-    console.log('Response of verifications : ', response.data);
+    if (import.meta.env.DEV) {
+      console.log('Response of verifications : ', response.data);
+    }
     return response.data;
   },
   // Updated with query parameters to interact cleanly with getMyVerifications

@@ -1,5 +1,12 @@
 import packageJson from './package.json';
 
+// Cleartext (plaintext HTTP) traffic is only ever needed for local dev
+// against a LAN IP dev server — eas.json already points preview/production
+// builds at an https:// API URL. Deriving this from the effective API URL
+// means shipped builds never carry the plaintext-traffic permission at all.
+const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.4:5000/api/v1';
+const usesCleartextTraffic = apiUrl.startsWith('http://');
+
 export default {
   expo: {
     name: "TrustPay",
@@ -32,7 +39,7 @@ export default {
       versionCode: 1,
       minSdkVersion: 26,
       googleServicesFile: "./google-services.json",
-      usesCleartextTraffic: true,
+      usesCleartextTraffic,
     },
     web: {
       "bundler": "metro",

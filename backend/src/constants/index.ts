@@ -134,6 +134,10 @@ export const COOKIE_OPTIONS = {
 
 export const ACCESS_TOKEN_COOKIE = 'accessToken';
 export const REFRESH_TOKEN_COOKIE = 'refreshToken';
+// Deliberately NOT httpOnly — the double-submit CSRF pattern requires the
+// frontend to be able to read this value and echo it back as a header.
+export const CSRF_TOKEN_COOKIE = 'csrf_token';
+export const CSRF_HEADER = 'x-csrf-token';
 
 // ─── Audit Actions ────────────────────────────
 export const AUDIT_ACTIONS = {

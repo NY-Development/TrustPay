@@ -36,7 +36,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Register for push notifications and save token
     registerForPushNotificationsAsync().then(token => {
       if (token && isMounted) {
-        console.log('📲 [NotificationProvider] Expo Push Token:', token);
+        if (__DEV__) {
+          console.log('📲 [NotificationProvider] Expo Push Token:', token);
+        }
         // Save to backend via authStore
         if (user && token !== user.pushToken) {
           updatePushToken(token);
@@ -134,7 +136,9 @@ async function registerForPushNotificationsAsync(): Promise<string | undefined> 
         projectId,
       })).data;
 
-      console.log('✅ [NotificationProvider] Push Token Retrieved:', token);
+      if (__DEV__) {
+        console.log('✅ [NotificationProvider] Push Token Retrieved:', token);
+      }
     } catch (e: any) {
       console.warn(
         '⚠️ [NotificationProvider] Failed to get push token (FCM credentials may not be compiled into the native build):',
