@@ -16,3 +16,21 @@
 {"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T16:21:12.610Z"}
 {"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a5ba7fbb05635b053c9fc29","timestamp":"2026-07-18T16:21:15.383Z"}
 {"level":"error","message":"Error: Account already exists on this branch.","method":"POST","path":"/api/v1/branches/6a5ba7fdb05635b053c9fc77/accounts","timestamp":"2026-07-18T16:21:17.183Z"}
+{"level":"error","message":"Error: Access denied. Owners only.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T16:49:58.541Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T16:50:00.263Z"}
+{"level":"error","message":"Error: An account with this email address already exists.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-18T16:50:01.985Z"}
+{"level":"error","message":"Error: Access denied: Employee belongs to another company.","method":"GET","path":"/api/v1/employees/6a5baec09fe0c05123db7f2d","timestamp":"2026-07-18T16:50:09.340Z"}
+{"level":"error","message":"Error: Employee not found.","method":"GET","path":"/api/v1/employees/6a5baec89fe0c05123db7fd2","timestamp":"2026-07-18T16:50:17.193Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-18T16:50:17.217Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-18T16:50:23.791Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T16:50:26.374Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-18T16:50:26.405Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T16:50:27.153Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-18T16:50:28.672Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T16:50:29.326Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-18T16:50:30.127Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-18T16:50:34.429Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-18T16:50:37.448Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-18T16:50:42.503Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a5baee33c5b2156e16933d0","timestamp":"2026-07-18T16:50:43.785Z"}
+{"level":"error","message":"Error: Account already exists on this branch.","method":"POST","path":"/api/v1/branches/6a5baee53c5b2156e169341e/accounts","timestamp":"2026-07-18T16:50:45.048Z"}

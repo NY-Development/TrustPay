@@ -3,6 +3,13 @@ import { env } from './env';
 import { logger } from './logger';
 
 export const connectDatabase = async (): Promise<void> => {
+  // Idempotent: app.ts (serverless entry) and server.ts (traditional
+  // entry) can both call this — skip re-connecting if a connection is
+  // already established or in progress rather than racing two connects.
+  if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+    return;
+  }
+
   try {
     const conn = await mongoose.connect(env.MONGODB_URI, {
       maxPoolSize: 10,
