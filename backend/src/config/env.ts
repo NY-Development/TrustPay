@@ -23,7 +23,12 @@ const envSchema = z.object({
   // *.vercel.app deployment needs — a mismatched Domain attribute makes the
   // browser silently drop the Set-Cookie header entirely.
   COOKIE_DOMAIN: z.string().optional(),
-  COOKIE_SECURE: z.string().transform((val) => val === 'true').default('false'),
+  // Deliberately no default — undefined (not set at all) is distinct from an
+  // explicit "false", so buildCookieOptions() can tell "not configured, infer
+  // from NODE_ENV" apart from "explicitly overridden" (e.g. testing
+  // NODE_ENV=production locally over plain HTTP, where a Secure cookie would
+  // otherwise be silently dropped by the browser).
+  COOKIE_SECURE: z.string().transform((val) => val === 'true').optional(),
 
   // CORS
   CORS_ORIGIN: z.string().default('http://localhost:8081'),

@@ -19,14 +19,22 @@ import { JwtAccessPayload, JwtRefreshPayload } from '../types';
  * browsers mandate) works regardless of domain topology, at the cost of no
  * longer getting CSRF protection "for free" from SameSite — that's why the
  * CSRF double-submit middleware exists alongside this.
+ *
+ * `secure` defaults to `isProduction` but always defers to an explicit
+ * COOKIE_SECURE — needed to test NODE_ENV=production locally over plain
+ * HTTP, where a `Secure` cookie would otherwise be silently dropped by the
+ * browser (real deployments should leave COOKIE_SECURE unset and get the
+ * safe production default instead). `sameSite: 'none'` requires `Secure`,
+ * so it's only used when both conditions hold.
  */
 const buildCookieOptions = () => {
   const isProduction = env.NODE_ENV === 'production';
+  const secure = env.COOKIE_SECURE ?? isProduction;
 
   return {
     ...COOKIE_OPTIONS,
-    secure: isProduction ? true : env.COOKIE_SECURE,
-    sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    secure,
+    sameSite: secure && isProduction ? ('none' as const) : ('lax' as const),
     // Only scope to a domain when explicitly configured (shared parent domain
     // setups). Omitting it defaults the cookie to the exact request host.
     ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),

@@ -6,56 +6,6 @@
     "auditLog": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\.4f6c120c7559a73005dd6e7f993617a690d6cbbf-audit.json",
     "files": [
         {
-            "date": 1783184489146,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-04-20.log",
-            "hash": "3e64a7a7ba63bec5ab07a8a21cc9532116b0c1ff7e9c85c3c717aeb752163e76"
-        },
-        {
-            "date": 1783189767189,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-04-21.log",
-            "hash": "cce1b197ec3d556caaa509fdd288ac0ddf100c7eab6f79154aeb2d51d9b3b61e"
-        },
-        {
-            "date": 1783195866399,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-04-23.log",
-            "hash": "f59a7f30a2764606f3168705d0de7ac65a6967fc7284689969c366d37223d38b"
-        },
-        {
-            "date": 1783217320865,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-05.log",
-            "hash": "0311878532c317de61e1d6881f20d0ad81bff2c4a153ea9f917571bbb08e7d32"
-        },
-        {
-            "date": 1783220845940,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-06.log",
-            "hash": "ca25d662626ff67455b537c77e4ec4bbaeb8636ab619d679986ad3386420dbcc"
-        },
-        {
-            "date": 1783225765660,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-07.log",
-            "hash": "8ed2b5dfd3d92b8b169faad47c1847fbfe7ed5d358c90f1c1cda1b62d7078658"
-        },
-        {
-            "date": 1783227604041,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-08.log",
-            "hash": "f60bb8ccea549cb9eeb26f44671c94cdbb4f7634deb07245380c2d8ebbb01ad5"
-        },
-        {
-            "date": 1783232519164,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-09.log",
-            "hash": "bd2655d6386906632c5d0e8a5568f47c6429993809d4cec500e278d63812694f"
-        },
-        {
-            "date": 1783235617535,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-10.log",
-            "hash": "2b47ef3fe98307b4a63e0f4fec144e27dd7f6ca33f2ccc9e1b4b8e9b29aeb4aa"
-        },
-        {
-            "date": 1783239585445,
-            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-11.log",
-            "hash": "a203ecb87c7a1bf11ffa4daab12f2db70a84be86199ddc54ad3d446521182e46"
-        },
-        {
             "date": 1783242048592,
             "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-05-12.log",
             "hash": "634702600d9c87627bc6f37b8444541108d7ddfd045a97987b305381436a0005"
@@ -279,6 +229,11 @@
             "date": 1784391637648,
             "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-18-19.log",
             "hash": "d0c500f12ea52ddbfaaf695cf10cfebe413167acf3b3454d1ceb88637d651450"
+        },
+        {
+            "date": 1784449522022,
+            "name": "C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\logs\\application-2026-07-19-11.log",
+            "hash": "94451c20880a5449c1279e920f5a461cbbfab5a6a9a468cb26fc110050e48e06"
         }
     ],
     "hashType": "sha256"
