@@ -68,9 +68,14 @@ export const setupSecurityMiddleware = (app: any) => {
     })
   );
 
-  // Parse comma-separated origins into an array, removing any accidental whitespace
-  const allowedOrigins = env.CORS_ORIGIN 
-    ? env.CORS_ORIGIN.split(',').map(origin => origin.trim()) 
+  // Parse comma-separated origins into an array. A browser's Origin header
+  // never has a trailing slash, so strip one if present — the `cors`
+  // package does an exact string match, and a stray trailing slash in the
+  // env var (an easy copy-paste mistake) makes it silently reject an origin
+  // that looks correct at a glance, with no Access-Control-Allow-Origin
+  // header on the response as the only symptom.
+  const allowedOrigins = env.CORS_ORIGIN
+    ? env.CORS_ORIGIN.split(',').map(origin => origin.trim().replace(/\/+$/, ''))
     : [];
 
   // Enable CORS
@@ -79,7 +84,7 @@ export const setupSecurityMiddleware = (app: any) => {
       origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
     })
   );
 

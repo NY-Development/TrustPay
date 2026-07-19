@@ -11,5 +11,9 @@ const readCookie = (name: string): string | null => {
 };
 
 export const TokenService = {
-  getCsrfToken: (): string | null => readCookie(CSRF_COOKIE),
+  getCsrfToken: (): string | null => {
+    const token = readCookie(CSRF_COOKIE);
+    console.log("CSRF Token retrieved:", token); // Debugging: Check if this logs 'null'
+    return token;
+  },
 };

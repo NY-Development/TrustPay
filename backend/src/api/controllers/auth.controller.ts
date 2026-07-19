@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { User } from '../../models/User';
 import { Employee } from '../../models/Employee';
@@ -14,10 +15,27 @@ import {
   NotFoundError,
   BadRequestError
 } from '../../utils/AppError';
-import { REFRESH_TOKEN_COOKIE } from '../../constants';
 import { JwtRefreshPayload, JwtAccessPayload } from '../../types';
 import { sendEmail } from '../../utils/email';
 import { NotificationService } from '../../services/notification.service';
+// Add CSRF_TOKEN_COOKIE to the import list
+import { REFRESH_TOKEN_COOKIE, CSRF_TOKEN_COOKIE } from '../../constants';
+
+
+export const getCsrfToken = asyncHandler(async (req: Request, res: Response) => {
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  
+  // Set the cookie so the browser stores it
+  res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
+    httpOnly: false,
+    secure: false, // For local dev
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+
+  res.json({ csrfToken });
+});
+
 
 /* =========================================================
    OWNER REGISTER WIZARD (CONSOLIDATED FLOW)

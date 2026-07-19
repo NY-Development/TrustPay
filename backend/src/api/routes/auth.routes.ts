@@ -12,6 +12,8 @@ import {
 
 const router = Router();
 
+router.get('/csrf-token', authController.getCsrfToken);
+
 /* =========================================================
    AUTH CORE
 ========================================================= */

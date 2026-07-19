@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useBranchVerificationHistory } from '@/src/hooks/useVerification';
-import { Link } from 'react-router-dom';
-import SubscriptionModal from '@/src/components/SubscriptionModal';
+import { Link, useNavigate } from 'react-router-dom';
 import BranchSelector from '@/src/components/BranchSelector';
 import {
   Area,
@@ -24,7 +23,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { useAuthStore } from '@/src/store/authStore';
-import { useSubscriptionStatus } from '@/src/hooks/useSubscription'; // Import hook[cite: 19]
+import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 
 const COLORS = ["#004bca", "#7c3aed", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
@@ -34,25 +33,18 @@ const chartConfig = {
 
 export default function DashboardPage() {
   const { user, selectedBranch, viewAllBranches } = useAuthStore();
+  const navigate = useNavigate();
   const scopeBranchId = viewAllBranches ? undefined : selectedBranch?._id;
   const { data, isLoading } = useBranchVerificationHistory({ branchId: scopeBranchId, limit: 50 });
-  const { data: subData } = useSubscriptionStatus(); // Fetch status[cite: 19, 20]
+  // Mandatory enforcement now lives in DashboardLayout (so it follows the
+  // user across every /dashboard/* route) — this page only reads status for
+  // its own metrics display, it doesn't own the modal.
+  const { data: subData } = useSubscriptionStatus();
 
-  const [modalVisible, setModalVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
 
   const allVerifications = data?.pages?.flatMap(page => page.data) || [];
   const verifications = allVerifications.slice(0, 5);
-
-  // Enforce modal visibility based on trial and subscription status[cite: 20, 21]
-  useEffect(() => {
-    const isTrialExpired = user?.trial?.trialEndDate && new Date(user.trial.trialEndDate) < new Date();
-    const isNotFullyPaid = subData?.data?.active !== true;
-
-    if (isTrialExpired && isNotFullyPaid) {
-      setModalVisible(true);
-    }
-  }, [user?.trial?.trialEndDate, subData]);
 
   // Countdown Logic
   useEffect(() => {
@@ -137,7 +129,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-2xl p-6 shadow-xs">
           <div className="flex justify-between items-center mb-1">
             <span className="text-[#54647a] dark:text-[#c2c6d9] text-xs font-semibold uppercase tracking-wider">Remaining Trial</span>
-            <button onClick={() => setModalVisible(true)} className="text-[10px] bg-[#004bca] text-white px-2 py-1 rounded font-bold hover:bg-[#003da1]">Upgrade</button>
+            <button onClick={() => navigate('/dashboard/pricing')} className="text-[10px] bg-[#004bca] text-white px-2 py-1 rounded font-bold hover:bg-[#003da1]">Upgrade</button>
           </div>
           <div className="mt-1">
             <span className="text-2xl font-bold text-[#004bca]">{subData?.data?.active ? 'Active' : timeLeft}</span>
@@ -223,14 +215,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-{/* Subscription Modal Enforced Visibility */}
-      <SubscriptionModal 
-        visible={modalVisible} 
-        canClose={subData?.data?.active === true} 
-        onClose={() => setModalVisible(false)} 
-        // Ensure subData.data.subscription is only passed if it exists
-        partialSubscription={subData?.data?.subscription ?? undefined}
-      />
     </div>
   );
 }

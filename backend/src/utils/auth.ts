@@ -29,14 +29,13 @@ import { JwtAccessPayload, JwtRefreshPayload } from '../types';
  */
 const buildCookieOptions = () => {
   const isProduction = env.NODE_ENV === 'production';
-  const secure = env.COOKIE_SECURE ?? isProduction;
+  // Force secure: false if not in production to ensure cookies set on localhost
+  const secure = isProduction ? (env.COOKIE_SECURE ?? true) : false;
 
   return {
     ...COOKIE_OPTIONS,
     secure,
-    sameSite: secure && isProduction ? ('none' as const) : ('lax' as const),
-    // Only scope to a domain when explicitly configured (shared parent domain
-    // setups). Omitting it defaults the cookie to the exact request host.
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
     ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
   };
 };

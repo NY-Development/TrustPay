@@ -45,16 +45,41 @@ async function getVerifierDetails(userId: string, actorType: string) {
     return {
       email: emp?.email || 'N/A',
       pushToken: emp?.pushToken,
-      name: emp?.name || 'Employee'
+      name: emp?.name || 'Employee',
+      role: emp?.role || 'employee'
     };
   } else {
     const owner = await User.findById(userId);
     return {
       email: owner?.email || 'N/A',
       pushToken: owner?.pushToken,
-      name: owner?.name || 'Owner'
+      name: owner?.name || 'Owner',
+      role: owner?.role || 'owner'
     };
   }
+}
+
+/**
+ * Resolves an existing Verification's original verifier + branch, for
+ * admin alert emails — the alert is far more actionable naming the actual
+ * person/branch than it is citing a bare Mongo ObjectId.
+ */
+async function getExistingVerificationContext(existing: { verifiedBy: any; verifiedByType: string; branchId: any; amount: number; currency: string; createdAt: Date }) {
+  const [verifiedBy, existingBranch] = await Promise.all([
+    getVerifierDetails(existing.verifiedBy?.toString(), existing.verifiedByType),
+    Branch.findById(existing.branchId),
+  ]);
+
+  return {
+    verifiedBy,
+    branch: {
+      branchName: existingBranch?.branchName || 'Unknown Branch',
+      branchCode: existingBranch?.branchCode || 'N/A',
+    },
+    amount: existing.amount,
+    currency: existing.currency,
+    verifiedAt: existing.createdAt,
+  };
 }
 
 /**
@@ -83,9 +108,14 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
   // 3. Check for duplicate (Idempotency)
   const existing = await Verification.findOne({ transactionId: reference.toUpperCase() });
   if (existing) {
-    adminAlertService.sendSuspiciousActivityAlert(
-      'Double Verification Attempt',
-      `User ID: ${userId} (${verifierInfo.email}) tried verifying reference: ${reference} which has already been verified under ID: ${existing._id}`
+    getExistingVerificationContext(existing).then((existingVerification) =>
+      adminAlertService.sendSuspiciousActivityAlert({
+        activityType: 'Double Verification Attempt',
+        reference,
+        attemptedBy: verifierInfo,
+        branch: { branchName: branch.branchName, branchCode: branch.branchCode },
+        existingVerification,
+      })
     ).catch(err => logger.error('Alert failed', err));
     throw new ConflictError('This transaction reference has already been verified.');
   }
@@ -121,13 +151,14 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
 
   if (!result.verified) {
     await logAudit(req, AUDIT_ACTIONS.VERIFY_PAYMENT_FAILED, { reference, provider: resolvedProvider, error: 'Provider reported invalid reference', branchId });
-    adminAlertService.sendVerificationFailedAlert(
-      'N/A',
-      reference,
-      'Provider reported invalid reference',
-      amountExpected || 0,
-      resolvedProvider
-    ).catch(err => logger.error('Alert failed', err));
+    adminAlertService.sendVerificationFailedAlert({
+      referenceNumber: reference,
+      reason: 'Provider reported invalid reference',
+      amount: amountExpected || 0,
+      provider: resolvedProvider,
+      branch: { branchName: branch.branchName, branchCode: branch.branchCode },
+      attemptedBy: verifierInfo,
+    }).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError('Payment verification failed. Invalid reference.');
   }
 
@@ -140,13 +171,14 @@ export const verifyManual = asyncHandler(async (req: Request, res: Response) => 
       settlementAccountMatch: result.settlementAccountMatch,
       branchId
     });
-    adminAlertService.sendVerificationFailedAlert(
-      'N/A',
-      reference,
-      `Settlement account mismatch: ${result.settlementAccountMatch.reason}`,
-      result.amount || 0,
-      resolvedProvider
-    ).catch(err => logger.error('Alert failed', err));
+    adminAlertService.sendVerificationFailedAlert({
+      referenceNumber: reference,
+      reason: `Settlement account mismatch: ${result.settlementAccountMatch.reason}`,
+      amount: result.amount || 0,
+      provider: resolvedProvider,
+      branch: { branchName: branch.branchName, branchCode: branch.branchCode },
+      attemptedBy: verifierInfo,
+    }).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError(
       `Settlement account mismatch. Reason: ${result.settlementAccountMatch.reason}`
     );
@@ -235,9 +267,14 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
   // 4. Check for duplicate
   const existing = await Verification.findOne({ transactionId: extracted.transactionId.toUpperCase() });
   if (existing) {
-    adminAlertService.sendSuspiciousActivityAlert(
-      'Double OCR Verification Attempt',
-      `User ID: ${userId} (${verifierInfo.email}) tried verifying reference: ${extracted.transactionId} which has already been verified under ID: ${existing._id}`
+    getExistingVerificationContext(existing).then((existingVerification) =>
+      adminAlertService.sendSuspiciousActivityAlert({
+        activityType: 'Double OCR Verification Attempt',
+        reference: extracted.transactionId!,
+        attemptedBy: verifierInfo,
+        branch: { branchName: branch.branchName, branchCode: branch.branchCode },
+        existingVerification,
+      })
     ).catch(err => logger.error('Alert failed', err));
     throw new ConflictError('Transaction already processed.');
   }
@@ -274,25 +311,27 @@ export const verifyOcr = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!result.verified) {
-    adminAlertService.sendVerificationFailedAlert(
-      'N/A',
-      extracted.transactionId,
-      'OCR verification reported invalid on provider check',
-      extracted.amount || amountExpected || 0,
-      resolvedProvider
-    ).catch(err => logger.error('Alert failed', err));
+    adminAlertService.sendVerificationFailedAlert({
+      referenceNumber: extracted.transactionId!,
+      reason: 'OCR verification reported invalid on provider check',
+      amount: extracted.amount || amountExpected || 0,
+      provider: resolvedProvider,
+      branch: { branchName: branch.branchName, branchCode: branch.branchCode },
+      attemptedBy: verifierInfo,
+    }).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError('Extracted reference is invalid or could not be verified.');
   }
 
   // 6. Settlement Account Match Check
   if (result.settlementAccountMatch && !result.verified) {
-    adminAlertService.sendVerificationFailedAlert(
-      'N/A',
-      extracted.transactionId,
-      `OCR settlement account mismatch: ${result.settlementAccountMatch.reason}`,
-      result.amount || 0,
-      resolvedProvider
-    ).catch(err => logger.error('Alert failed', err));
+    adminAlertService.sendVerificationFailedAlert({
+      referenceNumber: extracted.transactionId!,
+      reason: `OCR settlement account mismatch: ${result.settlementAccountMatch.reason}`,
+      amount: result.amount || 0,
+      provider: resolvedProvider,
+      branch: { branchName: branch.branchName, branchCode: branch.branchCode },
+      attemptedBy: verifierInfo,
+    }).catch(err => logger.error('Alert failed', err));
     throw new BadRequestError(
       `Settlement account mismatch. Reason: ${result.settlementAccountMatch.reason}`
     );

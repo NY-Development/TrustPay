@@ -25,6 +25,8 @@ export const mockEmployee = {
 };
 
 export const handlers = [
+  http.get(`${API_BASE}/auth/csrf-token`, () => HttpResponse.json({ csrfToken: 'test-csrf-value' })),
+
   http.post(`${API_BASE}/auth/login/owner`, async ({ request }) => {
     const body = (await request.json()) as any;
 

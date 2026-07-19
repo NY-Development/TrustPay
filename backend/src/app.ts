@@ -50,12 +50,17 @@ export const createApp = () => {
  * commands, on by default), so it's safe to kick off the connection here
  * without awaiting it — the first request or two may wait briefly on a cold
  * start, exactly like a normal Express app would if you connected on boot.
+ *
+ * Gated on `process.env.VERCEL` (set automatically by Vercel's runtime) —
+ * NOT on NODE_ENV. server.ts also imports this module (for `createApp`),
+ * and NODE_ENV=production is a legitimate thing to set locally (e.g. to
+ * test production cookie behavior) without actually running under Vercel.
+ * Tying this to NODE_ENV instead of VERCEL would race server.ts's own
+ * `connectDatabase()` call against this one, and if the DB happened to be
+ * briefly unreachable, `connectDatabase()`'s `process.exit(1)` would kill
+ * the whole local server out from under an already-listening app.
  */
-// Skip in tests: tests/helpers.ts imports `createApp` from this same module,
-// which would otherwise trigger this against MONGODB_URI's placeholder value
-// in .env.test — tests manage their own mongodb-memory-server connection
-// instead (see tests/setup.ts).
-if (env.NODE_ENV !== 'test' && mongoose.connection.readyState === 0) {
+if (process.env.VERCEL && mongoose.connection.readyState === 0) {
   connectDatabase().catch((err) => {
     logger.error('Serverless entry: database connection failed:', err);
   });

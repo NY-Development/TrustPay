@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
+import SubscriptionModal from '../components/SubscriptionModal';
 
 export const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -16,6 +18,22 @@ export const DashboardLayout: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(collapsed));
   }, [collapsed]);
+
+  // Mandatory subscription enforcement — lives here (not on a single page)
+  // specifically so it follows the user across every /dashboard/* route.
+  // Previously this only lived on DashboardPage, so navigating to any other
+  // page (verify, employees, profile, ...) silently bypassed it entirely.
+  const { data: subData } = useSubscriptionStatus();
+  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
+
+  useEffect(() => {
+    const isTrialExpired = !!user?.trial?.trialEndDate && new Date(user.trial.trialEndDate) < new Date();
+    const isNotFullyPaid = subData?.data?.active !== true;
+
+    if (isTrialExpired && isNotFullyPaid) {
+      setSubscriptionModalVisible(true);
+    }
+  }, [user?.trial?.trialEndDate, subData]);
 
   const handleLogout = async () => {
     await logout();
@@ -167,6 +185,15 @@ export const DashboardLayout: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Mandatory subscription modal — overlays whichever /dashboard/* route
+          is active, not just the overview page. */}
+      <SubscriptionModal
+        visible={subscriptionModalVisible}
+        canClose={subData?.data?.active === true}
+        onClose={() => setSubscriptionModalVisible(false)}
+        partialSubscription={subData?.data?.subscription ?? undefined}
+      />
     </div>
   );
 };
