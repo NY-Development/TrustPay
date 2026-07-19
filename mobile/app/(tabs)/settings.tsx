@@ -9,8 +9,9 @@ import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
 import { useSubscriptionStatus } from '@/src/hooks/useSubscription';
 import SubscriptionModal from '@/src/components/SubscriptionModal';
-import { useTranslation, Trans } from 'react-i18next'; // 👈 Import Translation
-import { useLanguage } from '@/src/providers/LanguageProvider'; // 👈 Import Custom Language Hook
+import { useTranslation, Trans } from 'react-i18next';
+import { useLanguage } from '@/src/providers/LanguageProvider';
+import { StatusModal } from '@/src/components/StatusModal';
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -25,6 +26,20 @@ export default function Settings() {
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   const [showLangSelection, setShowLangSelection] = React.useState(false);
   
+  // Language selection warning info
+  const [showLangWarning, setShowLangWarning] = React.useState(false);
+  const [pendingLang, setPendingLang] = React.useState<string | null>(null);
+  const handleLanguageSelect = async (lang: string) => {
+    if (lang === "am" || lang === "oro") {
+      setPendingLang(lang);
+      setShowLangSelection(false);
+      setShowLangWarning(true);
+    } else {
+      await changeLanguage(lang);
+      setShowLangSelection(false);
+    }
+  };
+
   const { data: statusResponse, isLoading } = useSubscriptionStatus();
   
   const isSubscriptionActive = statusResponse?.data?.active ?? false;
@@ -303,10 +318,7 @@ export default function Settings() {
             <Text className="text-foreground text-xl font-black mb-5 px-2">{t('settings.languageTitle')}</Text>
 
             <TouchableOpacity
-              onPress={async () => {
-                await changeLanguage('en');
-                setShowLangSelection(false);
-              }}
+              onPress={() => handleLanguageSelect('en')}
               className={`h-16 rounded-2xl px-5 flex-row items-center justify-between mb-3 border ${
                 currentLanguage === 'en' ? 'bg-primary/10 border-primary' : 'bg-muted/50 border-transparent'
               }`}
@@ -316,10 +328,7 @@ export default function Settings() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={async () => {
-                await changeLanguage('am');
-                setShowLangSelection(false);
-              }}
+              onPress={() => handleLanguageSelect('am')}
               className={`h-16 rounded-2xl px-5 flex-row items-center justify-between mb-6 border ${
                 currentLanguage === 'am' ? 'bg-primary/10 border-primary' : 'bg-muted/50 border-transparent'
               }`}
@@ -329,10 +338,7 @@ export default function Settings() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={async () => {
-                await changeLanguage('oro');
-                setShowLangSelection(false);
-              }}
+              onPress={() => handleLanguageSelect('oro')}
               className={`h-16 rounded-2xl px-5 flex-row items-center justify-between mb-6 border ${
                 currentLanguage === 'oro' ? 'bg-primary/10 border-primary' : 'bg-muted/50 border-transparent'
               }`}
@@ -386,6 +392,19 @@ export default function Settings() {
           </View>
         </View>
       </Modal>
+      <StatusModal
+        visible={showLangWarning}
+        type="info"
+        title="Trial Translation Notice"
+        message="Amharic and Oromic are currently in trial/testing. We are not responsible for misunderstandings. English is the primary language for this app."
+        onClose={() => {
+          setShowLangWarning(false);
+          if (pendingLang) {
+            changeLanguage(pendingLang);
+            setPendingLang(null);
+          }
+        }}
+      />
     </View>
   );
 }

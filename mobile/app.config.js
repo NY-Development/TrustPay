@@ -62,7 +62,11 @@ export default {
             "extraMavenRepos": [
               "https://www.jitpack.io",
               "https://oss.sonatype.org/content/repositories/snapshots/"
-            ]
+            ],
+            "extraGradleProperties": {
+              "android.useAndroidX": "true",
+              "android.enableJetifier": "true",
+            },
           }
         }
       ],

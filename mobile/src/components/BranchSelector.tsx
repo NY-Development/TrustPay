@@ -75,7 +75,7 @@ export default function BranchSelector() {
 
       <Modal visible={isOpen} animationType="slide" transparent={true} statusBarTranslucent>
         <View className="flex-1 bg-black/40 justify-end">
-          <View className="bg-card rounded-t-3xl pt-4 pb-10 px-6 border-t border-border max-h-[80%] shadow-2xl">
+          <View className="bg-card rounded-t-3xl pt-4 pb-40 px-6 border-t border-border max-h-[80%] shadow-2xl">
             {/* Grabber Handle */}
             <View className="w-12 h-1.5 bg-muted rounded-full self-center mb-6" />
 
