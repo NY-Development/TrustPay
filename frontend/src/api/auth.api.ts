@@ -2,21 +2,15 @@ import { apiClient } from './client';
 import type{ ApiResponse, User } from '../types';
 
 export const authApi = {
-  getCsrfToken: async () => {
-    return await apiClient.get('/auth/csrf-token');
-  },
   login: async (data: any) => {
-    await authApi.getCsrfToken();
     const response = await apiClient.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/login', data);
     return response.data;
   },
   loginOwner: async (data: any) => {
-    await authApi.getCsrfToken();
     const response = await apiClient.post<ApiResponse<{ user: User; selectedBranch: any; accessToken: string; refreshToken: string }>>('/auth/login/owner', data);
     return response.data;
   },
   loginEmployee: async (data: any) => {
-    await authApi.getCsrfToken();
     const response = await apiClient.post<ApiResponse<{ user: any; branch: any; accessToken: string; refreshToken: string }>>('/auth/login/employee', data);
     return response.data;
   },
