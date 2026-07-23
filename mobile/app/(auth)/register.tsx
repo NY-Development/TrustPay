@@ -6,10 +6,29 @@ import { useRegister } from '@/src/hooks/useAuth';
 import { StatusModal } from '@/src/components/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import { Image } from '@/components/ui/expo-image';
+import { PublicStatsBar } from '@/components/PublicStatsBar';
+import { AuthHelpModal } from '@/components/AuthHelpModal';
+import { Storage, STORAGE_KEYS } from '@/src/utils/storage';
 
 export default function Register() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  const [authHelpVisible, setAuthHelpVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkFirstVisit = async () => {
+      const seen = await Storage.getItem<boolean>(STORAGE_KEYS.HAS_SEEN_AUTH_HELP);
+      if (!seen) setAuthHelpVisible(true);
+    };
+    checkFirstVisit();
+  }, []);
+
+  const closeAuthHelp = () => {
+    setAuthHelpVisible(false);
+    Storage.setItem(STORAGE_KEYS.HAS_SEEN_AUTH_HELP, true);
+  };
 
   // Step Tracker
   const [step, setStep] = React.useState(1);
@@ -164,9 +183,32 @@ export default function Register() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <TouchableOpacity
+        onPress={() => setAuthHelpVisible(true)}
+        activeOpacity={0.7}
+        className="absolute top-4 right-6 z-20 flex-row items-center gap-1 bg-muted border border-border rounded-full px-3 py-2"
+      >
+        <Ionicons name="information-circle-outline" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
+        <Text className="text-foreground text-xs font-semibold">How this works</Text>
+      </TouchableOpacity>
+
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
         <ScrollView className="flex-1 px-6 py-4" contentContainerStyle={{ flexGrow: 1 }}>
-          
+
+          {step === 1 && (
+            <View className="items-center mb-6">
+              <View className="w-14 h-14 rounded-2xl bg-white shadow-md overflow-hidden mb-4">
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                  contentPosition={{ top: '22%' }}
+                />
+              </View>
+              <PublicStatsBar />
+            </View>
+          )}
+
           {/* Top Progress bar Indicator */}
           <View className="flex-row justify-between items-center mb-6 pt-4">
             <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
@@ -537,6 +579,7 @@ export default function Register() {
           if (modal.type === 'success') router.replace('/(tabs)');
         }}
       />
+      <AuthHelpModal visible={authHelpVisible} onClose={closeAuthHelp} />
     </SafeAreaView>
   );
 }

@@ -7,6 +7,7 @@ import verificationRoutes from './verification.routes';
 import subscriptionRoutes from './subscription.routes';
 import contactRoutes from './contact.routes';
 import adminRoutes from './admin.routes';
+import publicRoutes from './public.routes';
 
 export const setupRoutes = (app: Express) => {
   const API_PREFIX = '/api/v1';
@@ -19,6 +20,7 @@ export const setupRoutes = (app: Express) => {
   app.use(`${API_PREFIX}/subscriptions`, subscriptionRoutes);
   app.use(`${API_PREFIX}/contact`, contactRoutes);
   app.use(`${API_PREFIX}/admin`, adminRoutes);
+  app.use(`${API_PREFIX}/public`, publicRoutes);
 
   // Health check
   app.get('/health', (req, res) => {

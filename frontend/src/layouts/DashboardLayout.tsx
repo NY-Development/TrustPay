@@ -60,7 +60,9 @@ export const DashboardLayout: React.FC = () => {
       }`}>
         <div className="mb-8 px-2 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            <span className="material-symbols-outlined text-[32px] text-white shrink-0">shield</span>
+            <div className="w-9 h-9 rounded-lg bg-white shadow-sm overflow-hidden shrink-0">
+              <img src="/logo.png" alt="Trust Pay" className="w-full h-full object-cover" style={{ objectPosition: '50% 22%' }} />
+            </div>
             {!collapsed && (
               <div className="transition-opacity duration-300">
                 <h1 className="text-lg font-bold text-white leading-tight whitespace-nowrap">Trust Pay Admin</h1>

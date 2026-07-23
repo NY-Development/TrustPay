@@ -9,7 +9,7 @@ const usesCleartextTraffic = apiUrl.startsWith('http://');
 
 export default {
   expo: {
-    name: "TrustPay",
+    name: "Trust Pay",
     slug: "TrustPay",
     version: packageJson.version,
     orientation: "portrait",
@@ -96,13 +96,13 @@ export default {
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow TrustPay Mobile to access your camera to scan invoices, receipts, and documents."
+          "cameraPermission": "Allow Trust Pay to access the camera to scan payment receipts and transaction references for verification."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow TrustPay Mobile to access your photo library to select and upload stored receipt images."
+          "photosPermission": "Allow Trust Pay to access your photo library to select and upload stored receipt images."
         }
       ],
       "expo-font",

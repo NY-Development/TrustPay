@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, type Variants } from 'framer-motion';
+import { motion, useInView, type Variants } from 'framer-motion';
 import gsap from 'gsap';
+import { usePublicStats } from '@/src/hooks/usePublicStats';
 
 // --- INTERFACES ---
 interface PhysicsObject {
@@ -112,21 +113,88 @@ function HeroInteractivePhysics() {
   return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none w-full h-full -z-10" />;
 }
 
-// --- TRUSTED BY COMPONENT ---
-// --- ANIMATED TRUSTED BY COMPONENT ---
-function TrustedBy() {
-  const organizations: { id: number; name: string }[] = [
-    // { id: 1, name: "AYU HOTEL" },
-    // { id: 2, name: "FILAGOT HOTEL" },
-    // { id: 3, name: "DINA RESTAURANT" },
-    // { id: 4, name: "DEMBEL HOTEL" },
-    // { id: 5, name: "ROOBE HOTEL" }
+// --- ANIMATED COUNT-UP (for the stats band + trusted-by numbers) ---
+function AnimatedCounter({ value, suffix = '', duration = 1.4 }: { value: number; suffix?: string; duration?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const [display, setDisplay] = React.useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    let raf: number;
+    const start = performance.now();
+    const from = 0;
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / (duration * 1000), 1);
+      // Ease-out cubic — quick start, gentle settle.
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + (value - from) * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, value, duration]);
+
+  return (
+    <span ref={ref}>
+      {display.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
+// --- STATS BAND: live platform numbers ---
+function StatsBand() {
+  const { data } = usePublicStats();
+  const stats = data?.data;
+
+  const items = [
+    { label: 'Registered Businesses', value: stats?.companies ?? 0, suffix: '+' },
+    { label: 'Active Branches', value: stats?.branches ?? 0, suffix: '+' },
+    { label: 'Payments Verified', value: stats?.verifications ?? 0, suffix: '+' },
+    { label: 'Verification Accuracy', value: stats?.successRate ?? 0, suffix: '%' },
   ];
 
   return (
-    <section className="py-12 border-b border-border bg-background">
+    <section className="py-16 bg-primary text-primary-foreground relative overflow-hidden">
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
+      <div className="max-w-[1280px] mx-auto px-6 relative z-10">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-6 text-center"
+        >
+          {items.map((item) => (
+            <motion.div key={item.label} variants={fadeUpItem}>
+              <div className="font-heading text-4xl md:text-5xl font-bold tracking-tight mb-2">
+                <AnimatedCounter value={item.value} suffix={item.suffix} />
+              </div>
+              <div className="text-[13px] font-semibold uppercase tracking-widest text-primary-foreground/75">
+                {item.label}
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// --- TRUSTED BY COMPONENT (live, from registered businesses) ---
+function TrustedBy() {
+  const { data, isLoading } = usePublicStats();
+  const organizations = data?.data?.trustedCompanies ?? [];
+
+  if (!isLoading && organizations.length === 0) return null;
+
+  return (
+    <section className="py-14 border-b border-border bg-background">
       <div className="max-w-[1280px] mx-auto px-6 text-center">
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -134,23 +202,28 @@ function TrustedBy() {
         >
           Trusted by leading establishments
         </motion.p>
-        
-        <motion.div 
+
+        <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-60"
+          className="flex flex-wrap justify-center items-center gap-3"
         >
-          {organizations.map((org) => (
-            <motion.span 
-              key={org.id} 
-              variants={fadeUpItem}
-              className="font-heading text-lg font-bold text-foreground"
-            >
-              {org.name}
-            </motion.span>
-          ))}
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-9 w-32 rounded-full bg-muted animate-pulse" />
+              ))
+            : organizations.map((org, i) => (
+                <motion.span
+                  key={`${org.name}-${i}`}
+                  variants={fadeUpItem}
+                  className="px-5 py-2.5 rounded-full border border-border bg-card font-heading text-sm font-semibold text-foreground/80 hover:text-primary hover:border-primary/40 transition-colors"
+                  title={org.city ? `${org.name} — ${org.city}` : org.name}
+                >
+                  {org.name}
+                </motion.span>
+              ))}
         </motion.div>
       </div>
     </section>
@@ -220,6 +293,9 @@ export default function HomePage() {
             </motion.div>
           </motion.div>
         </section>
+
+        {/* Live Platform Stats */}
+        <StatsBand />
 
         {/* Trusted By Section */}
         <TrustedBy />

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 const EFFECTIVE_DATE = 'July 8, 2026';
 const COMPANY = 'NY-Development';
@@ -186,28 +185,7 @@ const sections: Section[] = [
 
 export default function TermsOfUsePage() {
   return (
-    <div className="bg-[#faf8ff] dark:bg-[#0b0e14] text-[#131b2e] dark:text-white min-h-screen flex flex-col font-['Inter'] antialiased">
-      {/* Header */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#131b2e]/80 backdrop-blur-md border-b border-[#c2c6d9]/25 transition-colors">
-        <div className="flex justify-between items-center px-8 py-4 max-w-[1100px] mx-auto w-full">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[#004bca] flex items-center justify-center text-white">
-              <span className="material-symbols-outlined text-[20px]">shield</span>
-            </div>
-            <div>
-              <h1 className="text-md font-bold text-[#131b2e] dark:text-white leading-tight">Trust Pay</h1>
-              <p className="text-[11px] text-[#54647a] dark:text-[#c2c6d9]/70">Verification Network</p>
-            </div>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/privacy" className="text-[13px] font-medium text-[#54647a] dark:text-[#c2c6d9] hover:text-[#004bca] transition-colors">Privacy</Link>
-            <Link to="/security" className="text-[13px] font-medium text-[#54647a] dark:text-[#c2c6d9] hover:text-[#004bca] transition-colors">Security</Link>
-            <Link to="/login" className="text-[13px] font-semibold text-[#004bca] border border-[#004bca] px-4 py-2 rounded-xl hover:bg-[#f2f3ff] transition-all">Sign In</Link>
-          </div>
-        </div>
-      </nav>
-
-      <main className="flex-grow pt-[100px] pb-20 px-8">
+    <div className="font-['Inter'] antialiased pt-12 pb-20 px-8">
         <div className="max-w-[900px] mx-auto">
           {/* Hero */}
           <div className="mb-12">
@@ -284,19 +262,6 @@ export default function TermsOfUsePage() {
             </div>
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="w-full py-8 bg-white dark:bg-[#131b2e] border-t border-[#c2c6d9]/20 dark:border-white/5">
-        <div className="max-w-[900px] mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-[11px] text-[#54647a] dark:text-[#c2c6d9]/50">© 2024–2026 {COMPANY}. All Rights Reserved.</span>
-          <div className="flex gap-6">
-            <Link to="/privacy" className="text-xs text-[#54647a] dark:text-[#c2c6d9] hover:text-[#004bca] transition-colors">Privacy</Link>
-            <Link to="/terms" className="text-xs text-[#004bca] font-semibold">Terms</Link>
-            <Link to="/security" className="text-xs text-[#54647a] dark:text-[#c2c6d9] hover:text-[#004bca] transition-colors">Security</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

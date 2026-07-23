@@ -181,22 +181,7 @@ export default function RegisterPage() {
   const stepTitles = ['Owner Profile', 'Company Details', 'Initial Branch', 'Settlement Accounts', 'Confirm & Submit'];
 
   return (
-    <div className="bg-background text-foreground min-h-screen flex flex-col font-sans antialiased">
-      <header className="w-full py-4 px-8 flex justify-between items-center border-b border-border bg-card">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground">
-            <span className="material-symbols-outlined text-[20px]">shield</span>
-          </div>
-          <span className="font-heading text-2xl font-medium text-foreground">Trust Pay</span>
-        </Link>
-        <div className="text-[13px] font-medium text-muted-foreground flex items-center gap-1">
-          <span className="material-symbols-outlined text-[16px]">lock</span>
-          Secure Registration
-        </div>
-      </header>
-
-      <main className="flex-grow flex justify-center py-10 px-4 sm:px-8 w-full max-w-[720px] mx-auto">
-        <div className="w-full space-y-6">
+    <div className="w-full max-w-[720px] space-y-6 font-sans antialiased">
           {/* Progress */}
           <div>
             <div className="flex justify-between items-center mb-2">
@@ -424,8 +409,6 @@ export default function RegisterPage() {
             Already have an account?{' '}
             <Link to="/login" className="text-primary hover:underline font-bold ml-1">Sign In</Link>
           </div>
-        </div>
-      </main>
 
       <StatusModal
         visible={modal.visible}

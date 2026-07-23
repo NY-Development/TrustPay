@@ -59,29 +59,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-[#faf8ff] dark:bg-[#0b0e14] text-[#131b2e] dark:text-white min-h-screen flex flex-col font-['Inter'] antialiased">
-      
-      {/* Header */}
-      <header className="w-full py-4 px-8 flex justify-between items-center border-b border-[#c2c6d9]/25 bg-white dark:bg-[#131b2e] transition-colors">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[#004bca] flex items-center justify-center text-white">
-            <span className="material-symbols-outlined text-[20px]">shield</span>
-          </div>
-          <div>
-            <h1 className="text-md font-bold text-[#131b2e] dark:text-white leading-tight">Trust Pay</h1>
-            <p className="text-[11px] text-[#54647a] dark:text-[#c2c6d9]/70">Payment Verification Platform</p>
-          </div>
-        </Link>
-        <div className="font-['Geist'] text-[13px] font-medium text-[#424656] dark:text-[#c2c6d9] flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[16px]">lock</span>
-          Secure Environment
-        </div>
-      </header>
+        <div className="w-full max-w-[480px] bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 dark:border-white/10 rounded-[24px] p-8 md:p-10 shadow-xl dark:shadow-none transition-all">
 
-      {/* Main */}
-      <main className="flex-grow flex items-center justify-center py-12 px-6">
-        <div className="w-full max-w-[540px] bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 dark:border-white/10 rounded-[24px] p-8 md:p-10 shadow-xl transition-all">
-          
           <div className="mb-8">
             <h2 className="text-3xl font-bold font-['Geist'] tracking-[-0.02em] text-[#131b2e] dark:text-white mb-2">Welcome Back</h2>
             <p className="text-sm text-[#54647a] dark:text-[#c2c6d9]">Sign in to access your verification terminal.</p>
@@ -200,20 +179,5 @@ export default function LoginPage() {
             <Link to="/register" className="text-[#004bca] dark:text-[#549aff] hover:underline font-bold ml-1">Register Business</Link>
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="w-full py-6 bg-white dark:bg-[#131b2e] border-t border-[#c2c6d9]/20 dark:border-white/5 transition-colors">
-        <div className="max-w-[1440px] mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-2">
-          <span className="text-[13px] text-[#424656] dark:text-[#c2c6d9]/70">
-            © 2026 Trust Pay Systems. All rights reserved.
-          </span>
-          <div className="flex gap-6 text-[13px] text-[#424656] dark:text-[#c2c6d9]/70">
-            <a className="hover:text-[#004bca] transition-colors" href="#">System Guidelines</a>
-            <a className="hover:text-[#004bca] transition-colors" href="#">Privacy Framework</a>
-          </div>
-        </div>
-      </footer>
-    </div>
   );
 }

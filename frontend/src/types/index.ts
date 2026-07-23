@@ -158,6 +158,19 @@ export interface SubscriptionVerifyResponse {
   remainingAmount?: number;
 }
 
+export interface PublicStats {
+  companies: number;
+  branches: number;
+  verifications: number;
+  verifiedAmount: number;
+  successRate: number;
+  countriesServed: number;
+  companiesByType: { type: string; count: number }[];
+  verificationsByProvider: { provider: string; count: number }[];
+  trustedCompanies: { name: string; type: string; city?: string; region?: string }[];
+  platformLaunchYear: number;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;

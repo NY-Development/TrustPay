@@ -16,7 +16,10 @@ import { router, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useLoginOwner, useLoginEmployee } from '@/src/hooks/useAuth';
+import { PublicStatsBar } from '@/components/PublicStatsBar';
+import { Image } from '@/components/ui/expo-image';
 import { StatusModal, StatusModalProps } from '@/src/components/StatusModal';
+import { AuthHelpModal } from '@/components/AuthHelpModal';
 import { BiometricService } from '@/src/utils/biometrics';
 import { TokenService } from '@/src/services/token.service';
 
@@ -45,8 +48,22 @@ export default function Login() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [biometricsPrompted, setBiometricsPrompted] = React.useState(false);
   const [hasSavedTokens, setHasSavedTokens] = React.useState(false);
+  const [authHelpVisible, setAuthHelpVisible] = React.useState(false);
 
   const themePrimary = isDark ? '#3b82f6' : '#003ec7';
+
+  React.useEffect(() => {
+    const checkFirstVisit = async () => {
+      const seen = await Storage.getItem<boolean>(STORAGE_KEYS.HAS_SEEN_AUTH_HELP);
+      if (!seen) setAuthHelpVisible(true);
+    };
+    checkFirstVisit();
+  }, []);
+
+  const closeAuthHelp = () => {
+    setAuthHelpVisible(false);
+    Storage.setItem(STORAGE_KEYS.HAS_SEEN_AUTH_HELP, true);
+  };
 
   React.useEffect(() => {
     const checkSavedTokens = async () => {
@@ -238,6 +255,15 @@ export default function Login() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1">
+        <TouchableOpacity
+          onPress={() => setAuthHelpVisible(true)}
+          activeOpacity={0.7}
+          className="absolute top-4 right-6 z-20 flex-row items-center gap-1 bg-muted border border-border rounded-full px-3 py-2"
+        >
+          <Ionicons name="information-circle-outline" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
+          <Text className="text-foreground text-xs font-semibold">How this works</Text>
+        </TouchableOpacity>
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1"
@@ -249,6 +275,17 @@ export default function Login() {
               justifyContent: 'center',
             }}
           >
+            <View className="items-center mb-6">
+              <View className="w-16 h-16 rounded-2xl bg-white shadow-md overflow-hidden">
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                  contentPosition={{ top: '22%' }}
+                />
+              </View>
+            </View>
+
             <View className="mb-8">
               <Text className="text-foreground text-3xl font-bold mb-4">
                 {t('login.welcomeTitle')}
@@ -257,6 +294,8 @@ export default function Login() {
                 {t('login.welcomeSubtitle')}
               </Text>
             </View>
+
+            <PublicStatsBar />
 
             {/* Owner / Employee Toggle */}
             <View className="flex-row bg-muted rounded-2xl p-1 mb-6 border border-border">
@@ -393,6 +432,7 @@ export default function Login() {
           message={modalState.message}
           onClose={modalState.onClose}
         />
+        <AuthHelpModal visible={authHelpVisible} onClose={closeAuthHelp} />
       </SafeAreaView>
     </View>
   );
