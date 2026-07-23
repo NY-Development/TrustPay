@@ -9,9 +9,17 @@ export default function BranchesPage() {
   const queryClient = useQueryClient();
 
   const [showCreate, setShowCreate] = useState(false);
-  const [newBranch, setNewBranch] = useState({
-    branchName: '', phone: '', email: '', region: '', city: '', subCity: '', address: '',
-  });
+  const emptyBranch = {
+    branchName: '', phone: '', email: '', region: '', city: '', subCity: '', wereda: '', kebele: '', address: '',
+  };
+  const [newBranch, setNewBranch] = useState(emptyBranch);
+  const [createError, setCreateError] = useState('');
+
+  const REQUIRED_FIELDS: Array<keyof typeof emptyBranch> = ['branchName', 'region', 'city', 'address', 'phone', 'email'];
+  const FIELD_LABELS: Record<keyof typeof emptyBranch, string> = {
+    branchName: 'Branch Name', phone: 'Phone', email: 'Email', region: 'Region', city: 'City',
+    subCity: 'Sub-City', wereda: 'Wereda', kebele: 'Kebele', address: 'Address',
+  };
 
   const { data: branchesRes, isLoading } = useQuery({
     queryKey: ['branches'],
@@ -23,9 +31,27 @@ export default function BranchesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       setShowCreate(false);
-      setNewBranch({ branchName: '', phone: '', email: '', region: '', city: '', subCity: '', address: '' });
+      setNewBranch(emptyBranch);
+      setCreateError('');
+    },
+    onError: (err: any) => {
+      setCreateError(err?.response?.data?.message || 'Failed to create branch. Please check the fields and try again.');
     },
   });
+
+  const handleCreateSubmit = () => {
+    const missing = REQUIRED_FIELDS.filter((key) => !newBranch[key].trim());
+    if (missing.length > 0) {
+      setCreateError(`Please fill in: ${missing.map((k) => FIELD_LABELS[k]).join(', ')}.`);
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(newBranch.email.trim())) {
+      setCreateError('Please enter a valid email address.');
+      return;
+    }
+    setCreateError('');
+    createMutation.mutate(newBranch);
+  };
 
   const deactivateMutation = useMutation({
     mutationFn: deactivateBranchApi,
@@ -122,25 +148,37 @@ export default function BranchesPage() {
       {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+          <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-[#131b2e] dark:text-white mb-6 font-['Geist']">Create New Branch</h3>
+
+            {createError && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold">
+                {createError}
+              </div>
+            )}
+
             <div className="space-y-4">
-              {Object.entries(newBranch).map(([key, value]) => (
-                <input
-                  key={key}
-                  placeholder={key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
-                  value={value}
-                  onChange={(e) => setNewBranch({ ...newBranch, [key]: e.target.value })}
-                  className="w-full bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 rounded-xl px-4 py-3 text-sm outline-none text-[#131b2e] dark:text-white"
-                />
+              {(Object.keys(newBranch) as Array<keyof typeof newBranch>).map((key) => (
+                <div key={key}>
+                  <label className="block text-[11px] font-semibold text-[#54647a] dark:text-[#c2c6d9] uppercase tracking-wider mb-1.5">
+                    {FIELD_LABELS[key]}{REQUIRED_FIELDS.includes(key) && <span className="text-red-500 ml-0.5">*</span>}
+                  </label>
+                  <input
+                    type={key === 'email' ? 'email' : 'text'}
+                    placeholder={FIELD_LABELS[key]}
+                    value={newBranch[key]}
+                    onChange={(e) => setNewBranch({ ...newBranch, [key]: e.target.value })}
+                    className="w-full bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 rounded-xl px-4 py-3 text-sm outline-none text-[#131b2e] dark:text-white"
+                  />
+                </div>
               ))}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowCreate(false)} className="flex-1 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 py-3 rounded-xl text-sm font-bold text-[#131b2e] dark:text-white">
+              <button onClick={() => { setShowCreate(false); setCreateError(''); }} className="flex-1 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 py-3 rounded-xl text-sm font-bold text-[#131b2e] dark:text-white">
                 Cancel
               </button>
               <button
-                onClick={() => createMutation.mutate(newBranch)}
+                onClick={handleCreateSubmit}
                 disabled={createMutation.isPending}
                 className="flex-1 bg-[#004bca] hover:bg-[#0061ff] text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50"
               >

@@ -18,14 +18,14 @@ export default function AdminVerificationsPage() {
   const getSeverityBadgeClass = (sev: string) => {
     switch (sev) {
       case 'success':
-        return 'bg-green-150 text-green-800 dark:bg-green-950/20 dark:text-green-400';
+        return 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400';
       case 'fraud_risk':
         return 'bg-red-200 text-red-900 dark:bg-red-950 dark:text-red-400 font-bold';
       case 'warning':
       case 'duplicate':
-        return 'bg-yellow-150 text-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-400';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400';
       default:
-        return 'bg-gray-150 text-gray-800 dark:bg-gray-950/20 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
     }
   };
 
@@ -33,18 +33,21 @@ export default function AdminVerificationsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold font-headline-md text-gray-900 dark:text-white">Verifications Pool</h1>
-          <p className="text-xs text-gray-500">Monitor transaction verification outcomes, provider payloads, and fraud indicators.</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Verifications Pool</h1>
+          <p className="text-xs text-gray-500 mt-1">Monitor transaction verification outcomes, provider payloads, and fraud indicators.</p>
         </div>
+        <span className="bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-bold px-3 py-1.5 rounded-full border border-green-500/20">
+          {verifications.length} Records
+        </span>
       </div>
 
       {/* Filters bar */}
-      <div className="bg-white dark:bg-[#131b2e] p-4 rounded-xl border border-[#c2c6d9]/30 flex flex-wrap gap-4 items-center">
+      <div className="bg-white dark:bg-[#131b2e] p-4 rounded-xl border border-[#c2c6d9]/30 dark:border-white/10 flex flex-wrap gap-4 items-center">
         <div className="w-[180px]">
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-250 dark:border-white/10 rounded-lg text-sm bg-transparent outline-none focus:border-red-500 dark:text-white"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg text-sm bg-transparent outline-none focus:border-red-500 dark:text-white"
           >
             <option value="" className="dark:bg-[#131b2e]">All Statuses</option>
             <option value="pending" className="dark:bg-[#131b2e]">Pending</option>
@@ -58,7 +61,7 @@ export default function AdminVerificationsPage() {
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-250 dark:border-white/10 rounded-lg text-sm bg-transparent outline-none focus:border-red-500 dark:text-white"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg text-sm bg-transparent outline-none focus:border-red-500 dark:text-white"
           >
             <option value="" className="dark:bg-[#131b2e]">All Severities</option>
             <option value="success" className="dark:bg-[#131b2e]">Success</option>
@@ -73,7 +76,7 @@ export default function AdminVerificationsPage() {
           <select
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-250 dark:border-white/10 rounded-lg text-sm bg-transparent outline-none focus:border-red-500 dark:text-white"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg text-sm bg-transparent outline-none focus:border-red-500 dark:text-white"
           >
             <option value="" className="dark:bg-[#131b2e]">All Providers</option>
             <option value="cbe" className="dark:bg-[#131b2e]">CBE</option>
@@ -85,7 +88,7 @@ export default function AdminVerificationsPage() {
 
         <button
           onClick={() => refetch()}
-          className="bg-red-700 hover:bg-red-800 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-2"
+          className="bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-2"
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
           Refresh
@@ -93,7 +96,7 @@ export default function AdminVerificationsPage() {
       </div>
 
       {/* Verifications catalog */}
-      <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-8 text-center text-xs text-gray-500 animate-pulse">Querying verification records...</div>
         ) : verifications.length === 0 ? (
@@ -102,8 +105,9 @@ export default function AdminVerificationsPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-900 border-b border-[#c2c6d9]/20 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <tr className="bg-gray-50 dark:bg-gray-900 border-b border-[#c2c6d9]/20 dark:border-white/10 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   <th className="px-6 py-4">Transaction ID / Date</th>
+                  <th className="px-6 py-4">Branch</th>
                   <th className="px-6 py-4">Payer / Receiver</th>
                   <th className="px-6 py-4">Amount</th>
                   <th className="px-6 py-4">Provider</th>
@@ -112,12 +116,22 @@ export default function AdminVerificationsPage() {
                   <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#c2c6d9]/10 text-sm">
+              <tbody className="divide-y divide-[#c2c6d9]/10 dark:divide-white/5 text-sm">
                 {verifications.map((v: any) => (
                   <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-gray-950 dark:text-white font-mono uppercase tracking-tight select-all">{v.transactionId}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white font-mono uppercase tracking-tight select-all">{v.transactionId}</div>
                       <span className="text-[10px] text-gray-400">{new Date(v.createdAt).toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs">
+                      {v.branchId ? (
+                        <>
+                          <div className="font-semibold text-gray-800 dark:text-gray-200">{v.branchId.branchName}</div>
+                          <span className="text-gray-400 font-mono text-[10px]">{v.branchId.branchCode}</span>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 italic">Unknown</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-gray-900 dark:text-gray-200 text-xs font-semibold">From: {v.senderName || 'Unknown'}</div>
@@ -133,7 +147,7 @@ export default function AdminVerificationsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        v.processingStatus === 'completed' ? 'text-green-600' : 'text-red-650'
+                        v.processingStatus === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {v.processingStatus}
                       </span>
@@ -146,7 +160,7 @@ export default function AdminVerificationsPage() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => setSelectedVer(v)}
-                        className="bg-gray-150 hover:bg-gray-200 dark:bg-gray-850 dark:hover:bg-gray-800 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer dark:text-white"
+                        className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer dark:text-white"
                       >
                         Inspect
                       </button>
@@ -159,9 +173,9 @@ export default function AdminVerificationsPage() {
         )}
       </div>
 
-      {/* Inspect Popup Modals */}
+      {/* Inspect Popup Modal */}
       {selectedVer && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-55 backdrop-blur-xs transition-opacity">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity">
           <div className="bg-white dark:bg-[#131b2e] rounded-2xl max-w-2xl w-full border border-red-500/20 max-h-[85vh] overflow-y-auto shadow-2xl p-6 relative">
             <button
               onClick={() => setSelectedVer(null)}
@@ -170,9 +184,9 @@ export default function AdminVerificationsPage() {
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
 
-            <h3 className="text-lg font-bold text-red-750 dark:text-red-400 mb-6">Verification Inspection Detail</h3>
+            <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-6">Verification Inspection Detail</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono text-gray-650 dark:text-gray-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono text-gray-600 dark:text-gray-300">
               <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <span className="text-[10px] text-gray-400 uppercase font-semibold">Verification DB ID</span>
                 <p className="mt-1 text-gray-900 dark:text-white break-all select-all">{selectedVer._id}</p>
@@ -185,7 +199,7 @@ export default function AdminVerificationsPage() {
                 <span className="text-[10px] text-gray-400 uppercase font-semibold">Sender Payer Name</span>
                 <p className="mt-1 text-gray-900 dark:text-white">{selectedVer.senderName || 'Unknown'}</p>
               </div>
-              <div className="p-3 bg-gray-55/65 dark:bg-gray-900 rounded-lg">
+              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <span className="text-[10px] text-gray-400 uppercase font-semibold">Receiver Name</span>
                 <p className="mt-1 text-gray-900 dark:text-white">{selectedVer.receiverName || 'Unknown'}</p>
               </div>
@@ -197,12 +211,18 @@ export default function AdminVerificationsPage() {
                 <span className="text-[10px] text-gray-400 uppercase font-semibold">Processing Flow Input</span>
                 <p className="mt-1 text-gray-900 dark:text-white uppercase font-bold">{selectedVer.source || 'manual'}</p>
               </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg md:col-span-2">
+                <span className="text-[10px] text-gray-400 uppercase font-semibold">Branch</span>
+                <p className="mt-1 text-gray-900 dark:text-white">
+                  {selectedVer.branchId ? `${selectedVer.branchId.branchName} (${selectedVer.branchId.branchCode})` : 'Unknown'}
+                </p>
+              </div>
             </div>
 
             {selectedVer.rawOcrText && (
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Extracted Screenshot Raw OCR</span>
-                <pre className="mt-2 text-xs font-mono text-[#c2c6d9] whitespace-pre-wrap select-all">{selectedVer.rawOcrText}</pre>
+                <pre className="mt-2 text-xs font-mono text-gray-600 dark:text-[#c2c6d9] whitespace-pre-wrap select-all">{selectedVer.rawOcrText}</pre>
               </div>
             )}
 

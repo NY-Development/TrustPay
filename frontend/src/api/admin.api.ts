@@ -2,6 +2,28 @@ import { apiClient } from './client';
 import type { ApiResponse } from '../types';
 
 export const adminApi = {
+  // Owner Trading License Management
+  getPendingLicenses: async () => {
+    const response = await apiClient.get<ApiResponse<any[]>>('/admin/licenses/pending');
+    return response.data;
+  },
+  approveLicense: async (ownerId: string) => {
+    const response = await apiClient.put<ApiResponse<any>>(`/admin/licenses/${ownerId}/approve`);
+    return response.data;
+  },
+  rejectLicense: async (ownerId: string, reason?: string) => {
+    const response = await apiClient.put<ApiResponse<any>>(`/admin/licenses/${ownerId}/reject`, { reason });
+    return response.data;
+  },
+  suspendOwner: async (ownerId: string) => {
+    const response = await apiClient.put<ApiResponse<any>>(`/admin/licenses/${ownerId}/suspend`);
+    return response.data;
+  },
+  restoreOwner: async (ownerId: string) => {
+    const response = await apiClient.put<ApiResponse<any>>(`/admin/licenses/${ownerId}/restore`);
+    return response.data;
+  },
+
   // Users
   getUsers: async (params?: { role?: string; isActive?: boolean; search?: string }) => {
     const response = await apiClient.get<ApiResponse<any[]>>('/admin/users', { params });

@@ -7,6 +7,7 @@ import { AuthLayout } from './layouts/AuthLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicOnlyRoute } from './components/PublicOnlyRoute';
 import { ThemeToggle } from './components/ThemeToggle';
+import { SessionExpiryBanner } from './components/SessionExpiryBanner';
 
 // Public pages
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -124,6 +125,7 @@ export default function App() {
     </Routes>
     </Suspense>
     <ThemeToggle />
+    <SessionExpiryBanner />
     </>
   );
 }

@@ -44,8 +44,7 @@ export const adminController = {
       action: 'APPROVE_LICENSE',
       actor: req.user?.userId,
       actorType: 'admin',
-      target: ownerId,
-      details: { email: owner.email, name: owner.name },
+      metadata: { targetOwnerId: ownerId, email: owner.email, name: owner.name },
     });
 
     // Notify the owner
@@ -94,8 +93,7 @@ export const adminController = {
       action: 'REJECT_LICENSE',
       actor: req.user?.userId,
       actorType: 'admin',
-      target: ownerId,
-      details: { email: owner.email, name: owner.name, reason },
+      metadata: { targetOwnerId: ownerId, email: owner.email, name: owner.name, reason },
     });
 
     // Notify the owner
@@ -150,8 +148,7 @@ export const adminController = {
       action: 'SUSPEND_OWNER',
       actor: req.user?.userId,
       actorType: 'admin',
-      target: ownerId,
-      details: { email: owner.email, name: owner.name },
+      metadata: { targetOwnerId: ownerId, email: owner.email, name: owner.name },
     });
 
     res.status(200).json({
@@ -180,8 +177,7 @@ export const adminController = {
       action: 'RESTORE_OWNER',
       actor: req.user?.userId,
       actorType: 'admin',
-      target: ownerId,
-      details: { email: owner.email, name: owner.name },
+      metadata: { targetOwnerId: ownerId, email: owner.email, name: owner.name },
     });
 
     res.status(200).json({
@@ -272,7 +268,9 @@ export const adminController = {
     if (source) filter.source = source;
 
     const verifications = await Verification.find(filter)
-      .sort({ createdAt: -1 });
+      .populate('branchId', 'branchName branchCode')
+      .sort({ createdAt: -1 })
+      .limit(200);
 
     res.status(200).json({
       success: true,
@@ -281,7 +279,7 @@ export const adminController = {
   }),
 
   getVerificationById: asyncHandler(async (req: Request, res: Response) => {
-    const verification = await Verification.findById(req.params.id);
+    const verification = await Verification.findById(req.params.id).populate('branchId', 'branchName branchCode');
     if (!verification) throw new NotFoundError('Verification not found');
 
     res.status(200).json({
@@ -355,11 +353,35 @@ export const adminController = {
 
     const logs = await AuditLog.find(filter)
       .sort({ createdAt: -1 })
-      .limit(100);
+      .limit(100)
+      .lean();
+
+    // `actor` has no single ref (it's a User for owner/admin actions, an
+    // Employee for employee actions), so resolve display names manually
+    // instead of relying on Mongoose populate.
+    const userIds = logs.filter((l) => l.actorType !== 'employee').map((l) => l.actor);
+    const employeeIds = logs.filter((l) => l.actorType === 'employee').map((l) => l.actor);
+
+    const [users, employees] = await Promise.all([
+      User.find({ _id: { $in: userIds } }).select('name email'),
+      Employee.find({ _id: { $in: employeeIds } }).select('name email'),
+    ]);
+
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const employeeMap = new Map(employees.map((e: any) => [e._id.toString(), e]));
+
+    const enrichedLogs = logs.map((l: any) => {
+      const actorDoc = l.actorType === 'employee' ? employeeMap.get(l.actor?.toString()) : userMap.get(l.actor?.toString());
+      return {
+        ...l,
+        actorName: actorDoc?.name || null,
+        actorEmail: actorDoc?.email || null,
+      };
+    });
 
     res.status(200).json({
       success: true,
-      data: logs,
+      data: enrichedLogs,
     });
   }),
 
@@ -367,10 +389,13 @@ export const adminController = {
 
   getSystemStats: asyncHandler(async (req: Request, res: Response) => {
     const totalUsers = await User.countDocuments();
+    const totalOwners = await User.countDocuments({ role: 'OWNER' });
+    const pendingLicenses = await User.countDocuments({ role: 'OWNER', ownerStatus: 'PENDING_LICENSE' });
+    const suspendedOwners = await User.countDocuments({ role: 'OWNER', ownerStatus: 'SUSPENDED' });
     const totalBranches = await Branch.countDocuments();
     const totalVerifications = await Verification.countDocuments();
     const successfulVerifications = await Verification.countDocuments({ verified: true });
-    
+
     // Revenue calculations
     const activeSubs = await Subscription.find({ status: 'active', fullyPaid: true });
     const totalRevenue = activeSubs.reduce((acc: number, sub: any) => acc + (sub.paidAmount || sub.amount), 0);
@@ -383,6 +408,9 @@ export const adminController = {
       success: true,
       data: {
         totalUsers,
+        totalOwners,
+        pendingLicenses,
+        suspendedOwners,
         totalBranches,
         totalVerifications,
         successfulVerifications,

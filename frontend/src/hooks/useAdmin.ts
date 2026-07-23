@@ -1,6 +1,53 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../api/admin.api';
 
+// Owner Trading License Management
+export const useAdminPendingLicenses = (enabled = true) => {
+  return useQuery({
+    queryKey: ['admin-licenses-pending'],
+    queryFn: adminApi.getPendingLicenses,
+    enabled,
+  });
+};
+
+const invalidateLicenseQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ['admin-licenses-pending'] });
+  queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+  queryClient.invalidateQueries({ queryKey: ['admin-system-stats'] });
+};
+
+export const useApproveLicense = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ownerId: string) => adminApi.approveLicense(ownerId),
+    onSuccess: () => invalidateLicenseQueries(queryClient),
+  });
+};
+
+export const useRejectLicense = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ownerId, reason }: { ownerId: string; reason?: string }) => adminApi.rejectLicense(ownerId, reason),
+    onSuccess: () => invalidateLicenseQueries(queryClient),
+  });
+};
+
+export const useSuspendOwner = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ownerId: string) => adminApi.suspendOwner(ownerId),
+    onSuccess: () => invalidateLicenseQueries(queryClient),
+  });
+};
+
+export const useRestoreOwner = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ownerId: string) => adminApi.restoreOwner(ownerId),
+    onSuccess: () => invalidateLicenseQueries(queryClient),
+  });
+};
+
 // Users
 export const useAdminUsers = (params?: { role?: string; isActive?: boolean; search?: string }) => {
   return useQuery({

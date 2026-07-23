@@ -20,6 +20,7 @@ import { DownloadProvider } from '@/src/context/DownloadContext';
 import { AIProvider } from '@/src/ai/AIProvider'; // 👈 IMPORTED
 
 import { FloatingThemeToggle } from '@/src/components/FloatingThemeToggle';
+import { SessionExpiryBanner } from '@/src/components/SessionExpiryBanner';
 
 import "../global.css";
 
@@ -98,6 +99,7 @@ export default function RootLayout() {
 
                             {/* GLOBAL OVERLAY UI */}
                             <FloatingThemeToggle />
+                            <SessionExpiryBanner />
 
                           </View>
 

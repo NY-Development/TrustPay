@@ -3,11 +3,14 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   useEmployee,
+  useUpdateEmployee,
   useDeactivateEmployee,
   useActivateEmployee,
   useResetEmployeePassword,
   useMoveEmployeeBranch,
 } from '@/src/hooks/useEmployee';
+
+const EMPLOYEE_ROLES = ['MANAGER', 'CASHIER', 'VERIFIER', 'RECEPTIONIST', 'OTHER'];
 import { listBranchesApi } from '@/src/api/branch.api';
 import { StatusModal } from '@/src/components/StatusModal';
 
@@ -24,6 +27,7 @@ export default function EmployeeDetailPage() {
   });
   const branches = branchesRes?.data || [];
 
+  const updateMutation = useUpdateEmployee();
   const deactivateMutation = useDeactivateEmployee();
   const activateMutation = useActivateEmployee();
   const resetPasswordMutation = useResetEmployeePassword();
@@ -32,6 +36,9 @@ export default function EmployeeDetailPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editRole, setEditRole] = useState('CASHIER');
   const [modal, setModal] = useState<{
     visible: boolean;
     type: 'success' | 'error' | 'info';
@@ -87,6 +94,31 @@ export default function EmployeeDetailPage() {
         },
         onError: (err: any) => {
           setModal({ visible: true, type: 'error', title: 'Reassignment Failed', message: err.response?.data?.message || 'Failed to reassign employee.' });
+        },
+      }
+    );
+  };
+
+  const handleOpenEdit = () => {
+    setEditName(employee.name || '');
+    setEditRole(employee.role || 'CASHIER');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editName.trim()) {
+      setModal({ visible: true, type: 'error', title: 'Input Error', message: 'Name cannot be empty.' });
+      return;
+    }
+    updateMutation.mutate(
+      { id: employee._id, data: { name: editName.trim(), role: editRole } },
+      {
+        onSuccess: () => {
+          setShowEditModal(false);
+          setModal({ visible: true, type: 'success', title: 'Employee Updated', message: 'Name and role were saved successfully.' });
+        },
+        onError: (err: any) => {
+          setModal({ visible: true, type: 'error', title: 'Update Failed', message: err.response?.data?.message || 'Failed to update employee.' });
         },
       }
     );
@@ -181,6 +213,14 @@ export default function EmployeeDetailPage() {
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#54647a] dark:text-[#c2c6d9] mb-4">Administrative Controls</h3>
         <div className="space-y-3">
           <button
+            onClick={handleOpenEdit}
+            className="w-full py-3 rounded-xl text-sm font-bold bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 text-[#131b2e] dark:text-white hover:bg-[#eaedff] dark:hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">edit</span>
+            Edit Name &amp; Role
+          </button>
+
+          <button
             onClick={handleToggleStatus}
             className={`w-full py-3 rounded-xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 ${
               employee.status === 'ACTIVE' ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
@@ -209,6 +249,53 @@ export default function EmployeeDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Edit Name & Role Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
+          <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/30 dark:border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-center text-[#131b2e] dark:text-white mb-6">Edit Employee</h3>
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-semibold text-[#54647a] dark:text-[#c2c6d9] uppercase tracking-wider mb-2">Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 rounded-xl px-4 py-3 text-sm outline-none text-[#131b2e] dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#54647a] dark:text-[#c2c6d9] uppercase tracking-wider mb-2">Role</label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value)}
+                  className="w-full bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 rounded-xl px-4 py-3 text-sm outline-none text-[#131b2e] dark:text-white"
+                >
+                  {EMPLOYEE_ROLES.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 py-3 rounded-xl text-sm font-bold text-[#131b2e] dark:text-white cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={updateMutation.isPending}
+                className="flex-1 bg-[#004bca] hover:bg-[#0061ff] text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50 cursor-pointer"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reset Password Modal */}
       {showResetModal && (

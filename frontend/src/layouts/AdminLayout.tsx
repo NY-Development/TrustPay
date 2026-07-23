@@ -1,11 +1,19 @@
 import React from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useAdminPendingLicenses } from '../hooks/useAdmin';
 
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: pendingRes } = useAdminPendingLicenses(user?.role === 'SUPER_ADMIN');
+  const pendingCount = pendingRes?.data?.length ?? 0;
+
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+  React.useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -35,6 +43,7 @@ export const AdminLayout: React.FC = () => {
 
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Admin Panel', icon: 'gavel' },
+    { to: '/admin/licenses', label: 'License Approvals', icon: 'workspace_premium', badge: pendingCount },
     { to: '/admin/users', label: 'User Registry', icon: 'group' },
     { to: '/admin/verifications', label: 'Verifications Pool', icon: 'verified' },
     { to: '/admin/subscriptions', label: 'Subscriptions Management', icon: 'monetization_on' },
@@ -43,8 +52,18 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-[#faf8ff] dark:bg-[#0b0e14] text-[#131b2e] dark:text-[#eef0ff]">
-      {/* Sidebar navigation */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-red-950 dark:bg-gray-950 text-[#f8fafc]/90 flex flex-col py-6 px-4 z-50 border-r border-[#c2c6d9]/10 shadow-lg">
+      {/* Backdrop for the mobile/tablet off-canvas drawer */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
+      {/* Sidebar navigation — off-canvas drawer below lg, fixed rail at lg+ */}
+      <aside className={`fixed left-0 top-0 h-full w-72 lg:w-64 bg-red-950 dark:bg-gray-950 text-[#f8fafc]/90 flex flex-col py-6 px-4 z-50 border-r border-[#c2c6d9]/10 shadow-lg transition-transform duration-300 ${
+        mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0`}>
         <div className="mb-8 px-2">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[32px] text-red-500 animate-pulse">lock_open</span>
@@ -70,12 +89,19 @@ export const AdminLayout: React.FC = () => {
               <Link
                 key={link.to}
                 to={link.to}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 cursor-pointer text-sm font-medium transition-colors hover:bg-white/10 ${
+                className={`flex items-center justify-between gap-3 rounded-lg px-4 py-2.5 cursor-pointer text-sm font-medium transition-colors hover:bg-white/10 ${
                   isActive ? 'bg-red-700 text-white shadow-md border-l-4 border-red-500' : 'text-gray-300'
                 }`}
               >
-                <span className="material-symbols-outlined">{link.icon}</span>
-                <span>{link.label}</span>
+                <span className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[20px]">{link.icon}</span>
+                  <span>{link.label}</span>
+                </span>
+                {!!link.badge && (
+                  <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-gray-950 text-[10px] font-bold flex items-center justify-center">
+                    {link.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -93,23 +119,30 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main content body */}
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 ml-0 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Header navbar */}
-        <header className="sticky top-0 w-full z-45 bg-white dark:bg-[#131b2e] border-b border-[#c2c6d9]/30 flex justify-between items-center px-8 h-16 shadow-xs">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold font-headline-md text-red-700 dark:text-red-400 capitalize">
+        <header className="sticky top-0 w-full z-30 bg-white dark:bg-[#131b2e] border-b border-[#c2c6d9]/30 flex justify-between items-center px-4 md:px-8 h-16 shadow-xs">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="lg:hidden hover:bg-[#eaedff] dark:hover:bg-white/10 p-2 rounded-full flex items-center justify-center transition-colors cursor-pointer text-[#131b2e] dark:text-white shrink-0"
+              title="Open menu"
+            >
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <h2 className="text-lg md:text-xl font-bold font-headline-md text-red-700 dark:text-red-400 capitalize truncate">
               {location.pathname.split('/').pop() || 'Overview'}
             </h2>
           </div>
-          
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <span className="bg-red-900/10 text-red-500 text-xs font-semibold px-3 py-1 rounded-full border border-red-500/20">
+
+          <div className="flex items-center gap-2 md:gap-6 shrink-0">
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="hidden sm:inline bg-red-900/10 text-red-500 text-xs font-semibold px-3 py-1 rounded-full border border-red-500/20">
                 Super Admin Access
               </span>
-              <div className="h-8 w-px bg-[#c2c6d9]/50 mx-1"></div>
+              <div className="hidden sm:block h-8 w-px bg-[#c2c6d9]/50 mx-1"></div>
               <div className="flex items-center gap-3 pl-1">
-                <div className="w-8 h-8 rounded-full bg-red-700 text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs">
+                <div className="w-8 h-8 rounded-full bg-red-700 text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs shrink-0">
                   SA
                 </div>
                 <div className="hidden md:flex flex-col text-left">
@@ -122,7 +155,7 @@ export const AdminLayout: React.FC = () => {
         </header>
 
         {/* Content canvas container */}
-        <main className="flex-1 p-8 bg-[#faf8ff] dark:bg-[#0b0e14] overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-[#faf8ff] dark:bg-[#0b0e14] overflow-y-auto overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

@@ -76,6 +76,10 @@ export default function BranchDetailScreen() {
 
     setSaving(true);
     try {
+      // `accounts` is only accepted by the create-branch endpoint — the
+      // update-branch schema doesn't have that field at all (account
+      // add/remove goes through dedicated /branches/:id/accounts routes
+      // instead), so it must not be included when editing.
       const dataPayload = {
         branchName: branchName.trim(),
         phone: phone.trim() || undefined,
@@ -87,14 +91,13 @@ export default function BranchDetailScreen() {
         wereda: wereda.trim() || undefined,
         kebele: kebele.trim() || undefined,
         address: address.trim() || undefined,
-        accounts,
       };
 
       if (isEditMode) {
         await modifyBranch({ id: id!, data: dataPayload });
         setModal({ visible: true, type: 'success', title: 'Branch Updated', message: 'Branch details saved successfully.' });
       } else {
-        await addBranch(dataPayload);
+        await addBranch({ ...dataPayload, accounts });
         setModal({ visible: true, type: 'success', title: 'Branch Created', message: 'New branch created successfully.' });
       }
       await loadBranches();

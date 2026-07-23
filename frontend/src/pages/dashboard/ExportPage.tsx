@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
+import { format } from 'date-fns';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
 import { exportToPDF } from '@/src/utils/pdfExport';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export default function ExportPage() {
   const { data, isLoading } = useVerificationHistory({ limit: 100 });
   const verifications = data?.pages?.flatMap(page => page.data) || [];
 
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   const getFilteredVerifications = () => {
     return verifications.filter((item: any) => {
       const itemDate = new Date(item.createdAt);
-      if (dateFrom && itemDate < new Date(dateFrom)) return false;
-      if (dateTo && itemDate > new Date(dateTo + 'T23:59:59')) return false;
+      if (dateFrom && itemDate < dateFrom) return false;
+      if (dateTo) {
+        const endOfDay = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999);
+        if (itemDate > endOfDay) return false;
+      }
       return true;
     });
   };
@@ -53,7 +58,7 @@ export default function ExportPage() {
     e.preventDefault();
     const filtered = getFilteredVerifications();
     if (filtered.length === 0) return;
-    exportToPDF(filtered, dateFrom, dateTo);
+    exportToPDF(filtered, dateFrom ? format(dateFrom, 'PPP') : undefined, dateTo ? format(dateTo, 'PPP') : undefined);
   };
 
   return (
@@ -65,23 +70,25 @@ export default function ExportPage() {
 
       <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-[32px] p-8 shadow-lg">
         <form className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#131b2e] dark:text-[#eef0ff] uppercase tracking-wider mb-2">From Date</label>
-              <input
-                type="date"
+              <DatePicker
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9] dark:border-white/10 rounded-xl p-3 text-xs outline-none text-[#131b2e] dark:text-white"
+                onChange={setDateFrom}
+                placeholder="Any"
+                disabled={dateTo ? (date) => date > dateTo : undefined}
+                className="bg-[#faf8ff] dark:bg-[#0b0e14] border-[#c2c6d9] dark:border-white/10 rounded-xl p-3 text-xs text-[#131b2e] dark:text-white"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#131b2e] dark:text-[#eef0ff] uppercase tracking-wider mb-2">To Date</label>
-              <input
-                type="date"
+              <DatePicker
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9] dark:border-white/10 rounded-xl p-3 text-xs outline-none text-[#131b2e] dark:text-white"
+                onChange={setDateTo}
+                placeholder="Any"
+                disabled={dateFrom ? (date) => date < dateFrom : undefined}
+                className="bg-[#faf8ff] dark:bg-[#0b0e14] border-[#c2c6d9] dark:border-white/10 rounded-xl p-3 text-xs text-[#131b2e] dark:text-white"
               />
             </div>
           </div>

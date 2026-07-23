@@ -71,6 +71,7 @@ export const getPublicStats = asyncHandler(
       ]),
       User.find({
         role: ROLES.OWNER,
+        ownerStatus: "ACTIVE",
         "companyInfo.companyName": { $exists: true, $ne: "" },
       })
         .sort({ createdAt: 1 })

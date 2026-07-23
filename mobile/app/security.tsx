@@ -8,7 +8,7 @@ import { useColorScheme } from 'nativewind';
 const EFFECTIVE_DATE = 'July 8, 2026';
 const COMPANY = 'NY-Development';
 const APP_NAME = 'TrustPay';
-const SECURITY_EMAIL = 'security@trustpay.app';
+const SECURITY_EMAIL = 'nydevofficial@gmail.com';
 
 type SectionItem = {
   id: string;
@@ -152,7 +152,7 @@ const sections: SectionItem[] = [
       'Keep Your Device Updated: Ensure your mobile device operating system and the TrustPay app are always running the latest version.',
       'Monitor Your Account: Regularly review your verification history and employee activity logs. Report suspicious transactions immediately.',
       'Protect Your Device: Use a screen lock, do not root/jailbreak your device, and install apps only from official sources (Google Play Store, Apple App Store).',
-      'Report Security Issues: If you discover a security vulnerability, please report it responsibly to security@trustpay.app.',
+      'Report Security Issues: If you discover a security vulnerability, please report it responsibly to nydevofficial@gmail.com.',
     ],
   },
   {

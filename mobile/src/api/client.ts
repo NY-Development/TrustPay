@@ -62,6 +62,59 @@ apiClient.interceptors.request.use(
 );
 
 /* =========================================================
+   SHARED REFRESH (used by the 401 interceptor below AND by the
+   session-expiry banner's manual "Refresh Session" button — both
+   funnel through the same isRefreshing/refreshPromise singleton so
+   concurrent triggers don't fire two refresh requests at once).
+========================================================= */
+
+export async function refreshSession(): Promise<string | null> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+
+  refreshPromise = (async () => {
+    const refreshToken = await TokenService.getRefreshToken();
+    if (!refreshToken) throw new Error('No refresh token');
+
+    const res = await axios.post(
+      `${API_URL}/auth/refresh`,
+      { refreshToken },
+      { withCredentials: true }
+    );
+
+    const data = res.data?.data ?? res.data;
+
+    const newAccessToken = data?.accessToken;
+    const newRefreshToken = data?.refreshToken;
+
+    if (typeof newAccessToken === 'string') {
+      await TokenService.saveAccessToken(newAccessToken);
+    }
+
+    if (typeof newRefreshToken === 'string') {
+      await TokenService.saveRefreshToken(newRefreshToken);
+    }
+
+    return newAccessToken ?? null;
+  })();
+
+  try {
+    const newToken = await refreshPromise;
+    processQueue(null, newToken);
+    return newToken;
+  } catch (err) {
+    processQueue(err, null);
+    throw err;
+  } finally {
+    isRefreshing = false;
+    refreshPromise = null;
+  }
+}
+
+/* =========================================================
    RESPONSE INTERCEPTOR
 ========================================================= */
 

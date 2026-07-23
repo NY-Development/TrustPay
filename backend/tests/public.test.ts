@@ -1,13 +1,15 @@
 import request from 'supertest';
 import { app, registerOwner } from './helpers';
+import { User } from '../src/models/User';
 
 describe('GET /public/stats', () => {
   it('is reachable without authentication and reflects real data', async () => {
-    const { payload } = await registerOwner();
+    const { payload, ownerId } = await registerOwner();
 
-    // Trusted-by is a marketing showcase, not a security boundary — any
-    // owner with a filled-in company name shows up, regardless of the
-    // (unrelated) admin license-approval status.
+    // Fresh registrations start PENDING_LICENSE — only ACTIVE (approved)
+    // owners should ever show up in the public "trusted by" list.
+    await User.findByIdAndUpdate(ownerId, { ownerStatus: 'ACTIVE' });
+
     const res = await request(app).get('/api/v1/public/stats');
 
     expect(res.status).toBe(200);

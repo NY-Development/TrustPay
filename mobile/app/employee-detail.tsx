@@ -8,6 +8,8 @@ import { useEmployeeDetail, useEmployees } from '@/src/hooks/useEmployee';
 import { useBranches } from '@/src/hooks/useBranch';
 import { StatusModal } from '@/src/components/StatusModal';
 
+const EMPLOYEE_ROLES = ['MANAGER', 'CASHIER', 'VERIFIER', 'RECEPTIONIST', 'OTHER'];
+
 export default function EmployeeDetailScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -23,6 +25,10 @@ export default function EmployeeDetailScreen() {
   const [newPassword, setNewPassword] = React.useState('');
   const [showResetModal, setShowResetModal] = React.useState(false);
   const [showMoveModal, setShowMoveModal] = React.useState(false);
+  const [showEditModal, setShowEditModal] = React.useState(false);
+  const [editName, setEditName] = React.useState('');
+  const [editRole, setEditRole] = React.useState('CASHIER');
+  const [savingEdit, setSavingEdit] = React.useState(false);
   const [modal, setModal] = React.useState<{
     visible: boolean;
     type: 'success' | 'error' | 'info';
@@ -57,6 +63,30 @@ export default function EmployeeDetailScreen() {
       setModal({ visible: true, type: 'success', title: 'Password Reset', message: 'Employee password was reset successfully.' });
     } catch (err: any) {
       setModal({ visible: true, type: 'error', title: 'Action Failed', message: err.response?.data?.message || 'Failed to reset employee password.' });
+    }
+  };
+
+  const handleOpenEdit = () => {
+    if (!employee) return;
+    setEditName(employee.name || '');
+    setEditRole(employee.role || 'CASHIER');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Error', 'Name cannot be empty.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateEmployee({ id: employee!._id, data: { name: editName.trim(), role: editRole } });
+      setShowEditModal(false);
+      setModal({ visible: true, type: 'success', title: 'Employee Updated', message: 'Name and role were saved successfully.' });
+    } catch (err: any) {
+      setModal({ visible: true, type: 'error', title: 'Update Failed', message: err.response?.data?.message || 'Failed to update employee.' });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -149,6 +179,14 @@ export default function EmployeeDetailScreen() {
           <Text className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-2 ml-1">Administrative Controls</Text>
 
           <TouchableOpacity
+            onPress={handleOpenEdit}
+            className="w-full h-14 bg-muted border border-border rounded-2xl items-center justify-center flex-row space-x-2"
+          >
+            <Ionicons name="create-outline" size={20} color={isDark ? '#94a3b8' : '#64748b'} />
+            <Text className="text-foreground font-bold text-base ml-2">Edit Name &amp; Role</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={handleToggleStatus}
             style={{ backgroundColor: employee.status === 'ACTIVE' ? '#ef444415' : '#10b98115' }}
             className="w-full h-14 rounded-2xl items-center justify-center border border-transparent/25 flex-row space-x-2"
@@ -176,6 +214,43 @@ export default function EmployeeDetailScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Edit Name & Role Modal */}
+      {showEditModal && (
+        <View className="absolute inset-0 bg-black/60 items-center justify-center z-50 p-6">
+          <View className="bg-card w-full max-w-sm rounded-[32px] p-6 border border-border">
+            <Text className="text-foreground text-xl font-bold text-center mb-4">Edit Employee</Text>
+            <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-2">Name</Text>
+            <TextInput
+              placeholder="Full name"
+              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              value={editName}
+              onChangeText={setEditName}
+              className="bg-muted border border-border rounded-2xl h-14 px-4 text-foreground mb-4"
+            />
+            <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-2">Role</Text>
+            <View className="flex-row flex-wrap gap-2 mb-6">
+              {EMPLOYEE_ROLES.map((r) => (
+                <TouchableOpacity
+                  key={r}
+                  onPress={() => setEditRole(r)}
+                  className={`px-3 py-2 rounded-xl border ${editRole === r ? 'bg-primary border-primary' : 'bg-muted border-border'}`}
+                >
+                  <Text className={`text-xs font-bold ${editRole === r ? 'text-primary-foreground' : 'text-foreground'}`}>{r}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View className="flex-row justify-between">
+              <TouchableOpacity onPress={() => setShowEditModal(false)} className="w-[47%] h-12 bg-muted rounded-xl items-center justify-center">
+                <Text className="text-foreground font-bold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit} className="w-[47%] h-12 bg-primary rounded-xl items-center justify-center">
+                <Text className="text-primary-foreground font-bold">{savingEdit ? 'Saving...' : 'Save'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Password Reset Modal */}
       {showResetModal && (

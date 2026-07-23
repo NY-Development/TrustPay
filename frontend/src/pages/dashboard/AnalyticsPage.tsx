@@ -1,7 +1,10 @@
 import React, { useMemo, useState, useEffect } from "react";
+import type { DateRange } from "react-day-picker";
 import { useVerificationHistory } from "@/src/hooks/useVerification";
 import { useAI } from "@/src/ai/AIProvider";
 import type { ReceiptData, InsightReport } from "@/src/ai/ai-types";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { X } from "lucide-react";
 
 import {
   Area,
@@ -53,8 +56,29 @@ export default function AnalyticsPage() {
     limit: 100,
   });
 
-  const verifications =
+  const allVerifications =
     data?.pages?.flatMap((page) => page.data) || [];
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  const verifications = useMemo(() => {
+    if (!dateRange?.from && !dateRange?.to) return allVerifications;
+
+    const rangeStart = dateRange?.from
+      ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate(), 0, 0, 0)
+      : null;
+    const rangeEnd = dateRange?.to
+      ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999)
+      : null;
+
+    return allVerifications.filter((v: any) => {
+      if (!v.createdAt) return false;
+      const created = new Date(v.createdAt);
+      if (rangeStart && created < rangeStart) return false;
+      if (rangeEnd && created > rangeEnd) return false;
+      return true;
+    });
+  }, [allVerifications, dateRange]);
 
   const [aiInsights, setAiInsights] = useState<InsightReport | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
@@ -226,15 +250,40 @@ export default function AnalyticsPage() {
   return (
   <div className="space-y-8">
     {/* Header */}
-    <div className="space-y-1">
-      <h1 className="text-3xl font-bold tracking-tight text-[#131b2e] dark:text-white">
-        Business Analytics
-      </h1>
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight text-[#131b2e] dark:text-white">
+          Business Analytics
+        </h1>
 
-      <p className="text-sm text-[#54647a]">
-        Monitor verification performance, revenue trends, provider
-        distribution and fraud intelligence.
-      </p>
+        <p className="text-sm text-[#54647a]">
+          Monitor verification performance, revenue trends, provider
+          distribution and fraud intelligence.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+          placeholder="Filter by date range"
+          className={`rounded-full text-xs ${
+            dateRange?.from
+              ? 'border-[#004bca]/30 bg-[#004bca]/10 text-[#004bca] hover:bg-[#004bca]/15 hover:text-[#004bca]'
+              : 'border-[#c2c6d9]/30 dark:border-white/10'
+          }`}
+        />
+        {dateRange?.from && (
+          <button
+            onClick={() => setDateRange(undefined)}
+            aria-label="Clear date range"
+            className="flex items-center gap-1 text-[10px] font-bold text-[#54647a] hover:text-red-500 px-2 py-1.5 rounded-full transition-colors cursor-pointer"
+          >
+            <X size={12} />
+            Clear
+          </button>
+        )}
+      </div>
     </div>
 
     {/* KPI Cards */}

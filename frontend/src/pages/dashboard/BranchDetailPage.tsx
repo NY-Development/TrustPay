@@ -19,9 +19,12 @@ export default function BranchDetailPage() {
   const [branchName, setBranchName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [country, setCountry] = useState('');
   const [region, setRegion] = useState('');
   const [city, setCity] = useState('');
   const [subCity, setSubCity] = useState('');
+  const [wereda, setWereda] = useState('');
+  const [kebele, setKebele] = useState('');
   const [address, setAddress] = useState('');
 
   const [newAccNum, setNewAccNum] = useState('');
@@ -40,9 +43,12 @@ export default function BranchDetailPage() {
       setBranchName(branch.branchName || '');
       setPhone(branch.phone || '');
       setEmail(branch.email || '');
+      setCountry(branch.country || '');
       setRegion(branch.region || '');
       setCity(branch.city || '');
       setSubCity(branch.subCity || '');
+      setWereda(branch.wereda || '');
+      setKebele(branch.kebele || '');
       setAddress(branch.address || '');
     }
   }, [branch]);
@@ -57,9 +63,12 @@ export default function BranchDetailPage() {
         branchName: branchName.trim(),
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
+        country: country.trim() || undefined,
         region: region.trim() || undefined,
         city: city.trim() || undefined,
         subCity: subCity.trim() || undefined,
+        wereda: wereda.trim() || undefined,
+        kebele: kebele.trim() || undefined,
         address: address.trim() || undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['branch-detail', id] });
@@ -174,19 +183,35 @@ export default function BranchDetailPage() {
               <label className={labelClass}>Email</label>
               <input type="email" disabled={readOnly} value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Country</label>
+                <input type="text" disabled={readOnly} value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass} />
+              </div>
               <div>
                 <label className={labelClass}>Region</label>
                 <input type="text" disabled={readOnly} value={region} onChange={(e) => setRegion(e.target.value)} className={inputClass} />
               </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>City</label>
                 <input type="text" disabled={readOnly} value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
               </div>
+              <div>
+                <label className={labelClass}>Sub-City</label>
+                <input type="text" disabled={readOnly} value={subCity} onChange={(e) => setSubCity(e.target.value)} className={inputClass} />
+              </div>
             </div>
-            <div>
-              <label className={labelClass}>Sub-City</label>
-              <input type="text" disabled={readOnly} value={subCity} onChange={(e) => setSubCity(e.target.value)} className={inputClass} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Wereda</label>
+                <input type="text" disabled={readOnly} value={wereda} onChange={(e) => setWereda(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Kebele</label>
+                <input type="text" disabled={readOnly} value={kebele} onChange={(e) => setKebele(e.target.value)} className={inputClass} />
+              </div>
             </div>
             <div>
               <label className={labelClass}>Street Address</label>
@@ -253,8 +278,14 @@ export default function BranchDetailPage() {
                     className={inputClass}
                   >
                     <option value="cbe">CBE (Commercial Bank of Ethiopia)</option>
+                    <option value="boa">BOA (Bank of Abyssinia)</option>
                     <option value="telebirr">Telebirr Wallet</option>
                     <option value="mpesa">M-Pesa Safaricom</option>
+                    <option value="cbebirr">CBE Birr</option>
+                    <option value="dashen">Dashen Bank</option>
+                    <option value="awash">Awash Bank</option>
+                    <option value="siinqee">Siinqee Bank</option>
+                    <option value="kaafiebirr">Kaafi eBirr</option>
                   </select>
                 </div>
                 <button

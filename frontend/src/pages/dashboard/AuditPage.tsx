@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, Layers, CalendarDays, X } from 'lucide-react';
+import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, Layers, X } from 'lucide-react';
+import type { DateRange } from 'react-day-picker';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useAI } from '@/src/ai/AIProvider';
 import type { ReceiptData, AuditReport } from '@/src/ai/ai-types';
 
@@ -14,7 +16,7 @@ export default function AuditPage() {
   const history = useMemo(() => historyRes?.pages?.flatMap(page => page.data) || [], [historyRes]);
 
   const [activeFilter, setActiveFilter] = useState<FilterPeriod>('all');
-  const [startDate, setStartDate] = useState<string>('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [generatingAi, setGeneratingAi] = useState(false);
   const [aiReport, setAiReport] = useState<AuditReport | null>(null);
 
@@ -26,13 +28,12 @@ export default function AuditPage() {
     { id: 'year', label: 'This Year' },
   ] as const;
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
   // Single filtered set shared by the metrics AND the AI audit, so every panel
-  // reflects the selected period + start date consistently.
+  // reflects the selected period + custom date range consistently.
   const filteredHistory = useMemo(() => {
     const now = new Date();
-    const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
+    const rangeStart = dateRange?.from ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate(), 0, 0, 0) : null;
+    const rangeEnd = dateRange?.to ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999) : null;
 
     return history.filter((record: any) => {
       const recordDateStr = record.createdAt;
@@ -52,15 +53,17 @@ export default function AuditPage() {
         if (!passes) return false;
       }
 
-      // Start-date filter (records on / after the chosen day)
-      if (start) {
+      // Begin/end date-range filter (records within the chosen window, inclusive)
+      if (rangeStart || rangeEnd) {
         if (!recordDateStr) return false;
-        if (new Date(recordDateStr) < start) return false;
+        const recordDate = new Date(recordDateStr);
+        if (rangeStart && recordDate < rangeStart) return false;
+        if (rangeEnd && recordDate > rangeEnd) return false;
       }
 
       return true;
     });
-  }, [history, activeFilter, startDate]);
+  }, [history, activeFilter, dateRange]);
 
   // Convert histories into unified structure for audit checking
   const receiptDataItems = useMemo((): ReceiptData[] => {
@@ -196,29 +199,22 @@ export default function AuditPage() {
           </button>
         ))}
 
-        {/* Start-date calendar filter */}
+        {/* Begin/end date-range filter */}
         <div className="flex items-center gap-2 sm:ml-auto">
-          <div
-            className={`flex items-center gap-2 rounded-full px-3 py-1.5 border transition-all ${
-              startDate
-                ? 'bg-[#004bca]/10 border-[#004bca]/30 text-[#004bca]'
-                : 'bg-white border-[#c2c6d9]/30 dark:bg-transparent dark:border-white/10 text-[#54647a]'
+          <DateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+            placeholder="Filter by date range"
+            className={`rounded-full text-xs ${
+              dateRange?.from
+                ? 'border-[#004bca]/30 bg-[#004bca]/10 text-[#004bca] hover:bg-[#004bca]/15 hover:text-[#004bca]'
+                : 'border-[#c2c6d9]/30 dark:border-white/10'
             }`}
-          >
-            <CalendarDays size={14} />
-            <input
-              type="date"
-              value={startDate}
-              max={todayStr}
-              onChange={(e) => setStartDate(e.target.value)}
-              aria-label="Filter from start date"
-              className="bg-transparent text-xs font-bold outline-none cursor-pointer dark:[color-scheme:dark]"
-            />
-          </div>
-          {startDate && (
+          />
+          {dateRange?.from && (
             <button
-              onClick={() => setStartDate('')}
-              aria-label="Clear start date"
+              onClick={() => setDateRange(undefined)}
+              aria-label="Clear date range"
               className="flex items-center gap-1 text-[10px] font-bold text-[#54647a] hover:text-red-500 px-2 py-1.5 rounded-full transition-colors cursor-pointer"
             >
               <X size={12} />

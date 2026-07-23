@@ -198,7 +198,7 @@ export default function ManualVerificationPage() {
               <label className="block text-xs font-semibold text-[#131b2e] dark:text-[#eef0ff] uppercase tracking-wider mb-2">
                 Select Provider
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {registeredProviders.map((p) => (
                   <button
                     key={p.id}

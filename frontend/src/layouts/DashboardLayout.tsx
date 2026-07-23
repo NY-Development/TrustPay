@@ -9,7 +9,9 @@ export const DashboardLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Load and persist sidebar collapsed state
+  // Load and persist sidebar collapsed state (desktop only — mobile always
+  // uses the full-width off-canvas drawer below, so "collapsed" has no
+  // meaning there).
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     const saved = localStorage.getItem('sidebar_collapsed');
     return saved === 'true';
@@ -18,6 +20,14 @@ export const DashboardLayout: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(collapsed));
   }, [collapsed]);
+
+  // Off-canvas sidebar drawer for mobile/tablet (< lg)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Close the mobile drawer automatically on route change
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   // Mandatory subscription enforcement — lives here (not on a single page)
   // specifically so it follows the user across every /dashboard/* route.
@@ -54,9 +64,20 @@ export const DashboardLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-[#faf8ff] dark:bg-[#0b0e14] text-[#131b2e] dark:text-[#eef0ff]">
-      {/* Sidebar navigation */}
-      <aside className={`fixed left-0 top-0 h-full bg-[#283044] dark:bg-[#0b0e14] text-[#b4c5ff] flex flex-col py-6 px-4 z-50 border-r border-[#c2c6d9]/10 transition-all duration-300 ${
-        collapsed ? 'w-20' : 'w-64'
+      {/* Backdrop for the mobile/tablet off-canvas drawer */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
+      {/* Sidebar navigation — full-width off-canvas drawer below lg,
+          fixed collapsible rail at lg and above */}
+      <aside className={`fixed left-0 top-0 h-full bg-[#283044] dark:bg-[#0b0e14] text-[#b4c5ff] flex flex-col py-6 px-4 z-50 border-r border-[#c2c6d9]/10 transition-all duration-300 w-72 ${
+        mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0 ${
+        collapsed ? 'lg:w-20' : 'lg:w-64'
       }`}>
         <div className="mb-8 px-2 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
@@ -136,39 +157,48 @@ export const DashboardLayout: React.FC = () => {
       </aside>
 
       {/* Main content body */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
-        collapsed ? 'ml-20' : 'ml-64'
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ml-0 ${
+        collapsed ? 'lg:ml-20' : 'lg:ml-64'
       }`}>
         {/* Top Header navbar */}
-        <header className="sticky top-0 w-full z-40 bg-white dark:bg-[#131b2e] border-b border-[#c2c6d9]/30 flex justify-between items-center px-8 h-16 shadow-xs">
-          <div className="flex items-center gap-4">
-            {/* Collapse toggle button */}
+        <header className="sticky top-0 w-full z-30 bg-white dark:bg-[#131b2e] border-b border-[#c2c6d9]/30 flex justify-between items-center px-4 md:px-8 h-16 shadow-xs">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
+            {/* Mobile/tablet drawer toggle */}
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="lg:hidden hover:bg-[#eaedff] dark:hover:bg-white/10 p-2 rounded-full flex items-center justify-center transition-colors cursor-pointer text-[#131b2e] dark:text-white shrink-0"
+              title="Open menu"
+            >
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+
+            {/* Collapse toggle button (desktop only) */}
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="hover:bg-[#eaedff] dark:hover:bg-white/10 p-2 rounded-full flex items-center justify-center transition-colors cursor-pointer text-[#131b2e] dark:text-white"
+              className="hidden lg:flex hover:bg-[#eaedff] dark:hover:bg-white/10 p-2 rounded-full items-center justify-center transition-colors cursor-pointer text-[#131b2e] dark:text-white shrink-0"
               title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
               <span className="material-symbols-outlined">
                 {collapsed ? 'menu' : 'menu_open'}
               </span>
             </button>
-            
-            <h2 className="text-xl font-bold font-headline-md text-[#131b2e] dark:text-white capitalize">
+
+            <h2 className="text-lg md:text-xl font-bold font-headline-md text-[#131b2e] dark:text-white capitalize truncate">
               {location.pathname.split('/').pop() || 'Overview'}
             </h2>
           </div>
-          
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-2 md:gap-6 shrink-0">
+            <div className="flex items-center gap-2 md:gap-4">
               <Link
                 to="/dashboard/notifications"
                 className="hover:bg-[#eaedff] dark:hover:bg-white/10 p-2 rounded-full flex items-center justify-center transition-colors relative"
               >
                 <span className="material-symbols-outlined">notifications</span>
               </Link>
-              <div className="h-8 w-px bg-[#c2c6d9]/50 mx-1"></div>
+              <div className="hidden sm:block h-8 w-px bg-[#c2c6d9]/50 mx-1"></div>
               <div className="flex items-center gap-3 pl-1">
-                <div className="w-8 h-8 rounded-full bg-[#004bca] text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs">
+                <div className="w-8 h-8 rounded-full bg-[#004bca] text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs shrink-0">
                   {user?.name?.slice(0, 2) || 'AD'}
                 </div>
                 <div className="hidden md:flex flex-col text-left">
@@ -181,7 +211,7 @@ export const DashboardLayout: React.FC = () => {
         </header>
 
         {/* Content canvas container */}
-        <main className="flex-1 p-8 bg-[#faf8ff] dark:bg-[#0b0e14] overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-[#faf8ff] dark:bg-[#0b0e14] overflow-y-auto overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

@@ -8,7 +8,7 @@ import { useColorScheme } from 'nativewind';
 const EFFECTIVE_DATE = 'July 8, 2026';
 const COMPANY = 'NY-Development';
 const APP_NAME = 'TrustPay';
-const SUPPORT_EMAIL = 'yamlaknegash96@gmail.com';
+const SUPPORT_EMAIL = 'nydevofficial@gmail.com';
 const JURISDICTION = 'Federal Democratic Republic of Ethiopia';
 
 // ─── Section Data ──────────────────────────────────────────────────────

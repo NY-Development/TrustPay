@@ -8,7 +8,7 @@ import { useColorScheme } from 'nativewind';
 const EFFECTIVE_DATE = 'July 8, 2026';
 const COMPANY = 'NY-Development';
 const APP_NAME = 'TrustPay';
-const SUPPORT_EMAIL = 'legal@trustpay.app';
+const SUPPORT_EMAIL = 'nydevofficial@gmail.com';
 const JURISDICTION = 'Federal Democratic Republic of Ethiopia';
 
 type SectionItem = {
@@ -197,7 +197,7 @@ const sections: SectionItem[] = [
       `These Terms are governed by the laws of the ${JURISDICTION}. Any disputes arising from or relating to these Terms or the Service shall be resolved through:`,
     ],
     bullets: [
-      'Informal Resolution: You agree to first attempt to resolve any dispute by contacting us at legal@trustpay.app. We will endeavor to resolve the dispute within 30 business days.',
+      'Informal Resolution: You agree to first attempt to resolve any dispute by contacting us at nydevofficial@gmail.com. We will endeavor to resolve the dispute within 30 business days.',
       'Arbitration: If informal resolution fails, disputes shall be submitted to binding arbitration under the rules of the Ethiopian Arbitration and Conciliation Center in Addis Ababa.',
       'Jurisdiction: The courts of Addis Ababa shall have exclusive jurisdiction for any matters not subject to arbitration.',
     ],
