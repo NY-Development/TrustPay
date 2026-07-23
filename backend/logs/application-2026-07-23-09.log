@@ -16,3 +16,5 @@
 {"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-23T06:02:02.101Z"}
 {"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a61ae5b6ddb633fd4336e76","timestamp":"2026-07-23T06:02:03.685Z"}
 {"level":"error","message":"Error: Account already exists on this branch.","method":"POST","path":"/api/v1/branches/6a61ae5c6ddb633fd4336ec4/accounts","timestamp":"2026-07-23T06:02:04.877Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T06:51:50.158Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T06:51:50.168Z"}

@@ -1,0 +1,40 @@
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:08:32.197Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:08:32.204Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-01.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:15:00.736Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:15:00.739Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-02.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:15:44.380Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:15:44.384Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:18:21.411Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:18:21.416Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:18:38.410Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:18:38.417Z"}
+{"level":"warn","message":"MongoDB disconnected. Attempting reconnection...","timestamp":"2026-07-23T07:19:31.423Z"}
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-23T07:19:32.901Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-02.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:26:14.497Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:26:14.503Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-01.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:26:25.549Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:26:25.553Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:26:45.291Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:26:45.296Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-02.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:28:49.732Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:28:49.740Z"}
+{"level":"info","message":"📦 MongoDB connected: ac-sxdmjkv-shard-00-00.i8vlen9.mongodb.net/trustpay","timestamp":"2026-07-23T07:30:51.269Z"}
+{"level":"info","message":"🚀 Server running in development mode on port 5000","timestamp":"2026-07-23T07:30:51.274Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-23T07:32:19.221Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-23T07:32:19.594Z"}
+{"level":"error","message":"Error: Access denied. Owners only.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-23T07:32:20.886Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a61c384fd7ecfb48436aea5","timestamp":"2026-07-23T07:32:20.950Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-23T07:32:21.283Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-23T07:32:21.305Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-23T07:32:21.847Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-23T07:32:21.926Z"}
+{"level":"error","message":"Error: Account already exists on this branch.","method":"POST","path":"/api/v1/branches/6a61c386fd7ecfb48436aef3/accounts","timestamp":"2026-07-23T07:32:22.487Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-23T07:32:22.790Z"}
+{"level":"error","message":"Error: An account with this email address already exists.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-23T07:32:22.804Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-23T07:32:23.179Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-23T07:32:23.562Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-23T07:32:26.118Z"}
+{"level":"error","message":"Error: Access denied: Employee belongs to another company.","method":"GET","path":"/api/v1/employees/6a61c38a641c295fe5aba02a","timestamp":"2026-07-23T07:32:26.741Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-23T07:32:27.793Z"}
+{"level":"error","message":"Error: Employee not found.","method":"GET","path":"/api/v1/employees/6a61c38e641c295fe5aba0cf","timestamp":"2026-07-23T07:32:30.531Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-23T07:32:30.544Z"}

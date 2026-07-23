@@ -186,7 +186,7 @@ export default function Register() {
       <TouchableOpacity
         onPress={() => setAuthHelpVisible(true)}
         activeOpacity={0.7}
-        className="absolute top-4 right-6 z-20 flex-row items-center gap-1 bg-muted border border-border rounded-full px-3 py-2"
+        className="absolute top-8 right-6 z-20 flex-row items-center gap-1 bg-muted border border-border rounded-full px-3 py-2"
       >
         <Ionicons name="information-circle-outline" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
         <Text className="text-foreground text-xs font-semibold">How this works</Text>

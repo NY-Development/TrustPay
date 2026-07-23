@@ -158,6 +158,16 @@ export interface SubscriptionVerifyResponse {
   remainingAmount?: number;
 }
 
+export interface TrustedCompanyInfo {
+  companyName: string;
+  companyType: string;
+  website?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  address?: string;
+}
+
 export interface PublicStats {
   companies: number;
   branches: number;
@@ -167,7 +177,7 @@ export interface PublicStats {
   countriesServed: number;
   companiesByType: { type: string; count: number }[];
   verificationsByProvider: { provider: string; count: number }[];
-  trustedCompanies: { name: string; type: string; city?: string; region?: string }[];
+  trustedCompanies: TrustedCompanyInfo[];
   platformLaunchYear: number;
 }
 
