@@ -111,8 +111,10 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
     });
   };
 
-  const currentPrice = plan === 'monthly' ? '1,499.99' : '14,999.99';
-  const currentTransferPrice = plan === 'monthly' ? '1500' : '15000';
+  // Keep in sync with backend/src/constants/index.ts (SUBSCRIPTION_PRICING,
+  // YEARLY_PLAN_AVAILABLE) — yearly = 10% off. Yearly billing isn't
+  // purchasable yet, hence the plan selector below only offers monthly.
+  const currentTransferPrice = plan === 'monthly' ? '2000' : '21600';
   const isLoading = verifyMutation.isPending || topUpMutation.isPending;
 
   return (
@@ -251,28 +253,23 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
 
               {/* Plan Selector */}
               <View className="flex-row gap-4 mb-8">
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setPlan('monthly')}
                   className={`flex-1 bg-card border-2 p-5 rounded-[24px] ${plan === 'monthly' ? 'border-primary' : 'border-border'}`}
                 >
                   <Text className="text-muted-foreground font-medium text-xs">MONTHLY PLAN</Text>
-                  <Text className="text-foreground text-2xl font-black mt-2">1,499.99 ETB</Text>
+                  <Text className="text-foreground text-2xl font-black mt-2">2,000 ETB</Text>
                   <Text className="text-muted-foreground text-xs mt-1">Billed monthly</Text>
                 </TouchableOpacity>
-                
-                {/* 
-                <TouchableOpacity 
-                   onPress={() => setPlan('yearly')}
-                   className={`flex-1 bg-card border-2 p-5 rounded-[24px] ${plan === 'yearly' ? 'border-primary' : 'border-border'}`}
-                >
-                   <View className="absolute top-2 right-2 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                     <Text className="text-primary text-[9px] font-bold">BEST VALUE</Text>
-                   </View>
-                   <Text className="text-muted-foreground font-medium text-xs">YEARLY PLAN</Text>
-                   <Text className="text-foreground text-2xl font-black mt-2">14,999.99 ETB</Text>
-                   <Text className="text-muted-foreground text-xs mt-1">Billed yearly</Text>
-                </TouchableOpacity>
-                */}
+
+                <View className="flex-1 bg-muted/40 border-2 border-dashed border-border p-5 rounded-[24px] opacity-70">
+                  <View className="absolute top-2 right-2 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                    <Text className="text-primary text-[9px] font-bold">SAVE 10%</Text>
+                  </View>
+                  <Text className="text-muted-foreground font-medium text-xs">YEARLY PLAN</Text>
+                  <Text className="text-foreground text-lg font-black mt-2">Coming Soon</Text>
+                  <Text className="text-muted-foreground text-xs mt-1">Monthly only, for now</Text>
+                </View>
               </View>
 
               {/* Payment Info Card */}

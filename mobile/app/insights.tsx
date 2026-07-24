@@ -95,7 +95,7 @@ export default function Insights() {
       const amt = Number(record.amount) || 0;
       totalVolume += amt;
 
-      if (record.status === 'completed' || record.verified === true) {
+      if (record.processingStatus === 'completed' || record.verified === true) {
         completedCount++;
       }
 
@@ -270,7 +270,7 @@ export default function Insights() {
           <td>${rec.referenceNumber || rec._id || 'N/A'}</td>
           <td style="text-transform: uppercase;">${rec.provider || rec.bank || 'N/A'}</td>
           <td>${Number(rec.amount || 0).toLocaleString()} ${rec.currency || 'ETB'}</td>
-          <td><span class="badge ${rec.status === 'completed' ? 'success' : 'failed'}">${rec.status || 'unknown'}</span></td>
+          <td><span class="badge ${rec.verified === true ? 'success' : 'failed'}">${rec.processingStatus || (rec.verified === true ? 'completed' : 'unknown')}</span></td>
           <td>${rec.verificationSummary?.severity || 'clear'}</td>
           <td>${rec.createdAt ? new Date(rec.createdAt).toLocaleDateString() : 'N/A'}</td>
         </tr>
@@ -591,9 +591,9 @@ export default function Insights() {
                       <Text className="text-foreground text-xs uppercase font-semibold w-20">{item.provider || item.bank || 'N/A'}</Text>
                       <Text className="text-foreground text-xs font-bold w-24">{Number(item.amount || 0).toLocaleString()} ETB</Text>
                       <View className="w-20">
-                        <View className={`px-2 py-0.5 rounded-md self-start ${item.status === 'completed' || item.verified ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                          <Text className={`text-[10px] font-bold uppercase ${item.status === 'completed' || item.verified ? 'text-green-500' : 'text-red-500'}`}>
-                            {item.status || 'Success'}
+                        <View className={`px-2 py-0.5 rounded-md self-start ${item.verified ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                          <Text className={`text-[10px] font-bold uppercase ${item.verified ? 'text-green-500' : 'text-red-500'}`}>
+                            {item.processingStatus || (item.verified ? 'Success' : 'Pending')}
                           </Text>
                         </View>
                       </View>

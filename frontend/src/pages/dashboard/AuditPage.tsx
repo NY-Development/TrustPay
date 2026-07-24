@@ -1,24 +1,18 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useVerificationHistory } from '@/src/hooks/useVerification';
-import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, Layers, X } from 'lucide-react';
+import { ShieldCheck, Copy, ShieldAlert, AlertTriangle, RefreshCw, X } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { useAI } from '@/src/ai/AIProvider';
-import type { ReceiptData, AuditReport } from '@/src/ai/ai-types';
+import { computeFraudReport } from '@/src/utils/fraudAnalysis';
 
 type FilterPeriod = 'all' | 'today' | 'week' | 'month' | 'year';
 
 export default function AuditPage() {
-  const { organizer, status: aiStatus } = useAI();
   const { data: historyRes, isLoading, refetch } = useVerificationHistory({ limit: 100 });
-  // Memoized so the reference is stable across renders — this prevents the AI
-  // audit effect below from re-firing on every render (runaway generateAudit).
-  const history = useMemo(() => historyRes?.pages?.flatMap(page => page.data) || [], [historyRes]);
+  const history = useMemo(() => historyRes?.pages?.flatMap((page: any) => page.data) || [], [historyRes]);
 
   const [activeFilter, setActiveFilter] = useState<FilterPeriod>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [generatingAi, setGeneratingAi] = useState(false);
-  const [aiReport, setAiReport] = useState<AuditReport | null>(null);
 
   const filterOptions = [
     { id: 'all', label: 'All Time' },
@@ -65,56 +59,10 @@ export default function AuditPage() {
     });
   }, [history, activeFilter, dateRange]);
 
-  // Convert histories into unified structure for audit checking
-  const receiptDataItems = useMemo((): ReceiptData[] => {
-    return filteredHistory.map((item: any) => ({
-      merchant: item.provider || item.bank || 'Unknown',
-      date: item.paymentDate || item.createdAt || new Date().toISOString(),
-      subtotal: Number(item.amount) || 0,
-      tax: null,
-      vat: null,
-      total: Number(item.amount) || 0,
-      currency: item.currency || 'ETB',
-      paymentMethod: 'transfer',
-      items: [],
-      category: 'other',
-      confidence: 1.0,
-      referenceNumber: item.referenceNumber || null,
-      transactionNumber: item.referenceNumber || null,
-      bank: item.provider || item.bank || 'Unknown',
-      senderName: item.rawResponse?.senderName || null,
-      receiverName: item.rawResponse?.receiverName || null,
-    }));
-  }, [filteredHistory]);
-
-  useEffect(() => {
-    if (aiStatus !== 'ready') return;
-
-    // Nothing in the current filter → clear any stale report.
-    if (receiptDataItems.length === 0) {
-      setAiReport(null);
-      setGeneratingAi(false);
-      return;
-    }
-
-    let cancelled = false;
-    const getAiAudit = async () => {
-      setGeneratingAi(true);
-      try {
-        const report = await organizer.generateAudit(receiptDataItems);
-        if (!cancelled) setAiReport(report);
-      } catch (err) {
-        console.warn('[AI Web Audit Error]', err);
-        if (!cancelled) setAiReport(null);
-      } finally {
-        if (!cancelled) setGeneratingAi(false);
-      }
-    };
-    getAiAudit();
-
-    // Prevent a slow, stale response from overwriting a newer filter selection.
-    return () => { cancelled = true; };
-  }, [receiptDataItems, aiStatus, organizer]);
+  // Deterministic, statistics-based fraud analysis over the filtered
+  // records — see fraudAnalysis.ts for the full method (severity flags,
+  // duplicate-reference detection, z-score outlier detection on amounts).
+  const fraudReport = useMemo(() => computeFraudReport(filteredHistory), [filteredHistory]);
 
   const metrics = useMemo(() => {
     let totalMoney = 0;
@@ -131,14 +79,14 @@ export default function AuditPage() {
         providerStats[provider] = { totalAmount: 0, verifiedCount: 0, fraudCount: 0 };
       }
 
-      const isFailed = record.verified === false || record.status === 'failed' || record.verificationSummary?.severity === 'error';
+      const isFailed = record.verified === false || record.processingStatus === 'failed' || record.verificationSummary?.severity === 'error';
       const isFraud = record.verificationSummary?.severity === 'fraud_risk';
-      const isDuplicate = record.verificationSummary?.severity === 'duplicate' || 
-                          (record.rawResponse?.confirmationHistory && 
-                            (record.rawResponse.confirmationHistory.confirmationCount > 1 || 
+      const isDuplicate = record.verificationSummary?.severity === 'duplicate' ||
+                          (record.rawResponse?.confirmationHistory &&
+                            (record.rawResponse.confirmationHistory.confirmationCount > 1 ||
                              record.rawResponse.confirmationHistory.confirmedBefore === true));
-      
-      const isSuccess = record.verified === true && record.status !== 'failed' && !isFraud && !isDuplicate;
+
+      const isSuccess = record.verified === true && record.processingStatus !== 'failed' && !isFraud && !isDuplicate;
 
       if (isFailed) {
         failedCount++;
@@ -272,71 +220,70 @@ export default function AuditPage() {
         </div>
       </div>
 
-      {/* AI Auditing Hub Panel */}
+      {/* Fraud & Security Intelligence Panel — deterministic statistical
+          analysis (severity flags + duplicate-reference + z-score outlier
+          detection) over the real filtered records, not a model call. */}
       <div className="bg-white dark:bg-[#131b2e] border border-[#c2c6d9]/35 rounded-[28px] overflow-hidden p-6 shadow-xs">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <div>
-            <h3 className="text-lg font-bold text-[#131b2e] dark:text-white">AI Fraud & Security Hub</h3>
-            <p className="text-xs text-[#54647a]">Deep learning verification and transaction safety analysis</p>
+            <h3 className="text-lg font-bold text-[#131b2e] dark:text-white">Fraud & Security Intelligence</h3>
+            <p className="text-xs text-[#54647a]">Statistical anomaly detection over your verification history</p>
           </div>
           <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#004bca]/10 text-[#004bca] border border-[#004bca]/10">
-            Cloud Gemma AI
+            Statistical Engine
           </span>
         </div>
 
-        {generatingAi ? (
-          <div className="flex items-center justify-center p-8 gap-2 text-xs text-muted-foreground">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#004bca]" />
-            Analyzing verification log patterns for anomalies...
+        <div className="space-y-6">
+          <div className="p-5 rounded-2xl bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/20 flex flex-wrap justify-between items-center gap-4">
+            <div className="flex-1 min-w-[240px]">
+              <h4 className="font-semibold text-sm mb-1 text-[#131b2e] dark:text-white">Security Audit Summary</h4>
+              <p className="text-xs text-muted-foreground leading-5">{fraudReport.summary}</p>
+            </div>
+            <div className={`shrink-0 flex items-center px-3 py-1.5 rounded-lg border font-bold text-xs select-none ${
+              fraudReport.riskScore >= 50
+                ? 'bg-red-500/10 text-red-600 border-red-500/20'
+                : fraudReport.riskScore >= 20
+                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                  : 'bg-[#004bca]/10 text-[#004bca] border-[#004bca]/20'
+            }`}>
+              Risk Score: <span className="font-mono ml-1">{fraudReport.riskScore}/100</span>
+            </div>
           </div>
-        ) : aiReport ? (
-          <div className="space-y-6">
-            <div className="p-5 rounded-2xl bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/20 flex flex-wrap justify-between items-center gap-4">
-              <div className="flex-1 min-w-[240px]">
-                <h4 className="font-semibold text-sm mb-1 text-[#131b2e] dark:text-white">Security Audit Summary</h4>
-                <p className="text-xs text-muted-foreground leading-5">{aiReport.summary}</p>
-              </div>
-              <div className="shrink-0 flex items-center bg-[#004bca]/10 text-[#004bca] px-3 py-1.5 rounded-lg border border-[#004bca]/20 font-bold text-xs select-none">
-                Risk Confidence Level: <span className="font-mono ml-1">{(aiReport.overallConfidence * 100).toFixed(0)}%</span>
+
+          {fraudReport.suspiciousTransactions.length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-xs text-[#54647a] tracking-wider uppercase">Flagged For Review</h4>
+              {fraudReport.suspiciousTransactions.map((tx, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-4 p-4 rounded-xl border ${
+                    tx.severity === 'critical' || tx.severity === 'high'
+                      ? 'border-red-500/20 bg-red-500/5'
+                      : 'border-amber-500/20 bg-amber-500/5'
+                  }`}
+                >
+                  <ShieldAlert size={20} className={tx.severity === 'critical' || tx.severity === 'high' ? 'text-red-500 mt-0.5' : 'text-amber-500 mt-0.5'} />
+                  <div>
+                    <h5 className="font-bold text-xs text-[#131b2e] dark:text-white uppercase">Reference ID: {tx.referenceNumber}</h5>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{tx.reason}</p>
+                    <span className="inline-block mt-2 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#505f76]/10 text-slate-500">
+                      Severity: {tx.severity}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck size={24} />
+              <div>
+                <h5 className="font-bold text-xs uppercase">Platform Check Complete</h5>
+                <p className="text-[11px] mt-0.5 opacity-90">Verification logs show no high-severity risk indicators. System health is stable.</p>
               </div>
             </div>
-
-            {aiReport.suspiciousTransactions.length > 0 ? (
-              <div className="space-y-3">
-                <h4 className="font-semibold text-xs text-[#54647a] tracking-wider uppercase">Detections Required Action</h4>
-                {aiReport.suspiciousTransactions.map((tx, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-start gap-4 p-4 rounded-xl border ${
-                      tx.severity === 'critical' || tx.severity === 'high'
-                        ? 'border-red-500/20 bg-red-500/5'
-                        : 'border-amber-500/20 bg-amber-500/5'
-                    }`}
-                  >
-                    <ShieldAlert size={20} className={tx.severity === 'critical' || tx.severity === 'high' ? 'text-red-500 mt-0.5' : 'text-amber-500 mt-0.5'} />
-                    <div>
-                      <h5 className="font-bold text-xs text-[#131b2e] dark:text-white uppercase">Reference ID: {tx.referenceNumber}</h5>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{tx.reason}</p>
-                      <span className="inline-block mt-2 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#505f76]/10 text-slate-500">
-                        Severity: {tx.severity}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
-                <ShieldCheck size={24} />
-                <div>
-                  <h5 className="font-bold text-xs uppercase">Platform Check Complete</h5>
-                  <p className="text-[11px] mt-0.5 opacity-90">Verification logs show no high-severity risk indicators. System health is stable.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="p-8 text-center text-xs text-muted-foreground">Verify more transaction slips to compile Deep AI audits.</div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Provider Details breakdown */}

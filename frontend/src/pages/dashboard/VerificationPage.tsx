@@ -101,13 +101,13 @@ export default function VerificationPage() {
                       <td className="py-4 text-xs uppercase text-[#54647a]">{item.provider}</td>
                       <td className="py-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          item.status === 'completed' 
-                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' 
-                            : item.status === 'failed' 
+                          item.processingStatus === 'completed'
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
+                            : item.processingStatus === 'failed'
                               ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'
                               : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
                         }`}>
-                          {item.status}
+                          {item.processingStatus}
                         </span>
                       </td>
                       <td className="py-4 text-[#54647a]">{new Date(item.createdAt).toLocaleDateString()}</td>

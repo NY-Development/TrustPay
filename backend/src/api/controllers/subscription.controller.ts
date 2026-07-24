@@ -3,7 +3,7 @@ import { SubscriptionService } from '../../services/subscription.service';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { BadRequestError } from '../../utils/AppError';
 import { AuditLog } from '../../models/AuditLog';
-import { AUDIT_ACTIONS } from '../../constants';
+import { AUDIT_ACTIONS, YEARLY_PLAN_AVAILABLE } from '../../constants';
 import { logger } from '../../config/logger';
 
 import { getBranchAccessStatus } from '../../utils/subscriptionAccess';
@@ -71,6 +71,10 @@ export const verifySubscription = asyncHandler(async (req: Request, res: Respons
 
   if (!reference || !plan || !['monthly', 'yearly'].includes(plan)) {
     throw new BadRequestError('Validation Error: Reference and plan ("monthly" or "yearly") are required.');
+  }
+
+  if (plan === 'yearly' && !YEARLY_PLAN_AVAILABLE) {
+    throw new BadRequestError('Yearly billing is coming soon. Please subscribe with the monthly plan for now.');
   }
 
   try {

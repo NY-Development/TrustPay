@@ -114,10 +114,21 @@ export const SUBSCRIPTION_PLANS = {
 
 export type SubscriptionPlan = typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS];
 
+// Yearly = 10% off (monthly amount * 12).
 export const SUBSCRIPTION_PRICING = {
-  monthly: { amount: 1500, durationDays: 30 },
-  yearly: { amount: 15000, durationDays: 365 },
+  monthly: { amount: 2000, durationDays: 30 },
+  yearly: { amount: 21600, durationDays: 365 },
 } as const;
+
+// Yearly billing isn't purchasable yet — "coming soon" on the pricing page.
+// Flip once the yearly billing flow is ready to go live.
+export const YEARLY_PLAN_AVAILABLE = false;
+
+// Standard pricing above assumes the merchant's own infrastructure hosts
+// their data long-term; TrustPay's servers only hold it transiently up to
+// this many days (e.g. during onboarding/migration). Retention beyond this
+// window requires the custom/enterprise plan (contact sales) instead.
+export const DATA_RETENTION_GRACE_DAYS = 30;
 
 export const SUBSCRIPTION_RECEIVER_NAME = 'YAMLAK NEGASH DUGO';
 

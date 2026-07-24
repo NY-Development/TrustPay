@@ -191,6 +191,12 @@ export interface VerificationRecord {
 
   status: 'pending' | 'completed' | 'failed';
 
+  // The backend's actual field name for pipeline stage (the DB model has no
+  // plain `status`) — present on real API responses even though `status`
+  // above isn't; kept alongside it rather than renaming to avoid touching
+  // every existing (harmlessly-fallback-guarded) `.status` call site.
+  processingStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+
   source: 'screenshot' | 'manual' | 'qr';
 
   rawResponse?: Record<string, any>;

@@ -1,10 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { useVerificationHistory } from "@/src/hooks/useVerification";
-import { useAI } from "@/src/ai/AIProvider";
-import type { ReceiptData, InsightReport } from "@/src/ai/ai-types";
+import { computeBusinessInsights } from "@/src/utils/fraudAnalysis";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { X } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 import {
   Area,
@@ -51,7 +50,6 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function AnalyticsPage() {
-  const { organizer, status: aiStatus } = useAI();
   const { data } = useVerificationHistory({
     limit: 100,
   });
@@ -80,60 +78,26 @@ export default function AnalyticsPage() {
     });
   }, [allVerifications, dateRange]);
 
-  const [aiInsights, setAiInsights] = useState<InsightReport | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
-
-  // Convert history items to unified ReceiptData for AI organizer insights
-  const receiptDataItems = useMemo((): ReceiptData[] => {
-    return verifications.map((item: any) => ({
-      merchant: item.provider || item.bank || 'Unknown',
-      date: item.paymentDate || item.createdAt || new Date().toISOString(),
-      subtotal: Number(item.amount) || 0,
-      tax: null,
-      vat: null,
-      total: Number(item.amount) || 0,
-      currency: item.currency || 'ETB',
-      paymentMethod: 'transfer',
-      items: [],
-      category: 'other',
-      confidence: 1.0,
-      referenceNumber: item.referenceNumber || null,
-      transactionNumber: item.referenceNumber || null,
-      bank: item.provider || item.bank || 'Unknown',
-      senderName: item.rawResponse?.senderName || null,
-      receiverName: item.rawResponse?.receiverName || null,
-    }));
-  }, [verifications]);
-
-  useEffect(() => {
-    if (receiptDataItems.length > 0 && aiStatus === 'ready') {
-      const fetchAiInsights = async () => {
-        setLoadingAi(true);
-        try {
-          const report = await organizer.generateInsights(receiptDataItems);
-          setAiInsights(report);
-        } catch (err) {
-          console.warn('[AI Web Analytics Error]', err);
-        } finally {
-          setLoadingAi(false);
-        }
-      };
-      fetchAiInsights();
-    }
-  }, [receiptDataItems, aiStatus]);
-
+  // Deterministic business-insights computation over the filtered
+  // verifications — trend (volume this half of the period vs. the other),
+  // provider concentration, fraud/success-rate thresholds. See
+  // fraudAnalysis.ts for the full method.
+  const insights = useMemo(() => computeBusinessInsights(verifications), [verifications]);
 
   const metrics = useMemo(() => {
     if (!verifications.length) return null;
 
     const total = verifications.length;
 
+    // `verified` is the real success signal on a Verification document —
+    // there is no plain `status` field (only `processingStatus`, which
+    // tracks the pipeline stage, not the outcome).
     const completed = verifications.filter(
-      (v: any) => v.status === "completed"
+      (v: any) => v.verified === true
     ).length;
 
     const failed = verifications.filter(
-      (v: any) => v.status === "failed"
+      (v: any) => v.verified === false || v.processingStatus === "failed"
     ).length;
 
     const successRate =
@@ -537,14 +501,14 @@ export default function AnalyticsPage() {
       </ChartContainer>
     </div>
 
-    {/* ───────────────── Business Insights ───────────────── */}
+    {/* ───────────────── Business Insights (deterministic) ───────────────── */}
 
     {metrics && (
       <div className="rounded-2xl border border-[#004bca]/15 bg-gradient-to-r from-[#004bca]/5 via-white to-violet-500/5 dark:from-[#004bca]/10 dark:to-violet-500/10 p-6">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#004bca]/10 shrink-0">
             <span className="material-symbols-outlined text-[#004bca] text-2xl">
-              auto_awesome
+              query_stats
             </span>
           </div>
 
@@ -553,67 +517,59 @@ export default function AnalyticsPage() {
               <h3 className="text-lg font-semibold text-[#131b2e] dark:text-white">
                 Business Insights
               </h3>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#004bca]/10 text-[#004bca] border border-[#004bca]/10">
-                Cloud Gemma AI
+              <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#004bca]/10 text-[#004bca] border border-[#004bca]/10">
+                {insights.trend.direction === 'up' ? <TrendingUp size={11} /> : insights.trend.direction === 'down' ? <TrendingDown size={11} /> : <Minus size={11} />}
+                {insights.trend.label}
               </span>
             </div>
 
-            {loadingAi ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground py-6">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#004bca]" />
-                Generating specialized revenue analysis...
-              </div>
-            ) : aiInsights ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {aiInsights.monthlySummary}
-                </p>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {insights.summary}
+              </p>
 
-                <div className="grid gap-4 md:grid-cols-2 mt-4">
-                  <div className="rounded-xl border bg-background p-4">
-                    <h4 className="font-semibold text-sm mb-2 text-[#131b2e] dark:text-white flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[16px] text-green-500">poll</span>
-                      Verification Statistics
-                    </h4>
-                    <ul className="space-y-2 text-xs text-muted-foreground">
-                      <li>✅ Success rate: <strong className="text-foreground">{metrics.successRate}%</strong></li>
-                      <li>📦 Total verifications: <strong className="text-foreground">{metrics.total}</strong></li>
-                      <li>✔ Completed: <strong className="text-foreground">{metrics.completed}</strong></li>
-                      <li>✖ Failed: <strong className="text-foreground">{metrics.failed}</strong></li>
-                    </ul>
-                  </div>
-
-                  <div className="rounded-xl border bg-background p-4">
-                    <h4 className="font-semibold text-sm mb-2 text-[#131b2e] dark:text-white flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[16px] text-blue-500">payments</span>
-                      Financial Breakdown
-                    </h4>
-                    <ul className="space-y-2 text-xs text-muted-foreground">
-                      <li>💰 Total Volume: <strong className="text-foreground">{metrics.totalVolume.toLocaleString()} ETB</strong></li>
-                      <li>💳 Average Transaction: <strong className="text-foreground">{Number(metrics.avgAmount).toLocaleString()} ETB</strong></li>
-                      <li>🏆 Leading Provider: <strong className="text-foreground uppercase">{metrics.topProvider?.[0] ?? "--"}</strong></li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border bg-background p-4 mt-2">
+              <div className="grid gap-4 md:grid-cols-2 mt-4">
+                <div className="rounded-xl border bg-background p-4">
                   <h4 className="font-semibold text-sm mb-2 text-[#131b2e] dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-purple-500">lightbulb</span>
-                    AI Operational Recommendations
+                    <span className="material-symbols-outlined text-[16px] text-green-500">poll</span>
+                    Verification Statistics
                   </h4>
                   <ul className="space-y-2 text-xs text-muted-foreground">
-                    {aiInsights.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-[#004bca] font-bold">•</span>
-                        <span>{rec}</span>
-                      </li>
-                    ))}
+                    <li>✅ Success rate: <strong className="text-foreground">{metrics.successRate}%</strong></li>
+                    <li>📦 Total verifications: <strong className="text-foreground">{metrics.total}</strong></li>
+                    <li>✔ Completed: <strong className="text-foreground">{metrics.completed}</strong></li>
+                    <li>✖ Failed: <strong className="text-foreground">{metrics.failed}</strong></li>
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border bg-background p-4">
+                  <h4 className="font-semibold text-sm mb-2 text-[#131b2e] dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-blue-500">payments</span>
+                    Financial Breakdown
+                  </h4>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
+                    <li>💰 Total Volume: <strong className="text-foreground">{metrics.totalVolume.toLocaleString()} ETB</strong></li>
+                    <li>💳 Average Transaction: <strong className="text-foreground">{Number(metrics.avgAmount).toLocaleString()} ETB</strong></li>
+                    <li>🏆 Leading Provider: <strong className="text-foreground uppercase">{metrics.topProvider?.[0] ?? "--"}</strong></li>
                   </ul>
                 </div>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground py-4">No insights could be computed. Continue logs check.</p>
-            )}
+
+              <div className="rounded-xl border bg-background p-4 mt-2">
+                <h4 className="font-semibold text-sm mb-2 text-[#131b2e] dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-purple-500">lightbulb</span>
+                  Operational Recommendations
+                </h4>
+                <ul className="space-y-2 text-xs text-muted-foreground">
+                  {insights.recommendations.map((rec, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-[#004bca] font-bold">•</span>
+                      <span>{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

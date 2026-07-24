@@ -61,7 +61,12 @@ export const normalizeVerificationResponse = (
     const dbRecord = res.data;
     tx = {
       bank: (dbRecord.provider || 'unknown') as any,
-      status: dbRecord.status === 'completed' ? 'success' : dbRecord.status === 'failed' ? 'failed' : 'pending',
+      // DB records have `verified`/`processingStatus`, never a plain `status`
+      // field — derive the UI-facing success/failed/pending tri-state from
+      // those real fields instead (this feeds fraud/warning classification
+      // in verification-severity.ts, so getting it wrong silently disables
+      // that detection for every history-sourced record).
+      status: dbRecord.verified === true ? 'success' : dbRecord.processingStatus === 'failed' ? 'failed' : 'pending',
       verified: dbRecord.verified ?? true,
       senderName: dbRecord.senderName || dbRecord.verificationResult?.bankSpecific?.senderName,
       receiverName: dbRecord.receiverName || dbRecord.verificationResult?.bankSpecific?.receiverName,

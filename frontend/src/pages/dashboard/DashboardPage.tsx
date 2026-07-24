@@ -71,7 +71,9 @@ export default function DashboardPage() {
   const computed = useMemo(() => {
     if (allVerifications.length === 0) return null;
     const total = allVerifications.length;
-    const completed = allVerifications.filter((v: any) => v.status === 'completed').length;
+    // `verified` is the real success signal — Verification documents have
+    // no plain `status` field (only `processingStatus`, the pipeline stage).
+    const completed = allVerifications.filter((v: any) => v.verified === true).length;
     const successRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
     
     const dailyCounts: Record<string, number> = {};
@@ -206,7 +208,15 @@ export default function DashboardPage() {
                   <tr key={item._id} className="hover:bg-[#faf8ff]">
                     <td className="py-3 font-mono font-bold">{item.referenceNumber}</td>
                     <td className="py-3 font-bold">{item.amount} {item.currency}</td>
-                    <td className="py-3"><span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-600">{item.status}</span></td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded-full ${
+                        item.verified === true ? 'bg-emerald-50 text-emerald-600' :
+                        item.processingStatus === 'failed' || item.verified === false ? 'bg-red-50 text-red-600' :
+                        'bg-amber-50 text-amber-600'
+                      }`}>
+                        {item.processingStatus || (item.verified ? 'completed' : 'pending')}
+                      </span>
+                    </td>
                     <td className="py-3 text-right"><Link to={`/dashboard/verify/${item._id}`} className="text-[#004bca] font-semibold">Inspect</Link></td>
                   </tr>
                 ))}

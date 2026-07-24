@@ -38,7 +38,7 @@ export default function ExportPage() {
         item.currency || 'ETB',
         item.provider,
         `"${(item.payerName || '').replace(/"/g, '""')}"`,
-        item.status || item.verificationStatus,
+        item.processingStatus || item.verificationStatus,
         new Date(item.createdAt).toISOString()
       ];
       csvRows.push(row.join(','));

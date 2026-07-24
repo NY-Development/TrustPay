@@ -1,0 +1,28 @@
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-24T06:02:27.600Z"}
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-24T06:02:30.841Z"}
+{"level":"warn","message":"MongoDB disconnected. Attempting reconnection...","timestamp":"2026-07-24T06:02:38.700Z"}
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-24T06:02:47.928Z"}
+{"level":"error","message":"Error: You are still in the free trial period.","method":"GET","path":"/api/v1/subscriptions/status","stack":"Error: You are still in the free trial period.\n    at <anonymous> (C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\src\\api\\controllers\\subscription.controller.ts:38:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2026-07-24T06:06:15.436Z"}
+{"level":"error","message":"Error: You are still in the free trial period.","method":"GET","path":"/api/v1/subscriptions/status","stack":"Error: You are still in the free trial period.\n    at <anonymous> (C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\src\\api\\controllers\\subscription.controller.ts:38:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2026-07-24T06:06:17.674Z"}
+{"level":"error","message":"Error: You are still in the free trial period.","method":"GET","path":"/api/v1/subscriptions/status","stack":"Error: You are still in the free trial period.\n    at <anonymous> (C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\src\\api\\controllers\\subscription.controller.ts:38:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2026-07-24T06:06:35.528Z"}
+{"level":"error","message":"Error: You are still in the free trial period.","method":"GET","path":"/api/v1/subscriptions/status","stack":"Error: You are still in the free trial period.\n    at <anonymous> (C:\\Users\\yamla\\Desktop\\NYDev\\nyProjects\\trust-pay\\backend\\src\\api\\controllers\\subscription.controller.ts:38:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2026-07-24T06:06:37.475Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"POST","path":"/api/v1/branches","timestamp":"2026-07-24T06:18:20.480Z"}
+{"level":"error","message":"Error: An account already exists with this email address.","method":"POST","path":"/api/v1/auth/register","timestamp":"2026-07-24T06:18:21.092Z"}
+{"level":"error","message":"Error: Access denied. Owners only.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-24T06:18:22.692Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"PUT","path":"/api/v1/branches/6a6303aed07d669e29b284da","timestamp":"2026-07-24T06:18:22.883Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-24T06:18:23.263Z"}
+{"level":"error","message":"Error: Invalid credentials","method":"POST","path":"/api/v1/auth/login/owner","timestamp":"2026-07-24T06:18:23.284Z"}
+{"level":"error","message":"Error: Access denied: You do not own this branch.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-24T06:18:23.880Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-24T06:18:23.912Z"}
+{"level":"error","message":"Error: Account already exists on this branch.","method":"POST","path":"/api/v1/branches/6a6303b0d07d669e29b28528/accounts","timestamp":"2026-07-24T06:18:24.804Z"}
+{"level":"error","message":"Error: An account with this email address already exists.","method":"POST","path":"/api/v1/employees/invite","timestamp":"2026-07-24T06:18:25.120Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/auth/me","timestamp":"2026-07-24T06:18:25.194Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-24T06:18:25.699Z"}
+{"level":"error","message":"Error: Invalid or missing CSRF token.","method":"PATCH","path":"/api/v1/auth/profile","timestamp":"2026-07-24T06:18:26.407Z"}
+{"level":"error","message":"Error: Invalid OTP","method":"POST","path":"/api/v1/auth/verify-otp","timestamp":"2026-07-24T06:18:29.459Z"}
+{"level":"error","message":"Error: Access denied: Employee belongs to another company.","method":"GET","path":"/api/v1/employees/6a6303b5cef09572af677ff0","timestamp":"2026-07-24T06:18:30.269Z"}
+{"level":"error","message":"Error: Invalid credentials or account suspended","method":"POST","path":"/api/v1/auth/login/employee","timestamp":"2026-07-24T06:18:31.823Z"}
+{"level":"error","message":"Error: Employee not found.","method":"GET","path":"/api/v1/employees/6a6303bbcef09572af678095","timestamp":"2026-07-24T06:18:35.695Z"}
+{"level":"error","message":"Error: Not authenticated. Please login.","method":"GET","path":"/api/v1/employees","timestamp":"2026-07-24T06:18:35.710Z"}
+{"level":"warn","message":"MongoDB disconnected. Attempting reconnection...","timestamp":"2026-07-24T06:50:13.713Z"}
+{"level":"info","message":"📦 MongoDB reconnected successfully.","timestamp":"2026-07-24T06:50:15.728Z"}

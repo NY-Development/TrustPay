@@ -97,32 +97,36 @@ export const DashboardLayout: React.FC = () => {
         <div className="mb-4">
           <Link
             to="/dashboard/verify/manual"
-            className={`w-full bg-[#004bca] hover:bg-[#0061ff] text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm ${
-              collapsed ? 'p-2.5 h-10 w-10 mx-auto rounded-full' : 'py-2.5 px-4'
+            className={`w-full bg-[#004bca] hover:bg-[#0061ff] text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm py-2.5 px-4 ${
+              collapsed ? 'lg:p-2.5 lg:h-10 lg:w-10 lg:mx-auto lg:rounded-full' : ''
             }`}
             title="New Verification"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            {!collapsed && <span>New Verification</span>}
+            <span className={collapsed ? 'lg:hidden' : ''}>New Verification</span>
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto">
+        {/* Mobile/tablet: icon-over-label tile grid. Desktop (lg+): the
+            usual icon-left-label-right list, respecting the collapse state. */}
+        <nav className="flex-1 overflow-y-auto grid grid-cols-3 gap-2 content-start lg:flex lg:flex-col lg:gap-0 lg:space-y-1">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.to || (link.to !== '/dashboard' && location.pathname.startsWith(link.to));
             return (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`flex items-center gap-3 rounded-lg py-2.5 transition-colors hover:bg-white/10 ${
-                  collapsed ? 'justify-center px-1' : 'px-4'
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-xl p-2.5 text-center transition-colors hover:bg-white/10 lg:flex-row lg:justify-start lg:gap-3 lg:rounded-lg lg:py-2.5 lg:text-left ${
+                  collapsed ? 'lg:justify-center lg:px-1' : 'lg:px-4'
                 } ${
                   isActive ? 'bg-[#004bca] text-white' : 'text-[#b7c8e1]/90'
                 }`}
                 title={collapsed ? link.label : undefined}
               >
-                <span className="material-symbols-outlined shrink-0">{link.icon}</span>
-                {!collapsed && <span className="text-sm font-medium tracking-wide whitespace-nowrap truncate">{link.label}</span>}
+                <span className="material-symbols-outlined text-[22px] lg:text-[20px] shrink-0">{link.icon}</span>
+                <span className={`text-[10.5px] leading-tight font-medium tracking-wide lg:text-sm lg:whitespace-nowrap lg:truncate ${collapsed ? 'lg:hidden' : ''}`}>
+                  {link.label}
+                </span>
               </Link>
             );
           })}
@@ -131,13 +135,15 @@ export const DashboardLayout: React.FC = () => {
           {user?.role === 'SUPER_ADMIN' && (
             <Link
               to="/admin/dashboard"
-              className={`flex items-center gap-3 rounded-lg py-2.5 transition-colors hover:bg-red-950/20 text-red-400 hover:text-red-300 border border-red-500/20 bg-red-900/5 ${
-                collapsed ? 'justify-center px-1' : 'px-4 justify-start'
+              className={`flex flex-col items-center justify-center gap-1.5 rounded-xl p-2.5 text-center transition-colors hover:bg-red-950/20 text-red-400 hover:text-red-300 border border-red-500/20 bg-red-900/5 lg:flex-row lg:gap-3 lg:rounded-lg lg:py-2.5 lg:text-left ${
+                collapsed ? 'lg:justify-center lg:px-1' : 'lg:px-4 lg:justify-start'
               }`}
               title={collapsed ? 'Super Admin Panel' : undefined}
             >
-              <span className="material-symbols-outlined shrink-0 text-red-500">lock_open</span>
-              {!collapsed && <span className="text-sm font-semibold tracking-wide whitespace-nowrap truncate">Super Admin Panel</span>}
+              <span className="material-symbols-outlined text-[22px] lg:text-[20px] shrink-0 text-red-500">lock_open</span>
+              <span className={`text-[10.5px] leading-tight font-semibold tracking-wide lg:text-sm lg:whitespace-nowrap lg:truncate ${collapsed ? 'lg:hidden' : ''}`}>
+                Super Admin Panel
+              </span>
             </Link>
           )}
         </nav>
@@ -145,13 +151,13 @@ export const DashboardLayout: React.FC = () => {
         <div className="mt-auto pt-6 border-t border-white/10 space-y-1">
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-              collapsed ? 'justify-center px-1' : 'px-4'
+            className={`w-full flex items-center gap-3 text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg py-2.5 text-sm font-medium transition-colors cursor-pointer px-4 ${
+              collapsed ? 'lg:justify-center lg:px-1' : ''
             }`}
             title={collapsed ? 'Sign Out' : undefined}
           >
             <span className="material-symbols-outlined shrink-0">logout</span>
-            {!collapsed && <span>Sign Out</span>}
+            <span className={collapsed ? 'lg:hidden' : ''}>Sign Out</span>
           </button>
         </div>
       </aside>

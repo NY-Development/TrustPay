@@ -5,6 +5,11 @@ import { StatusModal } from './StatusModal';
 import type { Subscription } from '../types';
 import { ShieldAlert, LogOut, CheckCircle2, Wallet, X, Receipt } from 'lucide-react';
 
+// Keep in sync with backend/src/constants/index.ts (SUBSCRIPTION_PRICING,
+// YEARLY_PLAN_AVAILABLE).
+const PLAN_PRICES = { monthly: 2000, yearly: 21600 } as const; // yearly = 10% off
+const YEARLY_PLAN_AVAILABLE = false;
+
 interface SubscriptionModalProps {
   visible: boolean;
   canClose: boolean;
@@ -17,7 +22,9 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
   const verifyMutation = useVerifySubscription();
   const topUpMutation = useTopUpSubscription();
 
-  const [plan, setPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [plan, setPlan] = useState<'monthly' | 'yearly'>(
+    () => (YEARLY_PLAN_AVAILABLE && partialSubscription?.plan === 'yearly' ? 'yearly' : 'monthly')
+  );
   const [reference, setReference] = useState('');
   const [modal, setModal] = useState<{
     visible: boolean;
@@ -94,7 +101,7 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
     });
   };
 
-  const currentTransferPrice = plan === 'monthly' ? '1500' : '15000';
+  const currentTransferPrice = PLAN_PRICES[plan];
   const isLoading = verifyMutation.isPending || topUpMutation.isPending;
 
   return (
@@ -145,7 +152,38 @@ export default function SubscriptionModal({ visible, canClose = false, onClose, 
             </>
           ) : (
             <>
-              <p className="text-sm">TrustPay requires merchants to maintain an active subscription.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                TrustPay bills per branch. Pay via bank transfer to activate this branch, then paste the transaction reference below to verify instantly.
+              </p>
+
+              <div className="flex bg-[#faf8ff] dark:bg-[#0b0e14] border border-[#c2c6d9]/30 dark:border-white/10 rounded-xl p-1">
+                {(['monthly', 'yearly'] as const).map((p) => {
+                  const disabled = p === 'yearly' && !YEARLY_PLAN_AVAILABLE;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => !disabled && setPlan(p)}
+                      disabled={disabled}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all capitalize ${
+                        disabled
+                          ? 'cursor-not-allowed text-[#54647a]/40 dark:text-[#c2c6d9]/30'
+                          : plan === p
+                            ? 'bg-[#004bca] text-white shadow-sm'
+                            : 'text-[#54647a] dark:text-[#c2c6d9]'
+                      }`}
+                    >
+                      {p} {p === 'yearly' && <span className="opacity-80">{disabled ? '(coming soon)' : '(save 10%)'}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl border border-[#004bca]/20 bg-[#004bca]/5 px-4 py-3">
+                <span className="text-xs font-semibold text-[#54647a] dark:text-[#c2c6d9]">Amount to transfer</span>
+                <span className="text-lg font-bold text-[#004bca] dark:text-[#b4c5ff]">{currentTransferPrice.toLocaleString()} ETB</span>
+              </div>
+
               <div className="space-y-4">
                 <input type="text" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Transaction Reference" className="w-full border p-3 rounded-xl" />
                 <button onClick={handleVerify} disabled={isLoading} className="w-full bg-[#004bca] text-white font-bold py-3.5 rounded-xl">

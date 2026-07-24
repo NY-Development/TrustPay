@@ -86,8 +86,9 @@ const sections: Section[] = [
     title: "6. Subscriptions & Billing",
     paragraphs: ["Key billing terms:"],
     bullets: [
-      "Plans: Monthly (100 ETB) and Yearly (1,000 ETB). Pricing subject to change with 30 days notice.",
+      "Plans: Monthly (2,000 ETB per branch). Yearly billing (10% discount) is coming soon and not yet purchasable. Pricing subject to change with 30 days notice.",
       "Branch Billing: TrustPay plans are charged per branch. Owners must maintain an active subscription for each configured branch to allow employees at that branch to run verifications.",
+      "Data Hosting Terms: Standard pricing assumes your data is stored on TrustPay's infrastructure for no more than 30 days (e.g. during onboarding). Longer-term data hosting on TrustPay's servers requires the custom/enterprise plan.",
       "Auto-Renewal: Subscriptions renew automatically unless cancelled before the renewal date.",
       "Refund Policy: Active subscription charges are non-refundable due to verification API polling costs. Cancel anytime to prevent future charges.",
       "Grace Period: 3-day read-only access after expiration before access gating activates.",

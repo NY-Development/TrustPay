@@ -128,14 +128,14 @@ export default function Audit() {
         providerStats[provider] = { totalAmount: 0, verifiedCount: 0, fraudCount: 0 };
       }
 
-      const isFailed = record.verified === false || record.status === 'failed' || record.verificationSummary?.severity === 'error';
+      const isFailed = record.verified === false || record.processingStatus === 'failed' || record.verificationSummary?.severity === 'error';
       const isFraud = record.verificationSummary?.severity === 'fraud_risk';
       const isDuplicate = record.verificationSummary?.severity === 'duplicate' ||
                           (record.rawResponse?.confirmationHistory &&
                             (record.rawResponse.confirmationHistory.confirmationCount > 1 ||
                              record.rawResponse.confirmationHistory.confirmedBefore === true));
 
-      const isSuccess = record.verified === true && record.status !== 'failed' && !isFraud && !isDuplicate;
+      const isSuccess = record.verified === true && record.processingStatus !== 'failed' && !isFraud && !isDuplicate;
 
       if (isFailed) {
         failedCount++;

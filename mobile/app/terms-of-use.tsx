@@ -98,8 +98,9 @@ const sections: SectionItem[] = [
       `${APP_NAME} operates on a subscription-based model. Key billing terms include:`,
     ],
     bullets: [
-      'Plans: Monthly (100 ETB) and Yearly (1,000 ETB) plans are available. Pricing is subject to change with 30 days advance notice.',
+      'Plans: Monthly (2,000 ETB per branch). Yearly billing (10% discount) is coming soon and not yet purchasable. Pricing is subject to change with 30 days advance notice.',
       'Branch Billing: TrustPay plans are charged per branch. Owners must maintain an active subscription for each configured branch to allow employees at that branch to run verifications.',
+      "Data Hosting Terms: Standard pricing assumes your data is stored on TrustPay's infrastructure for no more than 30 days (e.g. during onboarding). Longer-term data hosting on TrustPay's servers requires the custom/enterprise plan.",
       'Billing Cycle: Subscriptions auto-renew at the end of each billing period unless cancelled before the renewal date.',
       'Refund Policy: Due to the transactional nature of verification API polling costs, active subscription charges are non-refundable. You may cancel at any time to prevent future charges.',
       'Grace Period: Upon subscription expiration, you will have a 3-day grace period during which read-only access to historical verifications is maintained before access gating activates.',

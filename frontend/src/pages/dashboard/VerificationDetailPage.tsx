@@ -55,16 +55,16 @@ export default function VerificationDetailPage() {
           <div className="space-y-6">
             {/* ── Status Banner ── */}
             <div className={`p-6 rounded-2xl border text-center flex flex-col items-center justify-center ${
-              v.status === 'completed'
+              v.processingStatus === 'completed'
                 ? 'bg-emerald-50 border-emerald-500/20 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                : v.status === 'failed'
+                : v.processingStatus === 'failed'
                   ? 'bg-rose-50 border-rose-500/20 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
                   : 'bg-amber-50 border-amber-500/20 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
             }`}>
               <span className="material-symbols-outlined text-[48px] mb-2">
-                {v.status === 'completed' ? 'check_circle' : v.status === 'failed' ? 'error' : 'pending'}
+                {v.processingStatus === 'completed' ? 'check_circle' : v.processingStatus === 'failed' ? 'error' : 'pending'}
               </span>
-              <h2 className="text-xl font-bold capitalize">{v.status} Verification</h2>
+              <h2 className="text-xl font-bold capitalize">{v.processingStatus} Verification</h2>
               <p className="text-xs mt-1 opacity-80">
                 {v.verified ? 'Payment authenticity confirmed by provider' : 'Awaiting settlement confirmation from provider'}
               </p>
